@@ -1,0 +1,23 @@
+/* ------ CUSTOMISE THE CAROUSEL ------ */
+
+.carousel {
+  height: 300px;
+  margin-bottom: 60px;
+}
+.carousel-caption {
+  color: #a8a8a8;
+}
+
+.carousel .item {
+  height: 300px;
+  background-color: #f7f7f7;
+}
+
+.carousel-indicators li {
+	background-color: #a8a8a8;
+	border: 1px solid #979797;
+}
+
+.carousel-indicators .active {
+	border: 1px solid #979797;
+}

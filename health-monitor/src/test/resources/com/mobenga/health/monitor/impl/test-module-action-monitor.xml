@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       ">
+    <bean id="service" class="com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl"/>
+    <bean id="storage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.MonitoredActionStorage" />
+    </bean>
+    <bean id="notifier" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.monitor.ModuleStateNotificationService" />
+    </bean>
+    <bean id="hazecast" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.hazelcast.core.HazelcastInstance" />
+    </bean>
+    <bean id="action" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.model.MonitoredAction" />
+    </bean>
+    <bean id="module" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.model.HealthItemPK" />
+    </bean>
+</beans>

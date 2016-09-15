@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       ">
+    <bean id="service" class="com.mobenga.health.monitor.impl.ModuleStateNotificationServiceImpl"
+          init-method="startService" destroy-method="stopService" scope="singleton">
+        <property name="heartbeatDelay" value="10"/>
+    </bean>
+    <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
+        <constructor-arg value="2"/>
+    </bean>
+    <bean id="moduleConfigurationService" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.monitor.ModuleConfigurationService"/>
+    </bean>
+    <bean id="configStorage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.ConfigurationStorage"/>
+    </bean>
+    <bean id="heartbeatStorage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.HeartBeatStorage"/>
+    </bean>
+    <bean id="hazecast" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.hazelcast.core.HazelcastInstance"/>
+    </bean>
+</beans>
