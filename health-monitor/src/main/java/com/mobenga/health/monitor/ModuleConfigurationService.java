@@ -58,4 +58,14 @@ public interface ModuleConfigurationService {
      * @return the configuration
      */
     Map<String,ConfiguredVariableItem> getConfigurationGroup(String configurationGroup);
+
+    /**
+     * To get item by module-id and name
+     *
+     * @param module
+     * @param name
+     * @param value
+     * @return
+     */
+    ConfiguredVariableItem updateConfigurationItemByModule(String module, String name, String value);
 }

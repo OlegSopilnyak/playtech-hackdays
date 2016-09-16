@@ -1,14 +1,11 @@
 package com.mobenga.hm.openbet.controller;
 
-import com.mobenga.health.storage.OpenBetOperationStorage;
-import com.mobenga.health.storage.impl.OpenBetOperationStorageImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.servlet.ModelAndView;
 
 /**
  * Controller of application's HTTP requests
@@ -16,8 +13,8 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 @RequestMapping("/i")
 public class ApplicationController {
-    @Autowired
-    private OpenBetOperationStorageImpl operationStorage;
+//    @Autowired
+//    private OpenBetOperationStorageImpl operationStorage;
 
     @Autowired
     private ApplicationContext appContext;

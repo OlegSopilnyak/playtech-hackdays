@@ -26,10 +26,7 @@ import static com.mobenga.health.HealthUtils.key;
  *
  * @see ModuleConfigurationService
  */
-public class ModuleConfigurationServiceImpl implements
-        ModuleConfigurationService,
-        MonitoredService,
-        ApplicationListener<ContextRefreshedEvent> {
+public class ModuleConfigurationServiceImpl implements ModuleConfigurationService, MonitoredService{
 
     private static final Logger LOG = LoggerFactory.getLogger(ModuleConfigurationServiceImpl.class);
 
@@ -50,7 +47,17 @@ public class ModuleConfigurationServiceImpl implements
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
 
     public void initialize(){
-        sharedCache = hazelcastInstance.getMap(sharedMapName);
+        final Map<String, Map<String, ConfiguredVariableItem>> sharedMap = hazelcastInstance.getMap(sharedMapName);
+        if (sharedMap.isEmpty()){
+            LOG.info("It seems node is alone. Loading stored configurations.");
+            try {
+                storage.getApplicationsPKs()
+                        .forEach(module -> sharedMap.putIfAbsent(module, storage.getConfiguration(module)));
+            } catch (Throwable t) {
+                LOG.error("Basic configuration not initialized.", t);
+            }
+        }
+        sharedCache = sharedMap;
         notifier.register(this);
     }
 
@@ -170,6 +177,29 @@ public class ModuleConfigurationServiceImpl implements
         return sharedCache.get(configurationGroup);
     }
 
+    /**
+     * To get item by module-id and name
+     *
+     * @param moduleId
+     * @param name
+     * @return
+     */
+    @Override
+    public ConfiguredVariableItem updateConfigurationItemByModule(String moduleId, String name, String value) {
+        final Map<String,ConfiguredVariableItem> configuration = sharedCache.get(moduleId);
+        if (configuration == null){
+            return null;
+        }
+        ConfiguredVariableItem item = configuration.get(name);
+        if (item == null){
+            return null;
+        }
+        item.set(value);
+        configuration.put(name, item);
+        sharedCache.put(moduleId, configuration);
+        return item;
+    }
+
     public Map<String, Map<String, ConfiguredVariableItem>> getSharedCache() {
         return sharedCache;
     }
@@ -178,23 +208,6 @@ public class ModuleConfigurationServiceImpl implements
         this.sharedCache = sharedCache;
     }
 
-    /**
-     * Handle an application event.
-     *
-     * @param event the event to respond to refresh
-     */
-    @Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
-        if (sharedCache.isEmpty()) {
-            LOG.info("It seems node is alone");
-            try {
-                storage.getApplicationsPKs()
-                        .forEach(module -> sharedCache.putIfAbsent(module, storage.getConfiguration(module)));
-            } catch (Throwable t) {
-                LOG.error("Basic configuration not initialized.", t);
-            }
-        }
-    }
 
     // private methods
     private static String normal(String groupName) {
@@ -245,9 +258,7 @@ public class ModuleConfigurationServiceImpl implements
      * @param changed map with changes
      */
     @Override
-    public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
-
-    }
+    public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {}
 
     /**
      * to get the value of item's system

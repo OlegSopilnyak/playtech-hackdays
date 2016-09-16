@@ -162,28 +162,16 @@ public abstract class MonitoredAction {
             return null;
         }
         @Override
-        public void setDescription(String description) {
-
-        }
+        public void setDescription(String description) {}
         @Override
-        public void setStart(Date starts) {
-
-        }
+        public void setStart(Date starts) {}
         @Override
-        public void setState(State state) {
-
-        }
+        public void setState(State state) {}
         @Override
-        public void setFinish(Date ends) {
-
-        }
+        public void setFinish(Date ends) {}
         @Override
-        public void setDuration(long duration) {
-
-        }
+        public void setDuration(long duration) {}
         @Override
-        public void setHost(String hostName) {
-
-        }
+        public void setHost(String hostName) {}
     }
 }

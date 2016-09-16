@@ -68,6 +68,7 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     @Override
     public void register(MonitoredService module) {
         monitored.add(module);
+        storage.saveHeartBeat(module);
         LOG.debug("Adding module {} for watching.", module);
     }
 
