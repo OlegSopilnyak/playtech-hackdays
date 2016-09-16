@@ -36,7 +36,7 @@ public class ApplicationConfiguration {
         return new OpenbetOperationsManipulationServiceStub();
     }
 
-    @Bean(autowire = Autowire.BY_TYPE)
+    @Bean(autowire = Autowire.BY_TYPE, initMethod = "initialize")
     public ExternalModuleSupportService externalModuleSupportService(){
         return new ExternalModuleSupportServiceImpl();
     }

@@ -66,6 +66,22 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     }
 
     /**
+     * @param applicationId
+     * @return
+     */
+    @Override
+    public HealthItemPK getModulePK(String applicationId) {
+        String moduleString = modules.getProperty(applicationId);
+        if (moduleString == null){
+            HealthItemPK module = new StructureModuleEntity(applicationId);
+            modules.setProperty(applicationId, module.toString());
+            storeModules();
+            return module;
+        }
+        return (HealthItemPK) new StructureModuleEntity().fromString(moduleString);
+    }
+
+    /**
      * To save module's heart-beat
      *
      * @param module state of module

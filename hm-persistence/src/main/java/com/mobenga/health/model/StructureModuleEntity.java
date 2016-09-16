@@ -24,6 +24,14 @@ public class StructureModuleEntity implements HealthItemPK, ValidatingEntity, Cl
 
     public StructureModuleEntity() {
     }
+    public StructureModuleEntity(String moduleId){
+        super();
+        StringTokenizer st = new StringTokenizer(moduleId, "|");
+        systemId = st.nextToken();
+        applicationId = st.nextToken();
+        versionId = st.nextToken();
+        description = moduleId;
+    }
 
     @Override
     public String toString() {

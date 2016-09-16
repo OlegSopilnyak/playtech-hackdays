@@ -13,4 +13,11 @@ public interface HealthStorage {
      * @return the instance
      */
     HealthItemPK getModulePK(HealthItemPK application);
+
+    /**
+     *
+     * @param applicationId
+     * @return
+     */
+    HealthItemPK getModulePK(String applicationId);
 }
