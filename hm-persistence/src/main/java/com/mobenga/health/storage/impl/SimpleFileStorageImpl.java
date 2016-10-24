@@ -10,6 +10,8 @@ import com.mobenga.health.storage.ConfigurationStorage;
 import com.mobenga.health.storage.HealthStorage;
 import com.mobenga.health.storage.HeartBeatStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,11 +34,22 @@ import static java.lang.Package.getPackage;
  */
 public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorage, HeartBeatStorage, MonitoredActionStorage {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleFileStorageImpl.class);
+    public static final String DATA_FILE_MODULES = "modules.properties";
+    public static final String DATA_FILE_CONFIG = "config";
+    public static final String DATA_FILE_HEARTBEAT = "heart-beat";
+    public static final String DATA_FILE_ACTIONS = "actions";
     private volatile String hostName = "localhost", hostIp = "127.0.0.1";
 
     private Map<String, StringEntity> configRepo = new ConcurrentHashMap<>();
+    private final ConfiguredVariableEntity configTemplate = new ConfiguredVariableEntity();
     private Map<String, StringEntity> actionRepo = new ConcurrentHashMap<>();
+    private final MonitoredActionEntity actionTemplate = new MonitoredActionEntity();
+    private Map<String, StringEntity> hbRepo = new ConcurrentHashMap<>();
+    private final HealthConditionEntity hbTemplate = new HealthConditionEntity();
     private Properties modules = new Properties();
+    private StructureModuleEntity moduleTemplate = new StructureModuleEntity();
+
+    private boolean initialized = false;
 
     @Autowired
     private UniqueIdGenerator idGenerator;
@@ -47,11 +60,24 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
 
     @PostConstruct
     public void init() throws Exception {
-        hostName = InetAddress.getLocalHost().getHostName();
-        hostIp = InetAddress.getLocalHost().getHostAddress();
-        reStoreModules();
-        reStoreRepository("config", new ConfiguredVariableEntity());
-        reStoreRepository("actions", new MonitoredActionEntity());
+        synchronized (modules) {
+            if(initialized) return;
+            hostName = InetAddress.getLocalHost().getHostName();
+            hostIp = InetAddress.getLocalHost().getHostAddress();
+            reStoreModules();
+            configRepo = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+            actionRepo = reStoreRepository(DATA_FILE_ACTIONS, actionTemplate);
+            hbRepo = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
+            initialized = true;
+        }
+    }
+
+    /**
+     * For tests only
+     * @return the value
+     */
+    boolean isInitialized() {
+        return initialized;
     }
 
     /**
@@ -78,7 +104,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             storeModules();
             return module;
         }
-        return (HealthItemPK) new StructureModuleEntity().fromString(moduleString);
+        return (HealthItemPK) moduleTemplate.fromString(moduleString);
     }
 
     /**
@@ -90,9 +116,21 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     public void saveHeartBeat(ModuleHealth module) {
         final Date nowDateTime = timer.now();
         LOG.debug("Saving module heart-beat time '{}'", nowDateTime);
-        StructureModuleEntity modulePK = getOrCreateModuleEntity(module.getModulePK());
-        String moduleId = modulePK.getId();
-
+        Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
+        String moduleId = key(module.getModulePK());
+        LOG.debug("Heart-beat is not stored in this version of storage.");
+        String key = moduleId + "."+hostName;
+        HealthConditionEntity condition = (HealthConditionEntity) repository.get(key);
+        if (condition == null || condition.changed(module)) {
+            condition = new HealthConditionEntity();
+            condition.setHealthPK(module.getModulePK());
+            condition.setHostAddress(hostIp);
+            condition.setHostName(hostName);
+            condition.setModuleActive(module.isActive());
+            repository.put(key, condition);
+            storeRepository(DATA_FILE_HEARTBEAT, repository);
+            hbRepo = repository;
+        }
     }
 
     /**
@@ -102,7 +140,14 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
      */
     @Override
     public List<ModuleHealthItem> getSystemHealth() {
-        return null;
+        final List<ModuleHealthItem> systemHealth = new ArrayList<>();
+        for(StringEntity entity : hbRepo.values()){
+            HealthConditionEntity condition = (HealthConditionEntity) entity;
+            if (hostName.equals(condition.getHostName())) {
+                systemHealth.add(new ModuleHealthItem(condition.getModule(), condition.isModuleActive()));
+            }
+        }
+        return systemHealth;
     }
 
     /**
@@ -121,7 +166,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         actionEntity.validate();
         LOG.debug("Saving '{}'", actionEntity);
         actionRepo.put(actionEntity.getId(), actionEntity);
-        storeRepository("actions", actionRepo);
+        storeRepository(DATA_FILE_ACTIONS, actionRepo);
     }
 
     /**
@@ -172,64 +217,13 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
                 changedItems.forEach((item) -> {
                     configRepo.put(item.getId(), item);
                 });
-                storeRepository("config", configRepo);
+                storeRepository(DATA_FILE_CONFIG, configRepo);
 //                configRepository.save(changedItems);
             } catch (Throwable e) {
                 LOG.error("Can't save configuration updates.", e);
             }
         }
 
-    }
-
-    private void storeRepository(String config, Map<String, StringEntity> configRepo) {
-        try {
-            Properties props = new Properties();
-            configRepo.entrySet().forEach((i) -> {
-                props.setProperty(i.getKey(), i.getValue().toString());
-            });
-            Writer dataChannel = new FileWriter(new File(dataFolder,config + ".properties"));
-            props.store(dataChannel, "Storage of beans " + config);
-            dataChannel.close();
-        } catch (Exception e) {
-            LOG.error("Can't save repo " + config, e);
-        }
-    }
-
-    private Map<String, StringEntity> reStoreRepository(String config, StringEntity template) {
-        try {
-            Map<String, StringEntity> configRepo = new ConcurrentHashMap<>();
-            Properties props = new Properties();
-            Reader dataChannel = new FileReader(new File(dataFolder,config + ".properties"));
-            props.load(dataChannel);
-            dataChannel.close();
-            for (String id : props.stringPropertyNames()) {
-                configRepo.put(id, template.fromString(props.getProperty(id)));
-            }
-            return configRepo;
-        } catch (Exception e) {
-            LOG.error("Can't read repo " + config, e);
-        }
-        return new ConcurrentHashMap<>();
-    }
-
-    private void storeModules() {
-        try {
-            Writer dataChannel = new FileWriter(new File(dataFolder,"modules.properties"));
-            modules.store(dataChannel, "registered modules");
-            dataChannel.close();
-        } catch (Exception e) {
-            LOG.error("Can't save ", e);
-        }
-    }
-
-    private void reStoreModules() {
-        try {
-            Reader dataChannel = new FileReader(new File(dataFolder,"modules.properties"));
-            modules.load(dataChannel);
-            dataChannel.close();
-        } catch (Exception e) {
-            LOG.error("Can't load ", e);
-        }
     }
 
     /**
@@ -268,8 +262,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
                 changedItems.forEach((item) -> {
                     configRepo.put(item.getId(), item);
                 });
-                storeRepository("config", configRepo);
-//                configRepository.save(changedItems);
+                storeRepository(DATA_FILE_CONFIG, configRepo);
             } catch (Throwable e) {
                 LOG.error("Can't save configuration updates.", e);
             }
@@ -338,6 +331,8 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         return new ConfiguredVariableEntity();
     }
 
+// private methods
+    @NotNull
     private static String getPackage(String mapKey) {
         final String[] pack = mapKey.split("\\.");
         final StringBuilder builder = new StringBuilder(pack[0]);
@@ -347,20 +342,22 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         return builder.toString();
     }
 
+    void removeEntity(HealthItemPK module){
+        LOG.debug("Removing module {}.", module);
+        reStoreModules();
+        modules.remove(key(module));
+        storeModules();
+    }
+
+    @Nullable
     private StructureModuleEntity getOrCreateModuleEntity(HealthItemPK module) {
         LOG.debug("Finding entity for '{}'", module);
         try {
             reStoreModules();
-            StructureModuleEntity template = new StructureModuleEntity();
+            StructureModuleEntity template = moduleTemplate;
             for (String id : modules.stringPropertyNames()) {
                 StructureModuleEntity entity = (StructureModuleEntity) template.fromString(modules.getProperty(id));
-                if (
-                        entity.getSystemId().equals(module.getSystemId()) &&
-                                entity.getApplicationId().equals(module.getApplicationId()) &&
-                                entity.getVersionId().equals(module.getVersionId())
-                        ) {
-                    return entity;
-                }
+                if (entity.equals(module)) return entity;
             }
             template = new StructureModuleEntity(module);
             modules.setProperty(key(module), template.toString());
@@ -371,4 +368,58 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             return null;
         }
     }
+    private void storeModules() {
+        try {
+            Writer dataChannel = new FileWriter(new File(dataFolder,DATA_FILE_MODULES));
+            modules.store(dataChannel, "registered modules");
+            dataChannel.close();
+        } catch (Exception e) {
+            LOG.error("Can't save ", e);
+        }
+    }
+
+    private void reStoreModules() {
+        try {
+            modules.clear();
+            Reader dataChannel = new FileReader(new File(dataFolder,DATA_FILE_MODULES));
+            modules.load(dataChannel);
+            dataChannel.close();
+        } catch (Exception e) {
+            LOG.error("Can't load modules, storing empty.", e);
+            storeModules();
+        }
+    }
+
+    private void storeRepository(String config, Map<String, StringEntity> configRepo) {
+        try {
+            Properties props = new Properties();
+            configRepo.entrySet().forEach((i) -> {
+                props.setProperty(i.getKey(), i.getValue().toString());
+            });
+            Writer dataChannel = new FileWriter(new File(dataFolder,config + ".properties"));
+            props.store(dataChannel, "Storage of beans " + config);
+            dataChannel.close();
+        } catch (Exception e) {
+            LOG.error("Can't save repo " + config, e);
+        }
+    }
+
+    private Map<String, StringEntity> reStoreRepository(String config, StringEntity template) {
+        Map<String, StringEntity> configRepo = new ConcurrentHashMap<>();
+        try {
+            Properties props = new Properties();
+            Reader dataChannel = new FileReader(new File(dataFolder,config + ".properties"));
+            props.load(dataChannel);
+            dataChannel.close();
+            for (String id : props.stringPropertyNames()) {
+                configRepo.put(id, template.fromString(props.getProperty(id)));
+            }
+            return configRepo;
+        } catch (Exception e) {
+            LOG.error("Can't read repo " + config + " storing default storage.", e);
+            storeRepository(config, configRepo);
+        }
+        return new ConcurrentHashMap<>();
+    }
+
 }

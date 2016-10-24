@@ -149,8 +149,8 @@ public class StructureModuleEntity implements HealthItemPK, ValidatingEntity, Cl
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        StructureModuleEntity that = (StructureModuleEntity) o;
+        if (o == null || !(o instanceof HealthItemPK)) return false;
+        HealthItemPK that = (HealthItemPK) o;
         return Objects.equals(getSystemId(), that.getSystemId()) &&
                 Objects.equals(getApplicationId(), that.getApplicationId()) &&
                 Objects.equals(getVersionId(), that.getVersionId());

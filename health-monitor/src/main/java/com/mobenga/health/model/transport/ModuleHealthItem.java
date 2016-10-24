@@ -71,6 +71,13 @@ public class ModuleHealthItem implements HealthItemPK{
         this.active = active;
     }
 
+    public boolean sameAs(HealthItemPK module){
+        return systemId.equals(module.getSystemId()) &&
+                applicationId.equals(module.getApplicationId()) &&
+                versionId.equals(module.getVersionId())
+                ;
+    }
+
     @Override
     public String toString() {
         return "ModuleHealthItem{" +
