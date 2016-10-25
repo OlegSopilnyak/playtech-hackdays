@@ -12,7 +12,7 @@ import java.util.TreeMap;
  * The entity for persistence
  */
 public class ConfiguredVariableEntity extends ConfiguredVariableItem implements ValidatingEntity, Cloneable, StringEntity  {
-    private Map<String, Object> entity = new TreeMap<>();
+    private TreeMap<String, Object> entity = new TreeMap<>();
 
     /**
      * To make copy of the entity
@@ -20,7 +20,9 @@ public class ConfiguredVariableEntity extends ConfiguredVariableItem implements 
      */
     public ConfiguredVariableEntity copy(){
         try {
-            return (ConfiguredVariableEntity) super.clone();
+            final ConfiguredVariableEntity copy = (ConfiguredVariableEntity) super.clone();
+            copy.entity = (TreeMap<String, Object>) entity.clone();
+            return copy;
         } catch (CloneNotSupportedException ex) {
             return null;
         }
@@ -126,6 +128,7 @@ public class ConfiguredVariableEntity extends ConfiguredVariableItem implements 
     @Override
     public void setType(Type type) {
         entity.put("type", type);
+        strategy = VariableTypeStrategies.get(type);
     }
     public String getId() {
         return (String) entity.get("id");

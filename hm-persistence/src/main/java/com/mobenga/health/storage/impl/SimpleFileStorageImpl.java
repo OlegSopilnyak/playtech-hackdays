@@ -22,6 +22,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -133,6 +134,14 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         }
     }
 
+    void removeModuleHB(HealthItemPK pk){
+        Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
+        final String key = key(pk) + "."+hostName;
+        repository.remove(key);
+        storeRepository(DATA_FILE_HEARTBEAT, repository);
+        hbRepo = repository;
+    }
+
     /**
      * To get states of all modules
      *
@@ -158,15 +167,48 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
      */
     @Override
     public void saveActionState(HealthItemPK pk, MonitoredAction action) {
+        if (!(action instanceof MonitoredActionEntity)) {
+            LOG.error("Action instance is not entity '{}'", action);
+            return;
+        }
+        Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_ACTIONS, actionTemplate);
         final MonitoredActionEntity actionEntity = (MonitoredActionEntity) action;
         if (StringUtils.isEmpty(actionEntity.getId())) {
+            actionEntity.setId(idGenerator.generate());
             actionEntity.setHealthPK(getOrCreateModuleEntity(pk).getId());
             actionEntity.setHost(hostName);
         }
         actionEntity.validate();
         LOG.debug("Saving '{}'", actionEntity);
-        actionRepo.put(actionEntity.getId(), actionEntity);
-        storeRepository(DATA_FILE_ACTIONS, actionRepo);
+        repository.put(actionEntity.getId(), actionEntity);
+        storeRepository(DATA_FILE_ACTIONS, repository);
+        actionRepo = repository;
+    }
+
+    MonitoredAction getAction(MonitoredAction action){
+        if (!(action instanceof MonitoredActionEntity)) {
+            LOG.error("Action instance is not entity '{}'", action);
+            return null;
+        }
+        final MonitoredActionEntity actionEntity = (MonitoredActionEntity) action;
+        return (MonitoredAction) actionRepo.get(actionEntity.getId());
+    }
+
+    void removeAction(MonitoredAction action){
+        if (!(action instanceof MonitoredActionEntity)) {
+            LOG.error("Action instance is not entity '{}'", action);
+            return;
+        }
+        final MonitoredActionEntity actionEntity = (MonitoredActionEntity) action;
+        if (StringUtils.isEmpty(actionEntity.getId()))  {
+            LOG.warn("Cannot remove not stored '{}'", actionEntity);
+            return;
+        }
+        LOG.debug("Removing '{}'", actionEntity);
+        final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_ACTIONS, actionTemplate);
+        repository.remove(actionEntity.getId());
+        storeRepository(DATA_FILE_ACTIONS, repository);
+        actionRepo = repository;
     }
 
     /**
@@ -193,13 +235,13 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         final ConfiguredVariableEntity root = new ConfiguredVariableEntity();
         root.setModuleKey(moduleKey);
         root.setVersion(0);
-//        // increase the version
-//        try {
-//            increaseVariablesVersionFor(moduleKey);
-//        } catch (Throwable e) {
-//            LOG.error("Can't increase configuration version for '{}'", moduleKey, e);
-//            return;
-//        }
+        // increase the version
+        try {
+            increaseVariablesVersionFor(moduleKey);
+        } catch (Throwable e) {
+            LOG.error("Can't increase configuration version for '{}'", moduleKey, e);
+            return;
+        }
         configuration.entrySet().stream().forEach((e) -> {
             final ConfiguredVariableEntity entity = root.copy();
             entity.setId(idGenerator.generate());
@@ -214,11 +256,10 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         });
         if (!changedItems.isEmpty()) {
             try {
-                changedItems.forEach((item) -> {
-                    configRepo.put(item.getId(), item);
-                });
-                storeRepository(DATA_FILE_CONFIG, configRepo);
-//                configRepository.save(changedItems);
+                final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+                changedItems.forEach((item) -> {repository.put(item.getId(), item);});
+                storeRepository(DATA_FILE_CONFIG, repository);
+                configRepo = repository;
             } catch (Throwable e) {
                 LOG.error("Can't save configuration updates.", e);
             }
@@ -226,6 +267,18 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
 
     }
 
+    void removeModuleConfiguration(HealthItemPK module){
+        final String moduleId = key(module);
+        final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+        for(Iterator<Map.Entry<String, StringEntity>> i = repository.entrySet().iterator();i.hasNext();){
+            Map.Entry<String, StringEntity> entry = i.next();
+            if (((ConfiguredVariableEntity)entry.getValue()).getModuleKey().equals(moduleId)){
+                i.remove();
+            }
+        }
+        storeRepository(DATA_FILE_CONFIG, repository);
+        configRepo = repository;
+    }
     /**
      * To store the changed configuration to database
      *
@@ -310,9 +363,10 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     public Map<String, ConfiguredVariableItem> getConfiguration(String modulePK, int version) {
         LOG.debug("Getting {} version of configuration for '{}'", version, modulePK);
         try {
-            configRepo = reStoreRepository("config", new ConfiguredVariableEntity());
-            return configRepo.entrySet().stream().filter(s -> modulePK.equals(((ConfiguredVariableEntity) s.getValue()).getModuleKey()))
+            return configRepo.entrySet()
+                    .stream()
                     .map(s -> (ConfiguredVariableEntity) s.getValue())
+                    .filter(i -> modulePK.equals(i.getModuleKey()) && version == i.getVersion())
                     .collect(Collectors.toMap(i -> i.getMapKey(), i -> itemFor(modulePK, i.getPackageKey(), i)));
         } catch (Throwable e) {
             LOG.error("Can't get configuration for '{}'", modulePK, e);
@@ -342,7 +396,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         return builder.toString();
     }
 
-    void removeEntity(HealthItemPK module){
+    void removeModule(HealthItemPK module){
         LOG.debug("Removing module {}.", module);
         reStoreModules();
         modules.remove(key(module));
@@ -356,11 +410,13 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             reStoreModules();
             StructureModuleEntity template = moduleTemplate;
             for (String id : modules.stringPropertyNames()) {
-                StructureModuleEntity entity = (StructureModuleEntity) template.fromString(modules.getProperty(id));
+                final StructureModuleEntity entity = (StructureModuleEntity) template.fromString(modules.getProperty(id));
                 if (entity.equals(module)) return entity;
             }
+            final String moduleId = key(module);
             template = new StructureModuleEntity(module);
-            modules.setProperty(key(module), template.toString());
+            template.setId(moduleId);
+            modules.setProperty(moduleId, template.toString());
             storeModules();
             return template;
         } catch (Throwable e) {
@@ -420,6 +476,22 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             storeRepository(config, configRepo);
         }
         return new ConcurrentHashMap<>();
+    }
+
+    private void increaseVariablesVersionFor(String moduleKey) {
+        final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+        final AtomicBoolean changed = new AtomicBoolean(false);
+        repository.entrySet().forEach((cfg)-> {
+            final ConfiguredVariableEntity entity = (ConfiguredVariableEntity) cfg.getValue();
+            if (moduleKey.equals(entity.getModuleKey())){
+                changed.getAndSet(true);
+                entity.setVersion(entity.getVersion() + 1);
+            }
+        });
+        if (changed.get()) {
+            storeRepository(DATA_FILE_CONFIG, repository);
+            configRepo = repository;
+        }
     }
 
 }

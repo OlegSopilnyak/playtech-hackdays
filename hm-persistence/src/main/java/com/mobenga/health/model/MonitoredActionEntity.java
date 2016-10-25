@@ -44,7 +44,7 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
                 + description + "#"
                 + stateName + "#"
                 + dateConverter.format(start) + "#"
-                + dateConverter.format(finish) + "#"
+                + (finish == null ? " -none- " : dateConverter.format(finish)) + "#"
                 + duration + "#"
                 + host
                 ;
