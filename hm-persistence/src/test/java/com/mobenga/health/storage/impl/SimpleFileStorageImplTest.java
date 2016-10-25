@@ -16,10 +16,7 @@ import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.mobenga.health.HealthUtils.key;
 import static org.junit.Assert.*;
@@ -259,13 +256,45 @@ public class SimpleFileStorageImplTest {
         assertEquals(moduleCfg.get("1.2.3.p1").get(Integer.class), new Integer(199));
         assertNull(moduleCfg.get("1.2.3.p2"));
 
-        storage.removeModule(pk);
         storage.removeModuleConfiguration(pk);
     }
 
     @Test
     public void storeChangedConfiguration() throws Exception {
+        final String system = "mockSysConf1",
+                application = "mockAppConf1",
+                version = "mockVerConf1",
+                description = "mockDescriptionConf1"
+                        ;
 
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        Map<String, ConfiguredVariableItem> configuration = new HashMap<>(), moduleCfg;
+        configuration.put("1.2.3.p1", new LocalConfiguredVariableItem("p1", "Example of parameter number", 150));
+        configuration.put("1.2.3.p2", new LocalConfiguredVariableItem("p2", "Example of parameter string", "Hello World"));
+
+        storage.replaceConfiguration(pk, configuration);
+
+        final Date p_date = timer.now();
+        configuration.put("1.2.3.p-date", new LocalConfiguredVariableItem("p-date", "Example of parameter Date ", p_date));
+        storage.storeChangedConfiguration(pk, configuration);
+
+        moduleCfg = storage.getConfiguration(key(pk));
+        assertNotNull(moduleCfg.get("1.2.3.p1"));
+        assertEquals(moduleCfg.get("1.2.3.p1").getType(), ConfiguredVariableItem.Type.INTEGER);
+        assertEquals(moduleCfg.get("1.2.3.p1").get(Integer.class), new Integer(150));
+        assertNotNull(moduleCfg.get("1.2.3.p2"));
+        assertEquals(moduleCfg.get("1.2.3.p2").getType(), ConfiguredVariableItem.Type.STRING);
+        assertEquals(moduleCfg.get("1.2.3.p2").get(String.class), "Hello World");
+        assertNotNull(moduleCfg.get("1.2.3.p-date"));
+        assertEquals(moduleCfg.get("1.2.3.p-date").getType(), ConfiguredVariableItem.Type.TIME_STAMP);
+        assertEquals(moduleCfg.get("1.2.3.p-date").get(Date.class), p_date);
+
+        storage.removeModuleConfiguration(pk);
     }
 
     @Test
@@ -294,8 +323,8 @@ public class SimpleFileStorageImplTest {
         when(pk.getVersionId()).thenReturn(version+".01");
         when(pk.getDescription()).thenReturn(description);
 
-        storage.getModulePK(pk);
-        String key2PK = key(pk);
+
+        String key2PK = key(storage.getModulePK(pk));
 
         pks = storage.getApplicationsPKs();
         assertFalse( !pks.contains(keyPK));

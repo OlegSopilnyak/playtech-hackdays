@@ -223,6 +223,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
 
     /**
      * To change/replace module's configuration
+     * <br/> Updates from external system (administrator change the parameters of module)
      *
      * @param module        configurable module
      * @param configuration new configuration
@@ -232,7 +233,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         LOG.debug("Storing whole configuration for '{}'", module);
         final String moduleKey = key(module);
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
-        final ConfiguredVariableEntity root = new ConfiguredVariableEntity();
+        final ConfiguredVariableEntity root = configTemplate.copy();
         root.setModuleKey(moduleKey);
         root.setVersion(0);
         // increase the version
@@ -255,14 +256,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             }
         });
         if (!changedItems.isEmpty()) {
-            try {
-                final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
-                changedItems.forEach((item) -> {repository.put(item.getId(), item);});
-                storeRepository(DATA_FILE_CONFIG, repository);
-                configRepo = repository;
-            } catch (Throwable e) {
-                LOG.error("Can't save configuration updates.", e);
-            }
+            storeUpdatedItems(changedItems);
         }
 
     }
@@ -280,7 +274,8 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         configRepo = repository;
     }
     /**
-     * To store the changed configuration to database
+     * To store only configuration changes to database
+     * <br/> Updates from the module (new module's config parameter was added by author)
      *
      * @param module        the consumer of configuration
      * @param configuration configured variables
@@ -290,13 +285,13 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         LOG.debug("Storing changed configuration for '{}'", module);
         final String applicationKey = key(module);
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
-        final Map<String, ConfiguredVariableItem> dbConfig = getConfiguration(applicationKey);
-        final ConfiguredVariableEntity root = new ConfiguredVariableEntity();
+        final Map<String, ConfiguredVariableItem> actualConfig = this.getConfiguration(applicationKey, 0);
+        final ConfiguredVariableEntity root = configTemplate.copy();
         root.setModuleKey(applicationKey);
         root.setVersion(0);
         configuration.entrySet().stream().forEach((e) -> {
             final String mapKey = e.getKey();
-            if (dbConfig.get(mapKey) == null) {
+            if (!actualConfig.containsKey(mapKey)) {
                 // new configuration parameter has received
                 final ConfiguredVariableEntity entity = root.copy();
                 entity.setId(idGenerator.generate());
@@ -311,14 +306,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             }
         });
         if (!changedItems.isEmpty()) {
-            try {
-                changedItems.forEach((item) -> {
-                    configRepo.put(item.getId(), item);
-                });
-                storeRepository(DATA_FILE_CONFIG, configRepo);
-            } catch (Throwable e) {
-                LOG.error("Can't save configuration updates.", e);
-            }
+            storeUpdatedItems(changedItems);
         }
 
     }
@@ -493,5 +481,17 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             configRepo = repository;
         }
     }
+
+    private void storeUpdatedItems(List<ConfiguredVariableEntity> changedItems) {
+        try {
+            final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+            changedItems.forEach(item -> {repository.put(item.getId(), item);});
+            storeRepository(DATA_FILE_CONFIG, repository);
+            configRepo = repository;
+        } catch (Throwable e) {
+            LOG.error("Can't save configuration updates.", e);
+        }
+    }
+
 
 }
