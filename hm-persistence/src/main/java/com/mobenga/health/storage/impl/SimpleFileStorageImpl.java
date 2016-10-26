@@ -35,10 +35,10 @@ import static java.lang.Package.getPackage;
  */
 public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorage, HeartBeatStorage, MonitoredActionStorage {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleFileStorageImpl.class);
-    public static final String DATA_FILE_MODULES = "modules.properties";
-    public static final String DATA_FILE_CONFIG = "config";
-    public static final String DATA_FILE_HEARTBEAT = "heart-beat";
-    public static final String DATA_FILE_ACTIONS = "actions";
+    public static final String DATA_FILE_MODULES = HealthItemPK.STORAGE_NAME + ".properties";
+    public static final String DATA_FILE_CONFIG = ConfiguredVariableItem.STORAGE_NAME;
+    public static final String DATA_FILE_HEARTBEAT = HeartBeat.STORAGE_NAME;
+    public static final String DATA_FILE_ACTIONS = MonitoredAction.STORAGE_NAME;
     private volatile String hostName = "localhost", hostIp = "127.0.0.1";
 
     private Map<String, StringEntity> configRepo = new ConcurrentHashMap<>();

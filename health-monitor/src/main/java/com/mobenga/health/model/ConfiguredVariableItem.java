@@ -9,7 +9,7 @@ import java.util.Date;
 import java.util.Objects;
 
 /**
- * The item to store value of variable
+ * The item to store value of variable for configuration sub-system
  */
 public abstract class ConfiguredVariableItem implements Serializable {
     // the name of storage item (table/index-type/etc)
