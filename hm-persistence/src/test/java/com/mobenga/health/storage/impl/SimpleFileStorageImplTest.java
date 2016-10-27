@@ -257,6 +257,7 @@ public class SimpleFileStorageImplTest {
         assertNull(moduleCfg.get("1.2.3.p2"));
 
         storage.removeModuleConfiguration(pk);
+        storage.removeModule(pk);
     }
 
     @Test
@@ -295,6 +296,7 @@ public class SimpleFileStorageImplTest {
         assertEquals(moduleCfg.get("1.2.3.p-date").get(Date.class), p_date);
 
         storage.removeModuleConfiguration(pk);
+        storage.removeModule(pk);
     }
 
     @Test
@@ -336,12 +338,91 @@ public class SimpleFileStorageImplTest {
 
     @Test
     public void getConfiguration() throws Exception {
+        final String system = "mockSysConf-1",
+                application = "mockAppConf-1",
+                version = "mockVerConf-1",
+                description = "mockDescriptionConf-1"
+                        ;
 
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        Map<String, ConfiguredVariableItem> configuration = new HashMap<>(), moduleCfg;
+        configuration.put("1.2.3.p1", new LocalConfiguredVariableItem("p1", "Example of parameter number", 150));
+        configuration.put("1.2.3.p2", new LocalConfiguredVariableItem("p2", "Example of parameter string", "Hello World"));
+
+        storage.storeChangedConfiguration(pk, configuration);
+
+        moduleCfg = storage.getConfiguration(key(pk));
+
+        assertEquals(2, moduleCfg.size());
+        assertNotNull(moduleCfg.get("1.2.3.p1"));
+        assertEquals(moduleCfg.get("1.2.3.p1").getType(), ConfiguredVariableItem.Type.INTEGER);
+        assertEquals(moduleCfg.get("1.2.3.p1").get(Integer.class), new Integer(150));
+        assertNotNull(moduleCfg.get("1.2.3.p2"));
+        assertEquals(moduleCfg.get("1.2.3.p2").getType(), ConfiguredVariableItem.Type.STRING);
+        assertEquals(moduleCfg.get("1.2.3.p2").get(String.class), "Hello World");
+
+        when(pk.getVersionId()).thenReturn(version+"-x");
+        assertEquals(0, storage.getConfiguration(key(pk)).size());
+
+        when(pk.getVersionId()).thenReturn(version);
+        storage.removeModuleConfiguration(pk);
+        storage.removeModule(pk);
     }
 
     @Test
     public void getConfiguration1() throws Exception {
+        final String system = "mockSysConf-2",
+                application = "mockAppConf-2",
+                version = "mockVerConf-2",
+                description = "mockDescriptionConf-2"
+                        ;
 
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        Map<String, ConfiguredVariableItem> configuration = new HashMap<>(), moduleCfg;
+        configuration.put("1.2.3.p1", new LocalConfiguredVariableItem("p1", "Example of parameter number", 150));
+        configuration.put("1.2.3.p2", new LocalConfiguredVariableItem("p2", "Example of parameter string", "Hello World"));
+
+        storage.storeChangedConfiguration(pk, configuration);
+
+        configuration.remove("1.2.3.p2");
+        configuration.get("1.2.3.p1").set(199);
+        storage.replaceConfiguration(pk, configuration);
+
+        moduleCfg = storage.getConfiguration(key(pk), 1);
+        assertEquals(2, moduleCfg.size());
+        assertNotNull(moduleCfg.get("1.2.3.p1"));
+        assertEquals(moduleCfg.get("1.2.3.p1").getType(), ConfiguredVariableItem.Type.INTEGER);
+        assertEquals(moduleCfg.get("1.2.3.p1").get(Integer.class), new Integer(150));
+        assertNotNull(moduleCfg.get("1.2.3.p2"));
+        assertEquals(moduleCfg.get("1.2.3.p2").getType(), ConfiguredVariableItem.Type.STRING);
+        assertEquals(moduleCfg.get("1.2.3.p2").get(String.class), "Hello World");
+
+        moduleCfg = storage.getConfiguration(key(pk), 0);
+        assertEquals(1, moduleCfg.size());
+        assertNotNull(moduleCfg.get("1.2.3.p1"));
+        assertEquals(moduleCfg.get("1.2.3.p1").getType(), ConfiguredVariableItem.Type.INTEGER);
+        assertEquals(moduleCfg.get("1.2.3.p1").get(Integer.class), new Integer(199));
+        assertNull(moduleCfg.get("1.2.3.p2"));
+
+        moduleCfg = storage.getConfiguration(key(pk));
+        assertEquals(1, moduleCfg.size());
+        assertNotNull(moduleCfg.get("1.2.3.p1"));
+        assertEquals(moduleCfg.get("1.2.3.p1").getType(), ConfiguredVariableItem.Type.INTEGER);
+        assertEquals(moduleCfg.get("1.2.3.p1").get(Integer.class), new Integer(199));
+        assertNull(moduleCfg.get("1.2.3.p2"));
+
+        storage.removeModuleConfiguration(pk);
+        storage.removeModule(pk);
     }
 
     @Test
@@ -351,4 +432,65 @@ public class SimpleFileStorageImplTest {
         assertFalse(!(item instanceof ConfiguredVariableItem));
     }
 
+    @Test
+    public void getConfigurationVersionString() throws Exception {
+        final String system = "mockSysConf-3",
+                application = "mockAppConf-3",
+                version = "mockVerConf-3",
+                description = "mockDescriptionConf-3"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        Map<String, ConfiguredVariableItem> configuration = new HashMap<>(), moduleCfg;
+        configuration.put("1.2.3.p1", new LocalConfiguredVariableItem("p1", "Example of parameter number", 150));
+        configuration.put("1.2.3.p2", new LocalConfiguredVariableItem("p2", "Example of parameter string", "Hello World"));
+
+        storage.storeChangedConfiguration(pk, configuration);
+
+        assertEquals(0, storage.getConfigurationVersion(key(pk)));
+
+        configuration.remove("1.2.3.p2");
+        configuration.get("1.2.3.p1").set(199);
+        storage.replaceConfiguration(pk, configuration);
+
+        assertEquals(1, storage.getConfigurationVersion(key(pk)));
+        storage.removeModuleConfiguration(pk);
+        storage.removeModule(pk);
+    }
+
+    @Test
+    public void getConfigurationVersionHealthPK() throws Exception {
+        final String system = "mockSysConf-3",
+                application = "mockAppConf-3",
+                version = "mockVerConf-3",
+                description = "mockDescriptionConf-3"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        Map<String, ConfiguredVariableItem> configuration = new HashMap<>(), moduleCfg;
+        configuration.put("1.2.3.p1", new LocalConfiguredVariableItem("p1", "Example of parameter number", 150));
+        configuration.put("1.2.3.p2", new LocalConfiguredVariableItem("p2", "Example of parameter string", "Hello World"));
+
+        storage.storeChangedConfiguration(pk, configuration);
+
+        assertEquals(0, storage.getConfigurationVersion(pk));
+
+        configuration.remove("1.2.3.p2");
+        configuration.get("1.2.3.p1").set(199);
+        storage.replaceConfiguration(pk, configuration);
+
+        assertEquals(1, storage.getConfigurationVersion(pk));
+        storage.removeModuleConfiguration(pk);
+        storage.removeModule(pk);
+    }
 }

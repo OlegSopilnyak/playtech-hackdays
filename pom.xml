@@ -29,7 +29,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.8.2</version>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -151,8 +151,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <platform.version>3.65</platform.version>
-        <spring.version>3.2.10.RELEASE</spring.version>
-        <!--<spring.version>4.1.6.RELEASE</spring.version>-->
+        <!--<spring.version>3.2.10.RELEASE</spring.version>-->
+        <spring.version>4.1.6.RELEASE</spring.version>
         <handlebars.version>2.0.0</handlebars.version>
         <jaxws.version>2.3</jaxws.version>
         <compress>false</compress>

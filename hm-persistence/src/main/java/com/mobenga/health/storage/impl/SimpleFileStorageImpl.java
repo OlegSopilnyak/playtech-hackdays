@@ -24,11 +24,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static com.mobenga.health.HealthUtils.key;
 import static com.mobenga.health.storage.impl.ConfiguredVariableItemLightWeightFactory.itemFor;
-import static java.lang.Package.getPackage;
 
 /**
  * Trivial implementation of system storage
@@ -42,7 +40,9 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     private volatile String hostName = "localhost", hostIp = "127.0.0.1";
 
     private Map<String, StringEntity> configRepo = new ConcurrentHashMap<>();
+    private Map<String, Integer> configVersions = new ConcurrentHashMap<>();
     private final ConfiguredVariableEntity configTemplate = new ConfiguredVariableEntity();
+
     private Map<String, StringEntity> actionRepo = new ConcurrentHashMap<>();
     private final MonitoredActionEntity actionTemplate = new MonitoredActionEntity();
     private Map<String, StringEntity> hbRepo = new ConcurrentHashMap<>();
@@ -66,7 +66,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             hostName = InetAddress.getLocalHost().getHostName();
             hostIp = InetAddress.getLocalHost().getHostAddress();
             reStoreModules();
-            configRepo = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+            configRepo = restoreConfigurationRepository();
             actionRepo = reStoreRepository(DATA_FILE_ACTIONS, actionTemplate);
             hbRepo = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
             initialized = true;
@@ -231,7 +231,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     @Override
     public void replaceConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
         LOG.debug("Storing whole configuration for '{}'", module);
-        final String moduleKey = key(module);
+        final String moduleKey = key(getModulePK(module));
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
         final ConfiguredVariableEntity root = configTemplate.copy();
         root.setModuleKey(moduleKey);
@@ -263,14 +263,14 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
 
     void removeModuleConfiguration(HealthItemPK module){
         final String moduleId = key(module);
-        final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+        final Map<String, StringEntity> repository = restoreConfigurationRepository();
         for(Iterator<Map.Entry<String, StringEntity>> i = repository.entrySet().iterator();i.hasNext();){
             Map.Entry<String, StringEntity> entry = i.next();
             if (((ConfiguredVariableEntity)entry.getValue()).getModuleKey().equals(moduleId)){
                 i.remove();
             }
         }
-        storeRepository(DATA_FILE_CONFIG, repository);
+        storeConfigurationRepository(repository);
         configRepo = repository;
     }
     /**
@@ -283,7 +283,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     @Override
     public void storeChangedConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
         LOG.debug("Storing changed configuration for '{}'", module);
-        final String applicationKey = key(module);
+        final String applicationKey = key(getModulePK(module));
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
         final Map<String, ConfiguredVariableItem> actualConfig = this.getConfiguration(applicationKey, 0);
         final ConfiguredVariableEntity root = configTemplate.copy();
@@ -308,7 +308,6 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         if (!changedItems.isEmpty()) {
             storeUpdatedItems(changedItems);
         }
-
     }
 
     /**
@@ -373,7 +372,30 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
         return new ConfiguredVariableEntity();
     }
 
-// private methods
+    /**
+     * To get the version of configuration for particular module
+     *
+     * @param modulePK pipeline separated main fields of module
+     * @return actual version of configuration
+     */
+    @Override
+    public int getConfigurationVersion(String modulePK) {
+        final Integer actualVersion = configVersions.get(modulePK);
+        return actualVersion == null ? -1 : actualVersion.intValue();
+    }
+
+    /**
+     * To get the version of configuration for particular module
+     *
+     * @param module module instance
+     * @return actual version of configuration
+     */
+    @Override
+    public int getConfigurationVersion(HealthItemPK module) {
+        return getConfigurationVersion(key(module));
+    }
+
+    // private methods
     @NotNull
     private static String getPackage(String mapKey) {
         final String[] pack = mapKey.split("\\.");
@@ -467,7 +489,7 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     }
 
     private void increaseVariablesVersionFor(String moduleKey) {
-        final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+        final Map<String, StringEntity> repository = restoreConfigurationRepository();
         final AtomicBoolean changed = new AtomicBoolean(false);
         repository.entrySet().forEach((cfg)-> {
             final ConfiguredVariableEntity entity = (ConfiguredVariableEntity) cfg.getValue();
@@ -477,21 +499,39 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
             }
         });
         if (changed.get()) {
-            storeRepository(DATA_FILE_CONFIG, repository);
-            configRepo = repository;
+            storeConfigurationRepository(repository);
         }
     }
 
     private void storeUpdatedItems(List<ConfiguredVariableEntity> changedItems) {
         try {
-            final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+            final Map<String, StringEntity> repository = restoreConfigurationRepository();
             changedItems.forEach(item -> {repository.put(item.getId(), item);});
-            storeRepository(DATA_FILE_CONFIG, repository);
-            configRepo = repository;
+            storeConfigurationRepository(repository);
         } catch (Throwable e) {
             LOG.error("Can't save configuration updates.", e);
         }
     }
 
+    private void storeConfigurationRepository(Map<String, StringEntity> repository) {
+        storeRepository(DATA_FILE_CONFIG, repository);
+        recalculateConfigurationVersions(repository);
+        configRepo = repository;
+    }
 
+    private  Map<String, StringEntity> restoreConfigurationRepository(){
+        final Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_CONFIG, configTemplate);
+        recalculateConfigurationVersions(repository);
+        return repository;
+    }
+
+    private void recalculateConfigurationVersions(Map<String, StringEntity> repository) {
+        configVersions.clear();
+        repository.values().stream().map(e -> (ConfiguredVariableEntity)e).forEach(c -> {
+            final String moduleKey = c.getModuleKey();
+            final Integer version = c.getVersion();
+            final Integer currentVersion = configVersions.computeIfAbsent(moduleKey, key -> version);
+            configVersions.put(moduleKey, version > currentVersion ? version : currentVersion);
+        });
+    }
 }

@@ -36,18 +36,18 @@ public interface ConfigurationStorage {
     /**
      * To get configuration for particular application
      *
-     * @param applicationPK application's primary key
+     * @param modulePK application's primary key
      * @return configuration as map
      */
-    Map<String,ConfiguredVariableItem> getConfiguration(String applicationPK);
+    Map<String,ConfiguredVariableItem> getConfiguration(String modulePK);
     /**
      * To get configuration for particular application
      *
-     * @param applicationPK application's primary key
+     * @param modulePK application's primary key
      * @param version needed version
      * @return configuration as map
      */
-    Map<String,ConfiguredVariableItem> getConfiguration(String applicationPK, int version);
+    Map<String,ConfiguredVariableItem> getConfiguration(String modulePK, int version);
 
     /**
      * To create the instance of configured variable item
@@ -56,4 +56,19 @@ public interface ConfigurationStorage {
      */
     ConfiguredVariableItem createVariableItem();
 
+    /**
+     * To get the version of configuration for particular module
+     *
+     * @param modulePK pipeline separated main fields of module
+     * @return actual version of configuration
+     */
+    int getConfigurationVersion(String modulePK);
+
+    /**
+     * To get the version of configuration for particular module
+     *
+     * @param module module instance
+     * @return actual version of configuration
+     */
+    int getConfigurationVersion(HealthItemPK module);
 }
