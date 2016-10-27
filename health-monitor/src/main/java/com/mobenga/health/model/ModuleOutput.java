@@ -52,6 +52,21 @@ public interface ModuleOutput {
     String getPayload();
 
     /**
+     * To create the copy of bean
+     *
+     * @return copy instance
+     */
+    ModuleOutput copy();
+
+    /**
+     * To assign module's primary key to output
+     *
+     * @param key key of module
+     * @return this
+     */
+    ModuleOutput setModulePK(String key);
+
+    /**
      * The factory for module's outputs
      */
     interface DeviceFactory{

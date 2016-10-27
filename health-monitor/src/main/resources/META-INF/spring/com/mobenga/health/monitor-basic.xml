@@ -9,6 +9,12 @@
 
     <context:property-placeholder />
 
+    <bean id="logService" class="com.mobenga.health.monitor.impl.LogModuleServiceImpl"
+          init-method="startService" destroy-method="stopService"
+            >
+
+    </bean>
+
     <bean id="moduleConfigurationService"
           class="com.mobenga.health.monitor.impl.ModuleConfigurationServiceImpl"
           init-method="initialize" destroy-method="shutdown"
@@ -20,7 +26,7 @@
           init-method="initialize" destroy-method="shutdown"
             />
 
-    <bean id="moduleStateNotifier"
+    <bean id="moduleStateNotifier" depends-on="logService"
           class="com.mobenga.health.monitor.impl.ModuleStateNotificationServiceImpl"
           init-method="startService" destroy-method="stopService"
             >

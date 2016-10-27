@@ -6,15 +6,14 @@ import com.mobenga.health.model.factory.UniqueIdGenerator;
 import com.mobenga.health.model.persistence.ValidatingEntity;
 import com.mobenga.health.model.transport.ModuleHealthItem;
 import com.mobenga.health.monitor.behavior.ModuleHealth;
-import com.mobenga.health.storage.ConfigurationStorage;
-import com.mobenga.health.storage.HealthStorage;
-import com.mobenga.health.storage.HeartBeatStorage;
-import com.mobenga.health.storage.MonitoredActionStorage;
+import com.mobenga.health.storage.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
@@ -31,7 +30,13 @@ import static com.mobenga.health.storage.impl.ConfiguredVariableItemLightWeightF
 /**
  * Trivial implementation of system storage
  */
-public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorage, HeartBeatStorage, MonitoredActionStorage {
+public class SimpleFileStorageImpl implements
+        ConfigurationStorage,
+        HealthStorage,
+        HeartBeatStorage,
+        MonitoredActionStorage,
+        ModuleOutputStorage
+{
     private static final Logger LOG = LoggerFactory.getLogger(SimpleFileStorageImpl.class);
     public static final String DATA_FILE_MODULES = HealthItemPK.STORAGE_NAME + ".properties";
     public static final String DATA_FILE_CONFIG = ConfiguredVariableItem.STORAGE_NAME;
@@ -49,6 +54,8 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     private final HealthConditionEntity hbTemplate = new HealthConditionEntity();
     private Properties modules = new Properties();
     private StructureModuleEntity moduleTemplate = new StructureModuleEntity();
+
+    private Map<String, ModuleOutput> moduleOutputMap = new HashMap<>();
 
     private boolean initialized = false;
 
@@ -393,6 +400,77 @@ public class SimpleFileStorageImpl implements ConfigurationStorage, HealthStorag
     @Override
     public int getConfigurationVersion(HealthItemPK module) {
         return getConfigurationVersion(key(module));
+    }
+
+    /**
+     * To create module's output item for particular module
+     *
+     * @param module owner of output
+     * @param type   the type of output
+     * @return a new instance of output
+     */
+    @Override
+    public ModuleOutput createModuleOutput(HealthItemPK module, String type) {
+        final ModuleOutput template = moduleOutputMap.get(type);
+        return template == null ? null : template.copy().setModulePK(key(module));
+    }
+
+    /**
+     * To save chaged module's output
+     *
+     * @param message output to save
+     */
+    @Override
+    public void saveModuleOutput(ModuleOutput message) {
+        LOG.debug("Saving module-output class='{}'", message.getClass().getCanonicalName());
+        final ModuleOutput template = moduleOutputMap.get(message.getMessageType());
+        if (template instanceof StringEntity){
+            final StringEntity entityTemplate = (StringEntity) template.copy();
+            final String repositoryName = entityTemplate.storageName();
+            final Map<String, StringEntity> repository = reStoreRepository(repositoryName, entityTemplate);
+            ((StringEntity)message).setId(idGenerator.generate());
+            if (message instanceof ValidatingEntity){
+                try {
+                    ((ValidatingEntity)message).validate();
+                    repository.put(message.getId(), (StringEntity)message);
+                    storeRepository(repositoryName, repository);
+                    LOG.debug("The module-output saved successfully.");
+                } catch (ValidatingEntity.EntityInvalidState ex) {
+                    LOG.warn("Invalid entity '{}' ignored.", message, ex);
+                }
+            }
+        }
+    }
+
+    /**
+     * To select entities suit the criteria
+     *
+     * @param criteria criteria to select
+     * @param offset   required part of selection
+     * @return required
+     */
+    @Override
+    public Page<ModuleOutput> select(ModuleOutput.Criteria criteria, Pageable offset) {
+        return null;
+    }
+
+    /**
+     * To delete unnecessary entities
+     *
+     * @param criteria criteria of selection
+     * @return the quantity of deleted entities
+     */
+    @Override
+    public int delete(ModuleOutput.Criteria criteria) {
+        return 0;
+    }
+
+    public Map<String, ModuleOutput> getModuleOutputMap() {
+        return moduleOutputMap;
+    }
+
+    public void setModuleOutputMap(Map<String, ModuleOutput> moduleOutputMap) {
+        this.moduleOutputMap = moduleOutputMap;
     }
 
     // private methods

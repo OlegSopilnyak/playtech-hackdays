@@ -33,6 +33,16 @@ public class StructureModuleEntity implements HealthItemPK, ValidatingEntity, Cl
         description = moduleId;
     }
 
+    /**
+     * The name of storage for this sort of beans
+     *
+     * @return the name
+     */
+    @Override
+    public String storageName() {
+        return STORAGE_NAME;
+    }
+
     @Override
     public String toString() {
         return id + "#"

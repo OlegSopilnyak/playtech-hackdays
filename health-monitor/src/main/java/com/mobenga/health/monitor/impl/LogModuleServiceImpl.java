@@ -1,10 +1,13 @@
 package com.mobenga.health.monitor.impl;
 
+import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.LogMessage;
 import com.mobenga.health.model.ModuleOutput;
 import com.mobenga.health.model.factory.UniqueIdGenerator;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
+import com.mobenga.health.monitor.ModuleStateNotificationService;
+import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -20,8 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * The service handles module's output type "log"
  */
-@Service("logService")
-public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory {
+public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, MonitoredService {
     private static final Logger LOG = LoggerFactory.getLogger(LogModuleServiceImpl.class);
 
     @Autowired
@@ -35,6 +39,9 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory {
     @Autowired
     private ModuleOutputStorage storage;
 
+    @Autowired
+    private ModuleStateNotificationService notifier;
+
     private final AtomicBoolean serviceWorks = new AtomicBoolean(false);
 
     public void startService(){
@@ -44,6 +51,18 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory {
         while (!serviceWorks.get());
         // register the device
         ModuleOutputDeviceFactory.registerDeviceFactory(this);
+        // register the module
+        notifier.register(this);
+    }
+
+    public void stopService(){
+        if (!serviceWorks.get()) return;
+        LOG.info("Stopping service");
+        eventsQueue.offer(Event.NULL);
+        while (!serviceWorks.get());
+        LOG.info("Service stopped");
+        // un register the module
+        notifier.unRegister(this);
     }
     /**
      * To create the Device for module's output
@@ -96,6 +115,97 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory {
         for(Object arg : event.arguments) msg.append(arg);
         message.setPayload(msg.toString());
         storage.saveModuleOutput(message);
+    }
+
+    /**
+     * To get the value of Module's PK
+     *
+     * @return value of PK (not null)
+     */
+    @Override
+    public HealthItemPK getModulePK() {
+        return this;
+    }
+
+    /**
+     * Describe the state of module
+     *
+     * @return true if module active
+     */
+    @Override
+    public boolean isActive() {
+        return serviceWorks.get();
+    }
+
+    /**
+     * The handle to restart monitored service
+     */
+    @Override
+    public void restart() {
+        if (isActive()){
+            stopService();
+        }
+        startService();
+    }
+
+    /**
+     * to get the value of item's system
+     *
+     * @return the value
+     */
+    @Override
+    public String getSystemId() {
+        return "healthMonitor";
+    }
+
+    /**
+     * to get the value of item's application
+     *
+     * @return the value
+     */
+    @Override
+    public String getApplicationId() {
+        return "modulesOuputService";
+    }
+
+    /**
+     * to get the value of item's application version
+     *
+     * @return the value
+     */
+    @Override
+    public String getVersionId() {
+        return "0.01";
+    }
+
+    /**
+     * to get description of module
+     *
+     * @return the value
+     */
+    @Override
+    public String getDescription() {
+        return "Module for log-messages";
+    }
+
+    /**
+     * To get current configuration of module
+     *
+     * @return the map
+     */
+    @Override
+    public Map<String, ConfiguredVariableItem> getConfiguration() {
+        return Collections.EMPTY_MAP;
+    }
+
+    /**
+     * Notification about change configuration
+     *
+     * @param changed map with changes
+     */
+    @Override
+    public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
+
     }
 
     // inner classes

@@ -15,6 +15,15 @@ public class ConfiguredVariableEntity extends ConfiguredVariableItem implements 
     private TreeMap<String, Object> entity = new TreeMap<>();
 
     /**
+     * The name of storage for this sort of beans
+     *
+     * @return the name
+     */
+    @Override
+    public String storageName() {
+        return STORAGE_NAME;
+    }
+    /**
      * To make copy of the entity
      * @return clone of entity
      */

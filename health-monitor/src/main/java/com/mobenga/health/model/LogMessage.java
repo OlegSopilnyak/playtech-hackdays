@@ -24,9 +24,6 @@ public abstract class LogMessage implements ModuleOutput, ValidatingEntity{
     protected LogMessage() {
     }
 
-    public LogMessage(String modulePK) {
-        this.modulePK = modulePK;
-    }
 
     /**
      * The unique identifier of the action's output message

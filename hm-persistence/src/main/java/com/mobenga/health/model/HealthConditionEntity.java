@@ -19,6 +19,25 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
     private String hostAddress = "127.0.0.1";
     private boolean moduleActive = false;
 
+    /**
+     * To store new value of id
+     *
+     * @param id new value
+     */
+    @Override
+    public void setId(String id) {
+
+    }
+
+    /**
+     * The name of storage for this sort of beans
+     *
+     * @return the name
+     */
+    @Override
+    public String storageName() {
+        return STORAGE_NAME;
+    }
     @Override
     public StringEntity fromString(String value) {
         final HealthConditionEntity entity = new HealthConditionEntity();
