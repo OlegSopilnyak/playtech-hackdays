@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -28,10 +27,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @see ModuleStateNotificationService
  */
 public class ModuleStateNotificationServiceImpl implements ModuleStateNotificationService, MonitoredService {
-    public static final String HB_PARAMS_PACKAGE = "health.monitor.notification.service.heartbeat";
+    public static final String PARAMS_PACKAGE = "health.monitor.service.heartbeat";
     private static final ConfiguredVariableItem HB_DELAY =
             new LocalConfiguredVariableItem("delay", "The delay between heart beats", HeartBeat.DELAY);
-    public static final String HB_DELAY_PARAM_KEY = HB_PARAMS_PACKAGE + "." + HB_DELAY.getName();
+    public static final String HB_DELAY_PARAM_KEY = PARAMS_PACKAGE + "." + HB_DELAY.getName();
 
     private static final Logger LOG = LoggerFactory.getLogger(ModuleStateNotificationServiceImpl.class);
 
@@ -56,7 +55,8 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     @Qualifier("serviceRunner")
     private ExecutorService executor;
 
-    {
+    public ModuleStateNotificationServiceImpl() {
+        // prepare the configuration
         config.put(HB_DELAY_PARAM_KEY, HB_DELAY);
     }
 

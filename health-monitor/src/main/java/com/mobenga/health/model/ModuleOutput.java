@@ -93,10 +93,30 @@ public interface ModuleOutput {
     interface Device {
         /**
          * To create ModuleOutput instance and send it to appropriate storage
-         * @param actionId the id of action-aggregator (may be null)
-         * @param argumments the arguments of output item for payload
+         * @param arguments the arguments of output item for payload
          */
-        void out(String actionId, Object... argumments);
+        void out(Object... arguments);
+
+        /**
+         * Associate monitored action with module's ouput
+         *
+         * @param action
+         */
+        void associate(MonitoredAction action);
+
+        /**
+         * To start progress stage of associated action
+         */
+        void actionBegin();
+
+        /**
+         * To finish associated action successfully
+         */
+        void actionEnd();
+        /**
+         * To finish associated action with errors
+         */
+        void actionFail();
     }
 
     /**

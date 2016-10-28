@@ -3,7 +3,6 @@ package com.mobenga.hm.openbet.service.impl;
 import com.mobenga.health.model.ConfiguredVariableEntity;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
-import com.mobenga.health.model.HeartBeat;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
@@ -15,9 +14,6 @@ import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
-
-import static com.mobenga.health.monitor.impl.ModuleStateNotificationServiceImpl.HB_DELAY_PARAM_KEY;
-import static com.mobenga.health.monitor.impl.ModuleStateNotificationServiceImpl.HB_PARAMS_PACKAGE;
 
 /**
  * External modules support realization
