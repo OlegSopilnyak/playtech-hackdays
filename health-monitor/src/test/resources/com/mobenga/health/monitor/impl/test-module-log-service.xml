@@ -8,17 +8,20 @@
            http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
        ">
+    <bean id="service" class="com.mobenga.health.monitor.impl.LogModuleServiceImpl"
+          init-method="startService" destroy-method="stopService" scope="singleton">
+    </bean>
 
-    <bean id="actionStorage" class="org.mockito.Mockito" factory-method="mock">
+    <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
+        <constructor-arg value="2"/>
+    </bean>
+    <bean id="notifier" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.monitor.ModuleStateNotificationService" />
+    </bean>
+    <bean id="storage" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.storage.MonitoredActionStorage" />
     </bean>
-    <bean id="configStorage" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.mobenga.health.storage.ConfigurationStorage" />
-    </bean>
-    <bean id="heartbeatStorage" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.mobenga.health.storage.HeartBeatStorage" />
-    </bean>
-    <bean id="outputStorage" class="org.mockito.Mockito" factory-method="mock">
+    <bean id="moduleStorage" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.storage.ModuleOutputStorage" />
     </bean>
 </beans>

@@ -26,7 +26,7 @@ import static junit.framework.Assert.*;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({
         @ContextConfiguration(locations = {"classpath:com/mobenga/health/monitor/configuration/test-module-configuration-monitor.xml"})
-        ,@ContextConfiguration(classes = BasicMonitorConfiguration.class, loader = AnnotationConfigContextLoader.class)
+        ,@ContextConfiguration(classes = {BasicMonitorConfiguration.class, FactoryConfiguration.class}, loader = AnnotationConfigContextLoader.class)
 })
 public class BasicMonitorConfigurationTest {
 

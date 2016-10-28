@@ -66,7 +66,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         if (!serviceWorks.get()) return;
         LOG.info("Stopping service");
         eventsQueue.offer(Event.NULL);
-        while (!serviceWorks.get());
+        while (serviceWorks.get());
         LOG.info("Service stopped");
         // un register the module
         notifier.unRegister(this);

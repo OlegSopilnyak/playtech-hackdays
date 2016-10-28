@@ -9,7 +9,8 @@
 
     <context:property-placeholder />
 
-    <bean id="logService" class="com.mobenga.health.monitor.impl.LogModuleServiceImpl"
+    <bean id="logService"
+          class="com.mobenga.health.monitor.impl.LogModuleServiceImpl"
           init-method="startService" destroy-method="stopService"
             >
 

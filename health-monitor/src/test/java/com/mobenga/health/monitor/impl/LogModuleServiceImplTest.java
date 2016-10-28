@@ -1,0 +1,378 @@
+package com.mobenga.health.monitor.impl;
+
+import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.LogMessage;
+import com.mobenga.health.model.ModuleOutput;
+import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.storage.ModuleOutputStorage;
+import com.mobenga.health.storage.MonitoredActionStorage;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import java.util.Date;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.*;
+
+/**
+ * Tests for log module-output service
+ */
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = {
+        "classpath:com/mobenga/health/monitor/impl/test-module-log-service.xml",
+        "classpath:com/mobenga/health/monitor/factory/impl/test-basic-monitor-services.xml"
+})
+public class LogModuleServiceImplTest {
+
+    @Autowired
+    private LogModuleServiceImpl service;
+    @Autowired
+    private ModuleOutputStorage storage;
+    @Autowired
+    private MonitoredActionStorage actionStorage;
+
+    @Test
+    public void startService() throws Exception {
+        if (service.isActive()) service.stopService();
+        service.startService();
+        assertFalse(!service.isActive());
+    }
+
+    @Test
+    public void stopService() throws Exception {
+        if (service.isActive()) {
+            service.stopService();
+        } else {
+            service.startService();
+            service.stopService();
+        }
+        assertFalse(service.isActive());
+        service.startService();
+    }
+
+    @Test
+    public void create() throws Exception {
+        final String system = "mockSys",
+                application = "mockApp",
+                version = "mockVer",
+                description = "mockDescription1";
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        ModuleOutput output = mock(LogMessage.class);
+
+        ModuleOutput.Device device = service.create(pk);
+
+        assertNotNull(device);
+        when(storage.createModuleOutput(any(), any())).thenReturn(output);
+
+        device.out("Hello world");
+        Thread.sleep(100);
+    }
+
+    @Test
+    public void deviceOut() throws Exception {
+        final String system = "mockSys",
+                application = "mockApp",
+                version = "mockVer",
+                description = "mockDescription1";
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        ModuleOutput.Device device = service.create(pk);
+        assertNotNull(device);
+
+        LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
+
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        Thread.sleep(1000);
+
+        verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(output, times(4)).setId(any());
+        verify(output, times(4)).setActionId(anyString());
+        verify(output, times(4)).setPayload(eq("Hello world"));
+        verify(storage, times(4)).saveModuleOutput(eq(output));
+        reset(storage);
+    }
+
+    @Test
+    public void deviceActionOutSuccess() throws Exception {
+        final String system = "mockSys",
+                application = "mockApp",
+                version = "mockVer",
+                description = "mockDescription1";
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        ModuleOutput.Device device = service.create(pk);
+        assertNotNull(device);
+
+        LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
+
+        MonitoredActionStub action = new MonitoredActionStub();
+        action.setId("AAA");
+
+        device.associate(action);
+        device.actionBegin();
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        device.actionEnd();
+        Thread.sleep(1000);
+
+        verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(output, times(4)).setId(any());
+        verify(output, times(4)).setActionId(eq("AAA"));
+        verify(output, times(4)).setPayload(eq("Hello world"));
+        verify(storage, times(4)).saveModuleOutput(eq(output));
+
+        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
+
+        assertEquals(MonitoredAction.State.SUCCESS, action.getState());
+        reset(storage, actionStorage);
+    }
+
+    @Test
+    public void deviceActionOutFail() throws Exception {
+        final String system = "mockSys",
+                application = "mockApp",
+                version = "mockVer",
+                description = "mockDescription1";
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        ModuleOutput.Device device = service.create(pk);
+        assertNotNull(device);
+
+        LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
+
+        MonitoredActionStub action = new MonitoredActionStub();
+        action.setId("AAA");
+
+        device.associate(action);
+        device.actionBegin();
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        device.actionFail();
+        Thread.sleep(1000);
+
+        verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(output, times(4)).setId(any());
+        verify(output, times(4)).setActionId(eq("AAA"));
+        verify(output, times(4)).setPayload(eq("Hello world"));
+        verify(storage, times(4)).saveModuleOutput(eq(output));
+
+        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
+
+        assertEquals(MonitoredAction.State.FAIL, action.getState());
+        reset(storage, actionStorage);
+    }
+
+    @Test
+    public void getType() throws Exception {
+        assertEquals(LogMessage.OUTPUT_TYPE, service.getType());
+    }
+
+    @Test
+    public void getModulePK() throws Exception {
+        assertEquals(service.getModulePK(), service);
+    }
+
+    @Test
+    public void isActive() throws Exception {
+        if (service.isActive()) service.stopService();
+        service.startService();
+        assertFalse(!service.isActive());
+
+    }
+
+    @Test
+    public void restart() throws Exception {
+        service.restart();
+        assertFalse(!service.isActive());
+    }
+
+    @Test
+    public void getConfiguration() throws Exception {
+        // nothing to check
+    }
+
+    @Test
+    public void configurationChanged() throws Exception {
+        // nothing to check
+    }
+
+    private static class MonitoredActionStub extends MonitoredAction implements Cloneable {
+
+        private String id;
+        private String healthPK;
+        private String description;
+        private State state;
+        private Date start;
+        private Date finish;
+        private long duration;
+        private String host;
+
+        /**
+         * To make the copy of action
+         *
+         * @return the copy
+         */
+        @Override
+        public MonitoredAction copy() {
+            try {
+                return (MonitoredAction) clone();
+            } catch (CloneNotSupportedException e) {
+                return null;
+            }
+        }
+
+        /**
+         * To get the Id (primary key) of monitored action
+         *
+         * @return the value or null if not saved yet
+         */
+        @Override
+        public String getId() {
+            return id;
+        }
+
+        /**
+         * The reference to healthPK
+         *
+         * @return value of PK
+         */
+        @Override
+        public String getHealthPK() {
+            return healthPK;
+        }
+
+        /**
+         * To get the description of the action
+         *
+         * @return the value (not null)
+         */
+        @Override
+        public String getDescription() {
+            return description;
+        }
+
+        /**
+         * To get the current state of the action
+         *
+         * @return the value (not null)
+         */
+        @Override
+        public State getState() {
+            return state;
+        }
+
+        /**
+         * To get the time when action starts
+         *
+         * @return the value (not null)
+         */
+        @Override
+        public Date getStart() {
+            return start;
+        }
+
+        /**
+         * To get the time when action has finished
+         *
+         * @return the value (may be null)
+         */
+        @Override
+        public Date getFinish() {
+            return finish;
+        }
+
+        /**
+         * To get the duration of proceeded action
+         *
+         * @return the value (nanoseconds)
+         */
+        @Override
+        public long getDuration() {
+            return duration;
+        }
+
+        /**
+         * To get the name of host where action proceeded
+         *
+         * @return the value (not null)
+         */
+        @Override
+        public String getHost() {
+            return host;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public void setHealthPK(String healthPK) {
+            this.healthPK = healthPK;
+        }
+
+        @Override
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        @Override
+        public void setState(State state) {
+            this.state = state;
+        }
+
+        @Override
+        public void setStart(Date start) {
+            this.start = start;
+        }
+
+        @Override
+        public void setFinish(Date finish) {
+            this.finish = finish;
+        }
+
+        @Override
+        public void setDuration(long duration) {
+            this.duration = duration;
+        }
+
+        @Override
+        public void setHost(String host) {
+            this.host = host;
+        }
+    }
+}
