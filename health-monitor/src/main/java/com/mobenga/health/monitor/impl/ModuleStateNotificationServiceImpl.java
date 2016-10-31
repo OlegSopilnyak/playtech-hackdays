@@ -1,12 +1,13 @@
 package com.mobenga.health.monitor.impl;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
-import com.mobenga.health.model.HeartBeat;
+import com.mobenga.health.model.*;
+import com.mobenga.health.model.factory.TimeService;
+import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.model.transport.ModuleHealthItem;
 import com.mobenga.health.monitor.ModuleConfigurationService;
+import com.mobenga.health.monitor.ModuleMonitoringService;
 import com.mobenga.health.monitor.behavior.ModuleHealth;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
@@ -41,8 +42,8 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     private volatile boolean active = false;
     private int heartbeatDelay = HB_DELAY.get(Integer.class);
 
-    @Autowired
-    private HazelcastInstance hazelcastInstance;
+//    @Autowired
+//    private HazelcastInstance hazelcastInstance;
 
     @Autowired
     private HeartBeatStorage storage;
@@ -50,6 +51,12 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     @Autowired
     @Qualifier("moduleConfigurationService")
     private ModuleConfigurationService configurationService;
+
+    @Autowired
+    private ModuleMonitoringService actionsService;
+
+    @Autowired
+    private TimeService timer;
 
     @Autowired
     @Qualifier("serviceRunner")
@@ -160,6 +167,7 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
             setHeartbeatDelay(changed.get(HB_DELAY_PARAM_KEY).get(Integer.class));
         } catch (NullPointerException e) {
         }
+        config.putAll(changed);
     }
 
     /**
@@ -227,14 +235,27 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      */
     protected void checkHealth(ModuleHealth module) {
         if (!isActive()) return;
+        final MonitoredAction moduleAction = actionsService.createMonitoredAction();
+        moduleAction.setStart(timer.now());
+        moduleAction.setDescription("Processing heart-beat for '"+module+"' module");
+        final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
+        moduleLog.associate(moduleAction);
+        moduleLog.actionBegin();
         // service is active for the moment, process module's heart-beat
         try {
+            moduleLog.out("Saving heart-beat of module ",module);
             storage.saveHeartBeat(module);
+            moduleLog.out("Getting config updates for module ", module);
             final Map<String, ConfiguredVariableItem> updated =
                     configurationService.getUpdatedVariables(module.getModulePK(), module.getConfiguration());
-            if (!updated.isEmpty()) module.configurationChanged(updated);
+            if (!updated.isEmpty()) {
+                moduleLog.out("Updating module configuration.");
+                module.configurationChanged(updated);
+            }
+            moduleLog.actionEnd();
         } catch (Throwable t) {
             LOG.error("Can't process heartbeat for module '{}'", module, t);
+            moduleLog.actionFail();
         }
     }
 
@@ -247,29 +268,41 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
 
     // private methods
     private void processingHeartBeats() {
-        healthMonitorRun.getAndSet(active = true);
+        final MonitoredAction mainAction = actionsService.createMonitoredAction();
+        mainAction.setStart(timer.now());
+        mainAction.setDescription("Processing heart-beats of all registered modules");
+        final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
+        moduleLog.associate(mainAction);
         LOG.debug("Service starts.");
+        moduleLog.out("Service starts.");
+        moduleLog.actionBegin();
+        healthMonitorRun.getAndSet(active = true);
         try {
             while (healthMonitorRun.get() && isActive()) {
-                if (isActive()) heartBeat();
+                if (isActive()) {
+                    heartBeat(moduleLog);
+                }
                 synchronized (healthMonitorRun) {
                     if (isActive()) healthMonitorRun.wait(heartbeatDelay);
                 }
             }
+            moduleLog.actionEnd();
         } catch (InterruptedException e) {
+            moduleLog.actionFail();
             LOG.warn("Loop interrupted.", e);
             e.printStackTrace();
         } catch (Throwable t) {
             LOG.error("Unhandled error.", t);
+            moduleLog.actionFail();
         } finally {
             healthMonitorRun.getAndSet(active = false);
             LOG.debug("Service shutdown.");
         }
     }
 
-    private void heartBeat() {
+    private void heartBeat(final ModuleOutput.Device moduleLog) {
         synchronized (monitored) {
-            monitored.forEach(module -> checkHealth(module));
+            monitored.forEach(module -> {moduleLog.out("Porcessing ",module);checkHealth(module);});
         }
     }
 

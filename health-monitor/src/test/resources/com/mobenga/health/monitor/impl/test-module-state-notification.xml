@@ -8,12 +8,17 @@
            http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
        ">
-    <bean id="service" class="com.mobenga.health.monitor.impl.ModuleStateNotificationServiceImpl"
-          init-method="startService" destroy-method="stopService" scope="singleton">
+    <bean id="service" class="com.mobenga.health.monitor.impl.ModuleStateNotificationServiceImpl" depends-on="logService">
         <property name="heartbeatDelay" value="10"/>
     </bean>
+    <bean id="actionService" class="com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl"/>
+    <bean id="logService" class="com.mobenga.health.monitor.impl.LogModuleServiceImpl"
+          destroy-method="stopService" scope="singleton">
+    </bean>
+
+
     <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
-        <constructor-arg value="2"/>
+        <constructor-arg value="3"/>
     </bean>
     <bean id="moduleConfigurationService" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.monitor.ModuleConfigurationService"/>

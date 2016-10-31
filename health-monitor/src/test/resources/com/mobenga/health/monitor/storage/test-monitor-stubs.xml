@@ -9,10 +9,6 @@
            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
        ">
 
-    <bean id="configStorage" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.mobenga.health.storage.ConfigurationStorage" />
-    </bean>
-    <bean id="heartbeatStorage" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.mobenga.health.storage.HeartBeatStorage" />
-    </bean>
+    <bean id="outputStorage" class="com.mobenga.health.storage.stub.ModuleOutputStorageStub" />
+    <bean id="actionStorage" class="com.mobenga.health.storage.stub.MonitoredActionStorageStub" />
 </beans>

@@ -4,6 +4,7 @@ import com.mobenga.health.model.*;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.UniqueIdGenerator;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
+import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.ModuleOutputStorage;
@@ -12,22 +13,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.mobenga.health.HealthUtils.key;
+
 /**
  * The service handles module's output type "log"
  */
-public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, MonitoredService {
+public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, MonitoredService, ApplicationListener<ContextRefreshedEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(LogModuleServiceImpl.class);
     public static final String PARAMS_PACKAGE = "health.monitor.service.module.output.log";
+    public static final String IGNORE_MODULES = "ignoreModules";
 
     @Autowired
     @Qualifier("serviceRunner")
@@ -51,20 +58,34 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
 
     private final BlockingQueue<Event> eventsQueue = new LinkedBlockingQueue<>();
 
-    public void startService(){
-        if (serviceWorks.get()) return;
-        LOG.info("Starting service");
-        executor.submit(()->processEvents());
-        while (!serviceWorks.get());
+    private String ignoreModules;
+
+    public LogModuleServiceImpl() {
+        final LocalConfiguredVariableItem im =
+                new LocalConfiguredVariableItem(IGNORE_MODULES, "The set of modules to ignore logging for.", "none");
+        config.put(PARAMS_PACKAGE+"."+IGNORE_MODULES, im);
+        ignoreModules = im.get(String.class);
         // register the device
         ModuleOutputDeviceFactory.registerDeviceFactory(this);
+    }
+
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
+        startService();
+    }
+
+    public void startService(){
+        if (serviceWorks.get()) return;
+        LOG.info("Starting service storage='{}'", storage);
+        executor.submit(()->processEvents());
+        while (!serviceWorks.get());
         // register the module
         notifier.register(this);
     }
 
     public void stopService(){
         if (!serviceWorks.get()) return;
-        LOG.info("Stopping service");
+        LOG.info("Stopping service storage='{}'", storage);
         eventsQueue.offer(Event.NULL);
         while (serviceWorks.get());
         LOG.info("Service stopped");
@@ -92,26 +113,12 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         return LogMessage.OUTPUT_TYPE;
     }
 
-    // private methods
-    private void processEvents(){
-        serviceWorks.getAndSet(true);
-        try{
-            while (serviceWorks.get()){
-                final Event event = eventsQueue.take();
-                if (Event.NULL == event){
-                    LOG.debug("Received signal to stop service.");
-                    break;
-                }
-                event.save();
-            }
-        } catch (InterruptedException e) {
-            LOG.error("Events queue iterrupted", e);
-        } catch (Throwable t) {
-            LOG.error("Caught unexpected exception", t);
-        } finally {
-            serviceWorks.getAndSet(false);
-            LOG.info("Service stopped");
-        }
+    public String getIgnoreModules() {
+        return ignoreModules;
+    }
+
+    public void setIgnoreModules(String ignoreModules) {
+        config.get(PARAMS_PACKAGE+"."+IGNORE_MODULES).set(this.ignoreModules = ignoreModules);
     }
 
     /**
@@ -203,7 +210,63 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     @Override
     public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
         LOG.debug("External configuration changes are received '{}'", changed);
+        if (changed.isEmpty()){
+            return;
+        }
+        final ConfiguredVariableItem item = changed.get(PARAMS_PACKAGE+"."+IGNORE_MODULES);
+        if (item != null){
+            setIgnoreModules(item.get(String.class));
+        }
+        config.putAll(changed);
     }
+
+    @Override
+    public String toString() {
+        return "-LogModuleService-";
+    }
+
+    // private methods
+    private void processEvents(){
+        serviceWorks.getAndSet(true);
+        try{
+            while (serviceWorks.get()){
+                final Event event = eventsQueue.take();
+                if (Event.NULL == event){
+                    LOG.debug("Received signal to stop service.");
+                    break;
+                }
+                event.save();
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Events queue iterrupted", e);
+        } catch (Throwable t) {
+            LOG.error("Caught unexpected exception", t);
+        } finally {
+            eventsQueue.clear();
+            serviceWorks.getAndSet(false);
+            LOG.info("Service stopped.");
+        }
+    }
+    private boolean moduleIsIgnored(String moduleKey){
+        // check the direct ignorance
+        if (ignoreModules.contains(moduleKey)) {
+            return true;
+        }
+        // check the groups
+        final StringTokenizer st = new StringTokenizer(ignoreModules, " ,");
+        while(st.hasMoreTokens()){
+            String ignored = st.nextToken();
+            if (ignored.endsWith("*")){
+                // cut off the start-symbol
+                ignored = ignored.substring(0, ignored.length() - 2);
+            }
+            if (moduleKey.startsWith(ignored)){
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     // inner classes
     private static abstract class Event {
@@ -230,13 +293,20 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
 
         @Override
         protected void save() {
+            final String moduleKey = key(module);
+            if (moduleIsIgnored(moduleKey)){
+                LOG.warn("The module '{}' is ignored for save.", moduleKey);
+                return;
+            }
             final LogMessage message = (LogMessage) storage.createModuleOutput(module, LogMessage.OUTPUT_TYPE);
-            message.setId(idGenerator.generate());
-            message.setActionId(actionId);
-            final StringBuilder msg = new StringBuilder();
-            for(Object arg : arguments) msg.append(arg);
-            message.setPayload(msg.toString());
-            storage.saveModuleOutput(message);
+            if (message != null) {
+                message.setId(idGenerator.generate());
+                message.setActionId(actionId);
+                final StringBuilder msg = new StringBuilder();
+                for (Object arg : arguments) msg.append(arg);
+                message.setPayload(msg.toString());
+                storage.saveModuleOutput(message);
+            }
         }
     }
     // monitored action changes event

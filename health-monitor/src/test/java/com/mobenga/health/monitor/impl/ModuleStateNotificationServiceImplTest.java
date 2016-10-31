@@ -1,9 +1,14 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.LogMessage;
+import com.mobenga.health.model.ModuleOutput;
+import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.HeartBeatStorage;
+import com.mobenga.health.storage.ModuleOutputStorage;
+import com.mobenga.health.storage.MonitoredActionStorage;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,7 +30,11 @@ import static org.mockito.Mockito.*;
  * @see ModuleStateNotificationServiceImpl
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:com/mobenga/health/monitor/impl/test-module-state-notification.xml"})
+@ContextConfiguration(locations = {
+        "classpath:com/mobenga/health/monitor/factory/impl/test-basic-monitor-services.xml",
+        "classpath:com/mobenga/health/monitor/impl/test-module-state-notification.xml",
+        "classpath:com/mobenga/health/monitor/storage/test-monitor-stubs.xml"
+})
 public class ModuleStateNotificationServiceImplTest {
 
     @Autowired
@@ -37,12 +46,19 @@ public class ModuleStateNotificationServiceImplTest {
     @Autowired
     private ModuleConfigurationService configuration;
 
+    @Autowired
+    private MonitoredActionStorage actionStorage;
+
+    @Autowired
+    private ModuleOutputStorage outputStorage;
+
     private MonitoredService state = mockState();
 
     @Before
     public void beforeTestService() throws Exception {
         service.stopService();
         service.unregisterAll();
+        service.setHeartbeatDelay(10);
         service.startService();
     }
 
@@ -59,7 +75,7 @@ public class ModuleStateNotificationServiceImplTest {
         service.register(state);
 
         synchronized (semaphore){
-            semaphore.wait(100);
+            semaphore.wait(1000);
         }
         verify(storage, atLeastOnce()).saveHeartBeat(eq(state));
         verify(configuration, atLeastOnce()).getUpdatedVariables(eq(state.getModulePK()),any());
@@ -77,19 +93,20 @@ public class ModuleStateNotificationServiceImplTest {
         service.register(state);
 
         synchronized (semaphore){
-            semaphore.wait(100);
+            semaphore.wait(1000);
         }
         verify(storage, atLeastOnce()).saveHeartBeat(eq(state));
         verify(configuration, atLeastOnce()).getUpdatedVariables(eq(state.getModulePK()),any());
         reset(storage, configuration);
         // unregister
         service.unRegister(state);
+
         doAnswer(signal).when(storage).saveHeartBeat(state);
         synchronized (semaphore){
-            semaphore.wait(100);
+            semaphore.wait(1000);
         }
-        verify(storage, times(0)).saveHeartBeat(state);
-        verify(configuration, times(0)).getUpdatedVariables(eq(state.getModulePK()),any());
+        verify(storage, never()).saveHeartBeat(eq(state));
+        verify(configuration, never()).getUpdatedVariables(eq(state.getModulePK()),any());
     }
 
     @Test

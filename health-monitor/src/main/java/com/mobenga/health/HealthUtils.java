@@ -15,12 +15,10 @@ public final class HealthUtils {
     private HealthUtils() {}
     private static final SimpleDateFormat dateFormater = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
     public static String key(HealthItemPK application) {
-        return new StringBuilder(application.getSystemId())
-                .append("|")
-                .append(application.getApplicationId())
-                .append("|")
-                .append(application.getVersionId())
-                .toString();
+        return new StringBuilder()
+                .append(application.getSystemId())      .append("|")
+                .append(application.getApplicationId()) .append("|")
+                .append(application.getVersionId())     .toString();
     }
 
     public static String toXML(Object data) {

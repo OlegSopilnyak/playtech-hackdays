@@ -9,7 +9,7 @@
            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
        ">
     <bean id="service" class="com.mobenga.health.monitor.impl.LogModuleServiceImpl"
-          init-method="startService" destroy-method="stopService" scope="singleton">
+          destroy-method="stopService" scope="singleton">
     </bean>
 
     <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">

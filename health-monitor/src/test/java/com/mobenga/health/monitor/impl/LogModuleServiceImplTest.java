@@ -1,9 +1,7 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.HealthItemPK;
-import com.mobenga.health.model.LogMessage;
-import com.mobenga.health.model.ModuleOutput;
-import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.*;
+import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
 import org.junit.Test;
@@ -13,7 +11,10 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
+import static com.mobenga.health.HealthUtils.key;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.*;
 @ContextConfiguration(locations = {
         "classpath:com/mobenga/health/monitor/impl/test-module-log-service.xml",
         "classpath:com/mobenga/health/monitor/factory/impl/test-basic-monitor-services.xml"
+
 })
 public class LogModuleServiceImplTest {
 
@@ -68,12 +70,13 @@ public class LogModuleServiceImplTest {
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
 
-        ModuleOutput output = mock(LogMessage.class);
 
         ModuleOutput.Device device = service.create(pk);
 
         assertNotNull(device);
-        when(storage.createModuleOutput(any(), any())).thenReturn(output);
+
+        LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
 
         device.out("Hello world");
         Thread.sleep(100);
@@ -117,7 +120,7 @@ public class LogModuleServiceImplTest {
         final String system = "mockSys",
                 application = "mockApp",
                 version = "mockVer",
-                description = "mockDescription1";
+                description = "mockDescription";
 
         HealthItemPK pk = mock(HealthItemPK.class);
         when(pk.getSystemId()).thenReturn(system);
@@ -125,6 +128,7 @@ public class LogModuleServiceImplTest {
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
 
+        reset(storage, actionStorage);
         ModuleOutput.Device device = service.create(pk);
         assertNotNull(device);
 
@@ -141,6 +145,7 @@ public class LogModuleServiceImplTest {
         device.out("Hello world");
         device.out("Hello world");
         device.actionEnd();
+
         Thread.sleep(1000);
 
         verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
@@ -160,7 +165,7 @@ public class LogModuleServiceImplTest {
         final String system = "mockSys",
                 application = "mockApp",
                 version = "mockVer",
-                description = "mockDescription1";
+                description = "mockDescription";
 
         HealthItemPK pk = mock(HealthItemPK.class);
         when(pk.getSystemId()).thenReturn(system);
@@ -168,6 +173,7 @@ public class LogModuleServiceImplTest {
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
 
+        reset(storage, actionStorage);
         ModuleOutput.Device device = service.create(pk);
         assertNotNull(device);
 
@@ -184,6 +190,8 @@ public class LogModuleServiceImplTest {
         device.out("Hello world");
         device.out("Hello world");
         device.actionFail();
+
+
         Thread.sleep(1000);
 
         verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
@@ -197,6 +205,55 @@ public class LogModuleServiceImplTest {
         assertEquals(MonitoredAction.State.FAIL, action.getState());
         reset(storage, actionStorage);
     }
+    @Test
+    public void deviceActionOutIgnored() throws Exception {
+        final String system = "mockSys-x",
+                application = "mockApp-x",
+                version = "mockVer-x",
+                description = "mockDescription1";
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        reset(storage, actionStorage);
+        ModuleOutput.Device device = service.create(pk);
+        assertNotNull(device);
+
+        service.setIgnoreModules(key(pk));
+
+        LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+
+        MonitoredActionStub action = new MonitoredActionStub();
+        action.setId("AAA");
+
+        device.associate(action);
+        device.actionBegin();
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        device.out("Hello world");
+        device.actionFail();
+        Thread.sleep(1000);
+
+
+System.out.println("Log Service is active = "+service.isActive());
+
+        verify(storage, times(0)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(output, times(0)).setId(any());
+        verify(output, times(0)).setActionId(eq("AAA"));
+        verify(output, times(0)).setPayload(eq("Hello world"));
+        verify(storage, times(0)).saveModuleOutput(eq(output));
+
+        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
+
+        assertEquals(MonitoredAction.State.FAIL, action.getState());
+        reset(storage, actionStorage);
+    }
+
 
     @Test
     public void getType() throws Exception {
@@ -224,155 +281,30 @@ public class LogModuleServiceImplTest {
 
     @Test
     public void getConfiguration() throws Exception {
-        // nothing to check
+        Map<String, ConfiguredVariableItem> cfg = service.getConfiguration();
+        assertNotNull(cfg);
+        assertEquals(1, cfg.size());
     }
 
     @Test
     public void configurationChanged() throws Exception {
-        // nothing to check
+        final String VarKey = LogModuleServiceImpl.PARAMS_PACKAGE+"."+LogModuleServiceImpl.IGNORE_MODULES;
+        final LocalConfiguredVariableItem item = new LocalConfiguredVariableItem(LogModuleServiceImpl.IGNORE_MODULES, "test", "VarKey");
+        Map<String, ConfiguredVariableItem> changed = new HashMap<>();
+        changed.put(VarKey, item);
+        assertNotEquals("VarKey", service.getConfiguration().get(VarKey).get(String.class));
+        service.configurationChanged(changed);
+        assertEquals("VarKey", service.getConfiguration().get(VarKey).get(String.class));
+        assertEquals("VarKey", service.getIgnoreModules());
+        service.setIgnoreModules("VarKey2");
+        assertEquals("VarKey2", service.getConfiguration().get(VarKey).get(String.class));
     }
 
-    private static class MonitoredActionStub extends MonitoredAction implements Cloneable {
-
-        private String id;
-        private String healthPK;
-        private String description;
-        private State state;
-        private Date start;
-        private Date finish;
-        private long duration;
-        private String host;
-
-        /**
-         * To make the copy of action
-         *
-         * @return the copy
-         */
-        @Override
-        public MonitoredAction copy() {
-            try {
-                return (MonitoredAction) clone();
-            } catch (CloneNotSupportedException e) {
-                return null;
-            }
-        }
-
-        /**
-         * To get the Id (primary key) of monitored action
-         *
-         * @return the value or null if not saved yet
-         */
-        @Override
-        public String getId() {
-            return id;
-        }
-
-        /**
-         * The reference to healthPK
-         *
-         * @return value of PK
-         */
-        @Override
-        public String getHealthPK() {
-            return healthPK;
-        }
-
-        /**
-         * To get the description of the action
-         *
-         * @return the value (not null)
-         */
-        @Override
-        public String getDescription() {
-            return description;
-        }
-
-        /**
-         * To get the current state of the action
-         *
-         * @return the value (not null)
-         */
-        @Override
-        public State getState() {
-            return state;
-        }
-
-        /**
-         * To get the time when action starts
-         *
-         * @return the value (not null)
-         */
-        @Override
-        public Date getStart() {
-            return start;
-        }
-
-        /**
-         * To get the time when action has finished
-         *
-         * @return the value (may be null)
-         */
-        @Override
-        public Date getFinish() {
-            return finish;
-        }
-
-        /**
-         * To get the duration of proceeded action
-         *
-         * @return the value (nanoseconds)
-         */
-        @Override
-        public long getDuration() {
-            return duration;
-        }
-
-        /**
-         * To get the name of host where action proceeded
-         *
-         * @return the value (not null)
-         */
-        @Override
-        public String getHost() {
-            return host;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public void setHealthPK(String healthPK) {
-            this.healthPK = healthPK;
-        }
-
-        @Override
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        @Override
-        public void setState(State state) {
-            this.state = state;
-        }
-
-        @Override
-        public void setStart(Date start) {
-            this.start = start;
-        }
-
-        @Override
-        public void setFinish(Date finish) {
-            this.finish = finish;
-        }
-
-        @Override
-        public void setDuration(long duration) {
-            this.duration = duration;
-        }
-
-        @Override
-        public void setHost(String host) {
-            this.host = host;
-        }
+    @Test(expected = IllegalArgumentException.class)
+    public void configurationChangedBad() throws Exception {
+        final String VarKey = LogModuleServiceImpl.PARAMS_PACKAGE+"."+LogModuleServiceImpl.IGNORE_MODULES;
+        assertNotEquals("VarKey", service.getConfiguration().get(VarKey).get(Number.class));
+        fail("Here the IllegalArgumentException exception must be thown.");
     }
+
 }

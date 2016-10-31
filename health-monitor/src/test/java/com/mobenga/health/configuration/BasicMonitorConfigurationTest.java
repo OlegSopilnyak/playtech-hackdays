@@ -2,7 +2,12 @@ package com.mobenga.health.configuration;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.LogMessage;
 import com.mobenga.health.monitor.impl.ModuleConfigurationServiceImpl;
+import com.mobenga.health.monitor.impl.MonitoredActionStub;
+import com.mobenga.health.storage.ModuleOutputStorage;
+import com.mobenga.health.storage.MonitoredActionStorage;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +24,19 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static junit.framework.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test for monitor configuration
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({
-        @ContextConfiguration(locations = {"classpath:com/mobenga/health/monitor/configuration/test-module-configuration-monitor.xml"})
+        @ContextConfiguration(locations = {
+                "classpath:com/mobenga/health/monitor/configuration/test-module-configuration-monitor.xml",
+                "classpath:com/mobenga/health/monitor/storage/test-monitor-stubs.xml"
+        })
         ,@ContextConfiguration(classes = {BasicMonitorConfiguration.class, FactoryConfiguration.class}, loader = AnnotationConfigContextLoader.class)
 })
 public class BasicMonitorConfigurationTest {

@@ -4,6 +4,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.ModuleMonitoringService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
@@ -14,16 +15,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
+
+import static com.mobenga.health.HealthUtils.key;
 
 /**
  * realization of core monitoring service
  * @see ModuleMonitoringService
  */
 public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, MonitoredService {
+    public static final String PARAMS_PACKAGE = "health.monitor.service.monitored.actions";
+    public static final String IGNORE_MODULES = "ignoreModules";
     private static final Logger LOG = LoggerFactory.getLogger(ModuleActionMonitorServiceImpl.class);
-
-    @Autowired
-    private HazelcastInstance hazelcastInstance;
 
     @Autowired
     private MonitoredActionStorage storage;
@@ -33,12 +36,30 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
 
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
 
+    private String ignoreModules;
+
+    public ModuleActionMonitorServiceImpl() {
+        final LocalConfiguredVariableItem im =
+                new LocalConfiguredVariableItem(IGNORE_MODULES, "The set of modules to ignore save actions for.", "none");
+        config.put(PARAMS_PACKAGE+"."+IGNORE_MODULES, im);
+        ignoreModules = im.get(String.class);
+    }
+
     public void initialize(){
         notifier.register(this);
     }
     public void shutdown(){
         notifier.unRegister(this);
     }
+
+    public String getIgnoreModules() {
+        return ignoreModules;
+    }
+
+    public void setIgnoreModules(String ignoreModules) {
+        config.get(PARAMS_PACKAGE+"."+IGNORE_MODULES).set(this.ignoreModules = ignoreModules);
+    }
+
     /**
      * To create the instance of MonitoredAction.class
      *
@@ -59,7 +80,9 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
     @Override
     public void actionMonitoring(HealthItemPK application, MonitoredAction action) {
         LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{application, action});
-        storage.saveActionState(application, action);
+        if (!moduleIsIgnored(application)) {
+            storage.saveActionState(application, action);
+        }
     }
 
     /**
@@ -87,7 +110,15 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
      */
     @Override
     public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
-
+        LOG.debug("External configuration changes are received '{}'", changed);
+        if (changed.isEmpty()){
+            return;
+        }
+        final ConfiguredVariableItem item = changed.get(PARAMS_PACKAGE+"."+IGNORE_MODULES);
+        if (item != null){
+            setIgnoreModules(item.get(String.class));
+        }
+        config.putAll(changed);
     }
 
     /**
@@ -153,5 +184,28 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
     @Override
     public String toString() {
         return "-ModuleActionMonitorService-";
+    }
+    // private methods
+    private boolean moduleIsIgnored(HealthItemPK module){
+        return moduleIsIgnored(key(module));
+    }
+    private boolean moduleIsIgnored(String moduleKey){
+        // check the direct ignorance
+        if (ignoreModules.contains(moduleKey)) {
+            return true;
+        }
+        // check the groups
+        final StringTokenizer st = new StringTokenizer(ignoreModules, " ,");
+        while(st.hasMoreTokens()){
+            String ignored = st.nextToken();
+            if (ignored.endsWith("*")){
+                // cut off the start-symbol
+                ignored = ignored.substring(0, ignored.length() - 2);
+            }
+            if (moduleKey.startsWith(ignored)){
+                return true;
+            }
+        }
+        return false;
     }
 }
