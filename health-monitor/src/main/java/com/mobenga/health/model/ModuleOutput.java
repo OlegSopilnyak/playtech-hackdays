@@ -162,5 +162,13 @@ public interface ModuleOutput {
          * @return the value or null if ignored
          */
         Date getLessThen();
+
+        /**
+         * To test is particular message suitable for the criteria
+         *
+         * @param message message to test
+         * @return true if message is suitable
+         */
+        boolean isSuitable(ModuleOutput message);
     }
 }

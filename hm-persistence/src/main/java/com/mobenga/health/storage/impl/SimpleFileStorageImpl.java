@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.util.StringUtils;
 
@@ -451,7 +452,18 @@ public class SimpleFileStorageImpl implements
      */
     @Override
     public Page<ModuleOutput> select(ModuleOutput.Criteria criteria, Pageable offset) {
-        return null;
+        final List<ModuleOutput> selected = new ArrayList<>();
+        final int maxMessagesQuantity = offset == null ? Integer.MAX_VALUE : offset.getPageSize();
+        if (StringUtils.isEmpty(criteria.getType())){
+            // to evaluate all types of messages
+            for(final ModuleOutput message: moduleOutputMap.values()){
+                walkThroughRepository(criteria, selected, (StringEntity) message, maxMessagesQuantity);
+            }
+        }else {
+            // to evaluate particular type of messages
+            walkThroughRepository(criteria, selected, (StringEntity) moduleOutputMap.get(criteria.getType()), maxMessagesQuantity);
+        }
+        return new PageImpl<ModuleOutput>(selected, offset, selected.size());
     }
 
     /**
@@ -462,7 +474,19 @@ public class SimpleFileStorageImpl implements
      */
     @Override
     public int delete(ModuleOutput.Criteria criteria) {
-        return 0;
+        final int deleted[] = {0};
+        if (StringUtils.isEmpty(criteria.getType())){
+            // walk through all types
+            for(final ModuleOutput message: moduleOutputMap.values()){
+                final StringEntity template = (StringEntity) message;
+                walkAndDeleteThroughRepository(criteria, template, deleted);
+            }
+        }else {
+            // walk through the particular type
+            final StringEntity template = (StringEntity) moduleOutputMap.get(criteria.getType());
+            walkAndDeleteThroughRepository(criteria, template, deleted);
+        }
+        return deleted[0];
     }
 
     public Map<String, ModuleOutput> getModuleOutputMap() {
@@ -474,6 +498,27 @@ public class SimpleFileStorageImpl implements
     }
 
     // private methods
+    private void walkAndDeleteThroughRepository(ModuleOutput.Criteria criteria,StringEntity template, int counter[]){
+        if (template == null) return;
+        final Map<String, StringEntity> repository = reStoreRepository(template.storageName(), template);
+        final Map<String, StringEntity> newRepo = repository.entrySet().stream()
+                .filter(entry -> entry.getValue() instanceof ModuleOutput)
+                .filter(entry -> !criteria.isSuitable((ModuleOutput) entry.getValue()))
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry-> entry.getValue()));
+        storeRepository(template.storageName(), newRepo);
+        counter[0] += repository.size() - newRepo.size();
+    }
+    private void walkThroughRepository(ModuleOutput.Criteria criteria, List<ModuleOutput> selected, StringEntity template, int maxItem) {
+        if (template == null) return;
+        final Map<String, StringEntity> repository = reStoreRepository(template.storageName(), template);
+        final int []added = {0};
+        repository.values().stream()
+                .filter(item -> maxItem < added[0])
+                .filter(item -> item instanceof ModuleOutput)
+                .filter(item -> criteria.isSuitable((ModuleOutput) item))
+                .forEach((item) -> {selected.add((ModuleOutput)item); added[0]++;});
+    }
+
     @NotNull
     private static String getPackage(String mapKey) {
         final String[] pack = mapKey.split("\\.");
