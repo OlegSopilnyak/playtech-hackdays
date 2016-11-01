@@ -15,9 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -302,6 +300,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
             if (message != null) {
                 message.setId(idGenerator.generate());
                 message.setActionId(actionId);
+                message.setWhenOccured(timeService.now());
                 final StringBuilder msg = new StringBuilder();
                 for (Object arg : arguments) msg.append(arg);
                 message.setPayload(msg.toString());

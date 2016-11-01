@@ -2,7 +2,6 @@ package com.mobenga.health.model.factory.impl;
 
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.ModuleOutput;
-import com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

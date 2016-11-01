@@ -4,7 +4,6 @@ import com.mobenga.health.model.persistence.ValidatingEntity;
 import com.mobenga.health.monitor.strategy.VariableTypeStrategies;
 import org.springframework.util.StringUtils;
 
-import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 

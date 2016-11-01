@@ -1,9 +1,6 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.HealthItemPK;
-import com.mobenga.health.model.LogMessage;
-import com.mobenga.health.model.ModuleOutput;
-import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.HeartBeatStorage;
@@ -18,8 +15,6 @@ import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import java.net.UnknownHostException;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;

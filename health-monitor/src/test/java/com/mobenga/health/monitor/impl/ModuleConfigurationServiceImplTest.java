@@ -1,28 +1,21 @@
 package com.mobenga.health.monitor.impl;
 
-import com.hazelcast.client.proxy.ClientMapProxy;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.storage.ConfigurationStorage;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.stubbing.OngoingStubbing;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static com.mobenga.health.HealthUtils.key;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

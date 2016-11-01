@@ -76,7 +76,7 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
         try {
             entity.setFinish(dateConverter.parse(st.nextToken()));
         } catch (ParseException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         entity.setDuration(Integer.parseInt(st.nextToken()));
         entity.setHost(st.nextToken());

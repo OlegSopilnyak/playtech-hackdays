@@ -1,13 +1,11 @@
 package com.mobenga.health.model.transport;
 
 import com.mobenga.health.model.ModuleOutput;
-import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Objects;
 
 /**
  * The criteria to select ModuleOutput messages

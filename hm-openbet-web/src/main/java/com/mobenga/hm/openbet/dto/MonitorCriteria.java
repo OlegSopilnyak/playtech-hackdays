@@ -1,5 +1,7 @@
 package com.mobenga.hm.openbet.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Objects;
 
 /**
@@ -12,6 +14,10 @@ public class MonitorCriteria {
     private String customer;
     private String bet;
 
+    public MonitorCriteria() {
+    }
+
+    @JsonIgnore
     public boolean isEmpty() {
         return
                 Objects.isNull(operationType)

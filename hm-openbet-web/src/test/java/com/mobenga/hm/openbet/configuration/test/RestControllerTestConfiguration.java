@@ -1,11 +1,14 @@
 package com.mobenga.hm.openbet.configuration.test;
 
+import com.mobenga.health.configuration.BasicMonitorConfiguration;
+import com.mobenga.health.configuration.FactoryConfiguration;
+import com.mobenga.health.configuration.PersistenceConfiguration;
+import com.mobenga.hm.openbet.configuration.ApplicationConfiguration;
 import com.mobenga.hm.openbet.controller.ApplicationController;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.*;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.web.AnnotationConfigWebContextLoader;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import static org.mockito.Mockito.mock;
@@ -17,6 +20,7 @@ import static org.mockito.Mockito.mock;
 @ComponentScan(basePackages = "com.mobenga.hm.openbet.controller",
         excludeFilters = {@ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, value = ApplicationController.class)}
 )
+@Import({ApplicationConfiguration.class})
 @EnableWebMvc
 public class RestControllerTestConfiguration {
 

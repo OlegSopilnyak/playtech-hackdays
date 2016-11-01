@@ -4,8 +4,6 @@ import com.mobenga.health.model.persistence.ValidatingEntity;
 
 import java.util.Date;
 
-import static javafx.scene.input.KeyCode.V;
-
 /**
  * Simple log message from the module
  */

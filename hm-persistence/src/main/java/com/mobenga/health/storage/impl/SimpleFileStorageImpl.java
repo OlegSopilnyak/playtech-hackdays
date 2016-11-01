@@ -7,7 +7,6 @@ import com.mobenga.health.model.persistence.ValidatingEntity;
 import com.mobenga.health.model.transport.ModuleHealthItem;
 import com.mobenga.health.monitor.behavior.ModuleHealth;
 import com.mobenga.health.storage.*;
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

@@ -4,7 +4,6 @@ import com.mobenga.health.monitor.strategy.VariableTypeStrategies;
 import com.mobenga.health.monitor.strategy.VariableTypeStrategy;
 
 import java.io.Serializable;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
 

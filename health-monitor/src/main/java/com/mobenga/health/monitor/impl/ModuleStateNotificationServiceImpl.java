@@ -1,6 +1,5 @@
 package com.mobenga.health.monitor.impl;
 
-import com.hazelcast.core.HazelcastInstance;
 import com.mobenga.health.model.*;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
@@ -8,9 +7,9 @@ import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.model.transport.ModuleHealthItem;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleMonitoringService;
-import com.mobenga.health.monitor.behavior.ModuleHealth;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
+import com.mobenga.health.monitor.behavior.ModuleHealth;
 import com.mobenga.health.storage.HeartBeatStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -302,7 +301,7 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
 
     private void heartBeat(final ModuleOutput.Device moduleLog) {
         synchronized (monitored) {
-            monitored.forEach(module -> {moduleLog.out("Porcessing ",module);checkHealth(module);});
+            monitored.forEach(module -> {moduleLog.out("Processing ",module);checkHealth(module);});
         }
     }
 

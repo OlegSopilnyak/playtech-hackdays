@@ -195,4 +195,9 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
 
     }
+
+    @Override
+    public String toString() {
+        return "-ExternalModuleSupportService - ";
+    }
 }
