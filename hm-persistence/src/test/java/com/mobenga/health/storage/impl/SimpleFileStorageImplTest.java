@@ -1,16 +1,19 @@
 package com.mobenga.health.storage.impl;
 
 import com.mobenga.health.configuration.PersistenceConfiguration;
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
-import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.*;
 import com.mobenga.health.model.factory.TimeService;
+import com.mobenga.health.model.persistence.ValidatingEntity;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.model.transport.ModuleHealthItem;
+import com.mobenga.health.model.transport.ModuleOutputCriteriaBase;
 import com.mobenga.health.monitor.behavior.ModuleHealth;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -30,7 +33,6 @@ import static org.mockito.Mockito.when;
 @ContextHierarchy({
         @ContextConfiguration(classes = PersistenceConfiguration.class, loader = AnnotationConfigContextLoader.class)
 })
-
 public class SimpleFileStorageImplTest {
 
     @Autowired
@@ -491,6 +493,251 @@ public class SimpleFileStorageImplTest {
 
         assertEquals(1, storage.getConfigurationVersion(pk));
         storage.removeModuleConfiguration(pk);
+        storage.removeModule(pk);
+    }
+
+    @Test
+    public void testCreateModuleOutput() throws Exception {
+        final String system = "mockSysConf-mo1",
+                application = "mockAppConf-mo1",
+                version = "mockVerConf-mo1",
+                description = "mockDescriptionConf-mo1"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        ModuleOutput message = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+        assertNotNull(message);
+        assertNull(message.getId());
+        message = storage.createModuleOutput(pk, "not-exists");
+        assertNull(message);
+    }
+
+    @Test
+    public void testSaveModuleOutput() throws Exception {
+        final String system = "mockSysConf-mo1",
+                application = "mockAppConf-mo1",
+                version = "mockVerConf-mo1",
+                description = "mockDescriptionConf-mo1"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        ModuleOutput output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+        assertNotNull(output);
+        assertNull(output.getId());
+        assertFalse(!(output instanceof LogMessage));
+        LogMessage message = (LogMessage) output;
+        message.setWhenOccured(timer.now());
+        message.setModulePK(key(pk));
+        message.setPayload("Hello world");
+        storage.saveModuleOutput(output);
+        assertNotNull(output.getId());
+
+
+        ModuleOutputCriteriaBase criteriaBase = new ModuleOutputCriteriaBase();
+        criteriaBase.setOutputId(output.getId());
+        storage.delete(criteriaBase);
+    }
+
+    @Test(expected = ValidatingEntity.EntityInvalidState.class)
+    public void testSaveModuleOutputFail() throws Exception {
+        final String system = "mockSysConf-mo1",
+                application = "mockAppConf-mo1",
+                version = "mockVerConf-mo1",
+                description = "mockDescriptionConf-mo1"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        ModuleOutput output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+        assertNotNull(output);
+        assertNull(output.getId());
+        assertFalse(!(output instanceof LogMessage));
+        LogMessage message = (LogMessage) output;
+        message.setWhenOccured(timer.now());
+        message.setModulePK(key(pk));
+        storage.saveModuleOutput(output);
+        fail("Here exception should be thrown.");
+    }
+
+    @Test
+    public void testSaveModuleOutputWithAction() throws Exception {
+        final String system = "mockSysConf-mo2",
+                application = "mockAppConf-mo2",
+                version = "mockVerConf-mo2",
+                description = "mockDescriptionConf-mo1"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        MonitoredAction action = storage.createMonitoredAction();
+        action.setStart(timer.now());
+        action.setDescription("Just action");
+        action.setHost("localhost");
+        action.setState(MonitoredAction.State.INIT);
+        storage.saveActionState(pk, action);
+
+        ModuleOutput output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+        assertNotNull(output);
+        assertNull(output.getId());
+        assertFalse(!(output instanceof LogMessage));
+        LogMessage message = (LogMessage) output;
+        message.setActionId(action.getId());
+        message.setWhenOccured(timer.now());
+        message.setModulePK(key(pk));
+        message.setPayload("Hello world");
+        storage.saveModuleOutput(output);
+        assertNotNull(output.getId());
+
+        for(int i=1; i < 10;i++) {
+            output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+            message = (LogMessage) output;
+            message.setActionId(action.getId());
+            message.setWhenOccured(timer.now());
+            message.setModulePK(key(pk));
+            message.setPayload("Hello world"+i);
+            storage.saveModuleOutput(output);
+            assertNotNull(output.getId());
+        }
+
+        ModuleOutputCriteriaBase criteriaBase = new ModuleOutputCriteriaBase();
+        criteriaBase.setActionIds(new String[]{action.getId()});
+        storage.delete(criteriaBase);
+        storage.removeAction(action);
+        storage.removeModule(pk);
+    }
+
+    @Test
+    public void testSelectModuleOutput() throws Exception {
+        final String system = "mockSysConf-mo3",
+                application = "mockAppConf-mo3",
+                version = "mockVerConf-mo3",
+                description = "mockDescriptionConf-mo3"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        MonitoredAction action = storage.createMonitoredAction();
+        action.setStart(timer.now());
+        action.setDescription("Just action");
+        action.setHost("localhost");
+        action.setState(MonitoredAction.State.INIT);
+        storage.saveActionState(pk, action);
+        action.setState(MonitoredAction.State.PROGRESS);
+        storage.saveActionState(pk, action);
+
+        ModuleOutput output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+        assertNotNull(output);
+        assertNull(output.getId());
+        assertFalse(!(output instanceof LogMessage));
+        LogMessage message = (LogMessage) output;
+        message.setActionId(action.getId());
+        message.setWhenOccured(timer.now());
+        message.setModulePK(key(pk));
+        message.setPayload("Hello world");
+        storage.saveModuleOutput(output);
+        assertNotNull(output.getId());
+
+        for(int i=1; i < 100;i++) {
+            output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+            message = (LogMessage) output;
+            message.setActionId(action.getId());
+            message.setWhenOccured(timer.now());
+            message.setModulePK(key(pk));
+            message.setPayload("Hello world"+i);
+            storage.saveModuleOutput(output);
+            assertNotNull(output.getId());
+        }
+
+        ModuleOutputCriteriaBase criteriaBase = new ModuleOutputCriteriaBase();
+        criteriaBase.setActionIds(new String[]{action.getId()});
+        Pageable pager = new PageRequest(0, 10);
+        Page<ModuleOutput>page = storage.select(criteriaBase, pager);
+        assertEquals(100, page.getTotalElements());
+        assertEquals(10, page.getSize());
+        assertEquals(10, page.getTotalPages());
+
+        storage.delete(criteriaBase);
+        storage.removeAction(action);
+        storage.removeModule(pk);
+    }
+    @Test
+    public void testRemoveModuleOutput() throws Exception {
+        final String system = "mockSysConf-mo3",
+                application = "mockAppConf-mo3",
+                version = "mockVerConf-mo3",
+                description = "mockDescriptionConf-mo3";
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
+        MonitoredAction action = storage.createMonitoredAction();
+        action.setStart(timer.now());
+        action.setDescription("Just action");
+        action.setHost("localhost");
+        action.setState(MonitoredAction.State.INIT);
+        storage.saveActionState(pk, action);
+        action.setState(MonitoredAction.State.PROGRESS);
+        storage.saveActionState(pk, action);
+        ModuleOutput output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+        assertNotNull(output);
+        assertNull(output.getId());
+        assertFalse(!(output instanceof LogMessage));
+        LogMessage message = (LogMessage) output;
+        message.setActionId(action.getId());
+        message.setWhenOccured(timer.now());
+        message.setModulePK(key(pk));
+        message.setPayload("Hello world");
+        storage.saveModuleOutput(output);
+        assertNotNull(output.getId());
+
+        for(int i=1; i < 100;i++) {
+            output = storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+            message = (LogMessage) output;
+            message.setActionId(action.getId());
+            message.setWhenOccured(timer.now());
+            message.setModulePK(key(pk));
+            message.setPayload("Hello world"+i);
+            storage.saveModuleOutput(output);
+            assertNotNull(output.getId());
+        }
+
+        final ModuleOutputCriteriaBase criteriaBase = new ModuleOutputCriteriaBase();
+        criteriaBase.setActionIds(new String[]{action.getId()});
+        Pageable pager = new PageRequest(0, 10);
+
+        Page<ModuleOutput>page = storage.select(criteriaBase, pager);
+        assertEquals(100, page.getTotalElements());
+
+        storage.delete(criteriaBase);
+        page = storage.select(criteriaBase, pager);
+        assertEquals(0, page.getTotalElements());
+
+        storage.removeAction(action);
         storage.removeModule(pk);
     }
 }

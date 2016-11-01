@@ -3,6 +3,7 @@ package com.mobenga.health.storage;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.LogMessage;
 import com.mobenga.health.model.ModuleOutput;
+import com.sun.javaws.exceptions.InvalidArgumentException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

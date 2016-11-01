@@ -10,7 +10,7 @@ import java.util.StringTokenizer;
  * The entity of module's log-message
  */
 public class LogMessageEntity extends LogMessage implements StringEntity, Cloneable {
-    private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
     /**
      * The name of storage for this sort of beans
      *
@@ -26,7 +26,7 @@ public class LogMessageEntity extends LogMessage implements StringEntity, Clonea
         return getId() +"#"
                 + getModulePK() + "#"
                 + getActionId() + "#"
-                + dateConverter.format(getWhenOccurred()) + "#"
+                + (getWhenOccurred() == null ? null : dateConverter.format(getWhenOccurred())) + "#"
                 + getPayload()
                 ;
     }
@@ -37,6 +37,7 @@ public class LogMessageEntity extends LogMessage implements StringEntity, Clonea
         StringTokenizer st = new StringTokenizer(value, "#");
         entity.setId(st.nextToken());
         entity.modulePK = st.nextToken();
+        entity.setActionId(st.nextToken());
         try {
             entity.setWhenOccured(dateConverter.parse(st.nextToken()));
         } catch (ParseException e) {

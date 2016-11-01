@@ -7,6 +7,7 @@ import com.mobenga.health.model.persistence.ValidatingEntity;
 import com.mobenga.health.model.transport.ModuleHealthItem;
 import com.mobenga.health.monitor.behavior.ModuleHealth;
 import com.mobenga.health.storage.*;
+import com.sun.javaws.exceptions.InvalidArgumentException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -438,6 +439,8 @@ public class SimpleFileStorageImpl implements
                     LOG.debug("The module-output saved successfully.");
                 } catch (ValidatingEntity.EntityInvalidState ex) {
                     LOG.warn("Invalid entity '{}' ignored.", message, ex);
+                    ((StringEntity)message).setId(null);
+                    throw ex;
                 }
             }
         }
@@ -454,16 +457,17 @@ public class SimpleFileStorageImpl implements
     public Page<ModuleOutput> select(ModuleOutput.Criteria criteria, Pageable offset) {
         final List<ModuleOutput> selected = new ArrayList<>();
         final int maxMessagesQuantity = offset == null ? Integer.MAX_VALUE : offset.getPageSize();
+        long total = 0;
         if (StringUtils.isEmpty(criteria.getType())){
             // to evaluate all types of messages
             for(final ModuleOutput message: moduleOutputMap.values()){
-                walkThroughRepository(criteria, selected, (StringEntity) message, maxMessagesQuantity);
+                total += walkThroughRepository(criteria, selected, (StringEntity) message, maxMessagesQuantity);
             }
         }else {
             // to evaluate particular type of messages
-            walkThroughRepository(criteria, selected, (StringEntity) moduleOutputMap.get(criteria.getType()), maxMessagesQuantity);
+            total += walkThroughRepository(criteria, selected, (StringEntity) moduleOutputMap.get(criteria.getType()), maxMessagesQuantity);
         }
-        return new PageImpl<ModuleOutput>(selected, offset, selected.size());
+        return new PageImpl<ModuleOutput>(selected, offset, total);
     }
 
     /**
@@ -508,15 +512,19 @@ public class SimpleFileStorageImpl implements
         storeRepository(template.storageName(), newRepo);
         counter[0] += repository.size() - newRepo.size();
     }
-    private void walkThroughRepository(ModuleOutput.Criteria criteria, List<ModuleOutput> selected, StringEntity template, int maxItem) {
-        if (template == null) return;
+    private long walkThroughRepository(ModuleOutput.Criteria criteria, List<ModuleOutput> selected, StringEntity template, int maxItem) {
+        if (template == null) return 0;
         final Map<String, StringEntity> repository = reStoreRepository(template.storageName(), template);
         final int []added = {0};
         repository.values().stream()
-                .filter(item -> maxItem < added[0])
+                .filter(item -> maxItem > added[0])
                 .filter(item -> item instanceof ModuleOutput)
                 .filter(item -> criteria.isSuitable((ModuleOutput) item))
                 .forEach((item) -> {selected.add((ModuleOutput)item); added[0]++;});
+        return repository.values().stream()
+                .filter(item -> item instanceof ModuleOutput)
+                .filter(item -> criteria.isSuitable((ModuleOutput) item))
+                .count();
     }
 
     @NotNull
