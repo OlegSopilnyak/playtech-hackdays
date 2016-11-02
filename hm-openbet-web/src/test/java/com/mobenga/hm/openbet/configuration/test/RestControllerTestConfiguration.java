@@ -5,7 +5,9 @@ import com.mobenga.health.configuration.FactoryConfiguration;
 import com.mobenga.health.configuration.PersistenceConfiguration;
 import com.mobenga.hm.openbet.configuration.ApplicationConfiguration;
 import com.mobenga.hm.openbet.controller.ApplicationController;
+import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.*;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.web.AnnotationConfigWebContextLoader;
@@ -23,6 +25,12 @@ import static org.mockito.Mockito.mock;
 @Import({ApplicationConfiguration.class})
 @EnableWebMvc
 public class RestControllerTestConfiguration {
+
+    @Bean
+    public ExternalModuleSupportService moduleSupport(){
+        return mock(ExternalModuleSupportService.class);
+    }
+
 
     @Bean
     public OpenbetOperationsManipulationService createOperationsStorage(){

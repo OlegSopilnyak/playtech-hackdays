@@ -27,7 +27,8 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     public static final String HB_PARAM1_KEY = PARAMS_PACKAGE + "." + PARAM1.getName();
     public static final String HB_PARAM2_KEY = PARAMS_PACKAGE + "." + PARAM2.getName();
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
-    {
+
+    public ExternalModuleSupportServiceImpl() {
         config.put(HB_PARAM1_KEY, PARAM1);
         config.put(HB_PARAM2_KEY, PARAM2);
     }
@@ -66,25 +67,6 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
             response.add(i);
         }
         return response;
-    }
-    private ConfiguredVariableEntity transform(ModuleConfigurationItem item, ExternalModulePing ping){
-        ConfiguredVariableEntity entity = new ConfiguredVariableEntity();
-        entity.setValue(item.getValue());
-        entity.setName(item.getPath());
-        entity.setType(ConfiguredVariableItem.Type.STRING);
-        entity.setDescription("external module propery");
-        entity.setModuleKey(ping.getModulePK());
-        entity.setPackageKey(getPackage(item.getPath()));
-        entity.setVersion(0);
-        return entity;
-    }
-    private static String getPackage(String mapKey) {
-        final String[] pack = mapKey.split("\\.");
-        final StringBuilder builder = new StringBuilder(pack[0]);
-        for (int i = 1; i < pack.length - 1; i++) {
-            builder.append(".").append(pack[i]);
-        }
-        return builder.toString();
     }
 
     /**
@@ -200,4 +182,25 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     public String toString() {
         return "-ExternalModuleSupportService - ";
     }
+    // private methods
+    private ConfiguredVariableEntity transform(ModuleConfigurationItem item, ExternalModulePing ping){
+        ConfiguredVariableEntity entity = new ConfiguredVariableEntity();
+        entity.setValue(item.getValue());
+        entity.setName(item.getPath());
+        entity.setType(ConfiguredVariableItem.Type.STRING);
+        entity.setDescription("external module propery");
+        entity.setModuleKey(ping.getModulePK());
+        entity.setPackageKey(getPackage(item.getPath()));
+        entity.setVersion(0);
+        return entity;
+    }
+    private static String getPackage(String mapKey) {
+        final String[] pack = mapKey.split("\\.");
+        final StringBuilder builder = new StringBuilder(pack[0]);
+        for (int i = 1; i < pack.length - 1; i++) {
+            builder.append(".").append(pack[i]);
+        }
+        return builder.toString();
+    }
+
 }

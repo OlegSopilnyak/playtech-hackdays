@@ -1,9 +1,16 @@
 package com.mobenga.hm.openbet.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobenga.health.HealthUtils;
+import com.mobenga.health.model.ModuleOutput;
 import com.mobenga.hm.openbet.configuration.test.RestControllerTestConfiguration;
-import com.mobenga.hm.openbet.dto.MonitorCriteria;
+import com.mobenga.hm.openbet.dto.ExternalModulePing;
+import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
+import com.mobenga.hm.openbet.dto.ModuleOutputMessage;
+import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,27 +32,24 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Integration test for REST calls
+ * Test of external module support rest service
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = RestControllerTestConfiguration.class, loader = AnnotationConfigWebContextLoader.class)
-public class RestOperationsControllerTest {
-
+public class ExternalModuleRestControllerTest {
     private MediaType contentType =
             new MediaType(
                     MediaType.APPLICATION_JSON.getType(),
@@ -54,7 +58,7 @@ public class RestOperationsControllerTest {
             );
 
     @Autowired
-    private OpenbetOperationsManipulationService service;
+    private ExternalModuleSupportService moduleSupport;
 
     @Autowired
     private WebApplicationContext wac;
@@ -65,6 +69,7 @@ public class RestOperationsControllerTest {
     private RequestMappingHandlerAdapter adapter;
 
     private HttpMessageConverter mappingJackson2HttpMessageConverter;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Before
     public void setup() {
@@ -76,78 +81,93 @@ public class RestOperationsControllerTest {
 
         assertNotNull("the JSON message converter must be not null", this.mappingJackson2HttpMessageConverter);
     }
-
     @Test
-    public void testSearchOperations() throws Exception {
-        final MonitorCriteria criteria = new MonitorCriteria();
-        criteria.setBet("The bet...");
-        criteria.setCustomer("x-customer");
-        criteria.setFromDate(HealthUtils.fromDate(new Date()));
-        criteria.setOperationType("read");
-        criteria.setToDate(HealthUtils.fromDate(new Date()));
+    public void exchange() throws Exception {
+        ExternalModulePing ping = new ExternalModulePing();
+        ping.setHost("host");
+        ping.setModulePK("system|application|version");
+        List<ModuleOutputMessage> output = new ArrayList<>();
+        ping.setOutput(output);
+        {
+            ModuleOutputMessage msg = new ModuleOutputMessage();
+            msg.setMessageType("yyy");
+            msg.setPayload("Test message 1");
+            msg.setWhenOccurred(HealthUtils.fromDate(new Date()));
+            output.add(msg);
+        }
+        {
+            ModuleOutputMessage msg = new ModuleOutputMessage();
+            msg.setMessageType("yyy");
+            msg.setPayload("Test message 2");
+            msg.setWhenOccurred(HealthUtils.fromDate(new Date()));
+            output.add(msg);
+        }
+        List<ModuleConfigurationItem> configuration = new ArrayList<>();
+        ping.setConfiguration(configuration);
+        {
+            ModuleConfigurationItem item = new ModuleConfigurationItem();
+            item.setPath("1.2.3.a");
+            item.setType("STRING");
+            item.setValue("abcd");
+            configuration.add(item);
+        }
+        {
+            ModuleConfigurationItem item = new ModuleConfigurationItem();
+            item.setPath("1.2.3.b");
+            item.setType("STRING");
+            item.setValue("bcde");
+            configuration.add(item);
+        }
         MvcResult result =
                 this.mockMvc.perform(
-                        post("/monitor/openbet/operations")
+                        post("/module/ping")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(toJson(criteria))
+                                .content(toJson(ping))
                 )
 
                         .andExpect(status().isOk())
                         .andExpect(content().contentType(contentType))
                         .andReturn();
 
-        List<String> operations =  fromJson(result.getResponse().getContentAsString(), List.class);
-        assertNotNull(operations);
-        verify(service, times(1)).selectOperationsByCriteria(any());
-    }
+        List<ModuleConfigurationItem> config =
+                fromJson(result.getResponse().getContentAsString(), new TypeReference<List<ModuleConfigurationItem>>() {});
+        assertNotNull(config);
+        assertEquals(0, config.size());
+        verify(moduleSupport, times(1)).pong(any());
+        reset(moduleSupport);
 
-    @Test
-    public void testCountOpeartions() throws Exception {
-        final MonitorCriteria criteria = new MonitorCriteria();
-        criteria.setBet("The bet...");
-        criteria.setCustomer("x-customer");
-        criteria.setFromDate(HealthUtils.fromDate(new Date()));
-        criteria.setOperationType("read");
-        criteria.setToDate(HealthUtils.fromDate(new Date()));
-        MvcResult result =
-                this.mockMvc.perform(
-                        post("/monitor/openbet/operations/count")
+        when(moduleSupport.pong(any())).thenReturn(configuration);
+        result = this.mockMvc.perform(
+                        post("/module/ping")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(toJson(criteria))
+                                .content(toJson(ping))
                 )
 
                         .andExpect(status().isOk())
                         .andExpect(content().contentType(contentType))
                         .andReturn();
 
-        assertEquals("0", result.getResponse().getContentAsString());
-        verify(service, times(1)).countOperationByCriteria(any());
+        verify(moduleSupport, times(1)).pong(any());
+        config =  fromJson(result.getResponse().getContentAsString(), new TypeReference<List<ModuleConfigurationItem>>() {});
+        assertNotNull(config);
+        assertEquals(2, config.size());
+        assertEquals("abcd", config.get(0).getValue());
+        assertEquals("bcde", config.get(1).getValue());
     }
 
     @Test
-    public void testOperationTypes() throws Exception {
-        MvcResult result =
-                this.mockMvc.perform(
-                        get("/monitor/openbet/types")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                ).andExpect(status().isOk()
-                )
-                        .andExpect(content().contentType(contentType))
-                        .andReturn();
+    public void change() throws Exception {
 
-        List<String> types =  fromJson(result.getResponse().getContentAsString(), List.class);
-        assertNotNull(types);
-        verify(service, times(1)).supportedOperationTypes();
     }
-//    private methods
+    //    private methods
     private String toJson(Object o) throws IOException {
         MockHttpOutputMessage mockHttpOutputMessage = new MockHttpOutputMessage();
         this.mappingJackson2HttpMessageConverter.write(o, MediaType.APPLICATION_JSON, mockHttpOutputMessage);
         return mockHttpOutputMessage.getBodyAsString();
     }
-    private <T> T fromJson(String json, Class<T> clazz) throws IOException{
-        return clazz.cast(this.mappingJackson2HttpMessageConverter.read(clazz, new MockHttpInputMessage(json.getBytes())));
+    private <T> T fromJson(String json, TypeReference clazz) throws Exception{
+        return mapper.readValue(json, clazz);
     }
+
+
 }
