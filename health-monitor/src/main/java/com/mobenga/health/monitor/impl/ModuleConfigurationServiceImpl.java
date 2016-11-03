@@ -62,18 +62,18 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         notifier.unRegister(this);
     }
     /**
-     * To get the configuration of application
+     * To get the configuration of module
      *
-     * @param application the consumer of configurations
+     * @param module the consumer of configurations
      * @param groupName   the dot-delimited name of group (empty is root)
      * @return map of full-qualified configured variables
      */
     @Override
-    public Map<String, ConfiguredVariableItem> getConfigurationGroup(HealthItemPK application, String groupName) {
+    public Map<String, ConfiguredVariableItem> getConfigurationGroup(HealthItemPK module, String groupName) {
         final String normalizedGroup = normal(groupName);
-        LOG.debug("Getting configuration for '{}' from group '{}'", new Object[]{key(application), normalizedGroup});
+        LOG.debug("Getting configuration for '{}' from group '{}'", new Object[]{key(module), normalizedGroup});
         final Map<String, ConfiguredVariableItem> cachedConfiguration =
-                sharedCache.computeIfAbsent(key(application), (s) -> new LinkedHashMap<>());
+                sharedCache.computeIfAbsent(key(module), (s) -> new LinkedHashMap<>());
         return cachedConfiguration
                 .entrySet()
                 .stream()
@@ -175,24 +175,24 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     }
 
     /**
-     * To get item by module-id and name
+     * To get item by module-id and path
      *
      * @param moduleId
-     * @param name
+     * @param path
      * @return
      */
     @Override
-    public ConfiguredVariableItem updateConfigurationItemByModule(String moduleId, String name, String value) {
+    public ConfiguredVariableItem updateConfigurationItemByModule(String moduleId, String path, String value) {
         final Map<String,ConfiguredVariableItem> configuration = sharedCache.get(moduleId);
         if (configuration == null){
             return null;
         }
-        ConfiguredVariableItem item = configuration.get(name);
+        ConfiguredVariableItem item = configuration.get(path);
         if (item == null){
             return null;
         }
         item.set(value);
-        configuration.put(name, item);
+        configuration.put(path, item);
         sharedCache.put(moduleId, configuration);
         return item;
     }

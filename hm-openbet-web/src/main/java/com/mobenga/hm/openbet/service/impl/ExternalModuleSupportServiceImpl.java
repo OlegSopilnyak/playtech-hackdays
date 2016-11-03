@@ -7,7 +7,8 @@ import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
-import com.mobenga.health.storage.HealthStorage;
+import com.mobenga.health.storage.HealthModuleStorage;
+import com.mobenga.hm.openbet.dto.ConfigurationUpdate;
 import com.mobenga.hm.openbet.dto.ExternalModulePing;
 import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
@@ -37,7 +38,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     private ModuleConfigurationService configurationService;
 
     @Autowired
-    private HealthStorage healthStorage;
+    private HealthModuleStorage healthModuleStorage;
 
     @Autowired
     private ModuleStateNotificationService notifier;
@@ -54,7 +55,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Override
     public List<ModuleConfigurationItem> pong(ExternalModulePing ping) {
         ping.getOutput().stream().forEach( (a) -> {System.out.println(" From "+ping.getHost()+" message "+a);});
-        HealthItemPK pk = healthStorage.getModulePK(ping.getModulePK());
+        HealthItemPK pk = healthModuleStorage.getModulePK(ping.getModulePK());
         Map<String,ConfiguredVariableItem> moduleConfig = new HashMap<>();
         ping.getConfiguration().forEach( (i) -> {moduleConfig.put(i.getPath(), transform(i, ping));});
         Map<String,ConfiguredVariableItem> update = configurationService.getUpdatedVariables(pk,moduleConfig);
@@ -73,20 +74,31 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      * To change the configuration item
      *
      * @param module module-id
-     * @param name   item name
-     * @param value  item value
+     * @param path points divided full path to item in configuration map
+     * @param value item's new value
      * @return changed item
      */
     @Override
-    public ModuleConfigurationItem changeConfigurationItem(String module, String name, String value) {
-        ConfiguredVariableItem item = configurationService.updateConfigurationItemByModule(module, name, value);
-        if (item != null){
-            ModuleConfigurationItem tItem = new ModuleConfigurationItem();
-            tItem.setPath(item.getName());
-            tItem.setType(item.getType().name());
-            tItem.setValue(item.getValue());
-            return tItem;
+    public ModuleConfigurationItem changeConfigurationItem(String module, String path, String value) {
+        final ConfiguredVariableItem item = configurationService.updateConfigurationItemByModule(module, path, value);
+        if (item == null) {
+            return null;
         }
+        final ModuleConfigurationItem dtoItem = new ModuleConfigurationItem();
+        dtoItem.setPath(path);
+        dtoItem.setType(item.getType().name());
+        dtoItem.setValue(item.getValue());
+        return dtoItem;
+    }
+
+    /**
+     * To change the module's configuration
+     *
+     * @param update request
+     * @return updated module configuration items
+     */
+    @Override
+    public List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update) {
         return null;
     }
 

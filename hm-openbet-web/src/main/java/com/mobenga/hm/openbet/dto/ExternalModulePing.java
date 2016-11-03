@@ -3,7 +3,7 @@ package com.mobenga.hm.openbet.dto;
 import java.util.List;
 
 /**
- * Ping from external module
+ * DTO. Ping from external module
  */
 public class ExternalModulePing {
     // the pipeline separated parameters of the module (sys,app,version)
@@ -14,8 +14,10 @@ public class ExternalModulePing {
     private String state;
     // Current configuration of module
     private List<ModuleConfigurationItem> configuration;
-    // the output of module from last ping
+    // the output of module from last ping (without actions)
     private List<ModuleOutputMessage> output;
+    // the ouput of module from last ping (with related actions
+    private List<ModuleAction> actions;
 
     public String getModulePK() {
         return modulePK;
@@ -57,6 +59,14 @@ public class ExternalModulePing {
         this.output = output;
     }
 
+    public List<ModuleAction> getActions() {
+        return actions;
+    }
+
+    public void setActions(List<ModuleAction> actions) {
+        this.actions = actions;
+    }
+
     @Override
     public String toString() {
         return "ExternalModulePing{" +
@@ -65,6 +75,7 @@ public class ExternalModulePing {
                 ", state='" + state + '\'' +
                 ", configuration=" + configuration +
                 ", output=" + output +
+                ", actions=" + actions +
                 '}';
     }
 }

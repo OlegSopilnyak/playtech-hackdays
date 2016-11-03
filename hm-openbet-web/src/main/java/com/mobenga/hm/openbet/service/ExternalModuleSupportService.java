@@ -1,5 +1,6 @@
 package com.mobenga.hm.openbet.service;
 
+import com.mobenga.hm.openbet.dto.ConfigurationUpdate;
 import com.mobenga.hm.openbet.dto.ExternalModulePing;
 import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
 
@@ -20,9 +21,17 @@ public interface ExternalModuleSupportService {
      * To change the configuration item
      *
      * @param module module-id
-     * @param name item name
-     * @param value item value
+     * @param path points divided full path to item in configuration map
+     * @param value item's new value
      * @return changed item
      */
-    ModuleConfigurationItem changeConfigurationItem(String module, String name, String value);
+    ModuleConfigurationItem changeConfigurationItem(String module, String path, String value);
+
+    /**
+     * To change the module's configuration
+     *
+     * @param update request
+     * @return updated module configuration items
+     */
+    List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update);
 }

@@ -4,8 +4,10 @@ import com.mobenga.health.configuration.BasicMonitorConfiguration;
 import com.mobenga.health.configuration.FactoryConfiguration;
 import com.mobenga.health.configuration.PersistenceConfiguration;
 import com.mobenga.health.model.factory.UniqueIdGenerator;
+import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
+import com.mobenga.hm.openbet.service.impl.DateTimeConverterImpl;
 import com.mobenga.hm.openbet.service.impl.ExternalModuleSupportServiceImpl;
 import com.mobenga.hm.openbet.service.stub.OpenbetOperationsManipulationServiceStub;
 import org.springframework.beans.factory.annotation.Autowire;
@@ -39,5 +41,10 @@ public class ApplicationConfiguration {
     @Bean(autowire = Autowire.BY_TYPE, initMethod = "initialize")
     public ExternalModuleSupportService externalModuleSupportService(){
         return new ExternalModuleSupportServiceImpl();
+    }
+
+    @Bean
+    public DateTimeConverter createDateTimeConverter(){
+        return new DateTimeConverterImpl();
     }
 }

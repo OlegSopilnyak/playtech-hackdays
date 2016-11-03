@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobenga.health.HealthUtils;
 import com.mobenga.health.model.ModuleOutput;
+import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.hm.openbet.configuration.test.RestControllerTestConfiguration;
 import com.mobenga.hm.openbet.dto.ExternalModulePing;
+import com.mobenga.hm.openbet.dto.ModuleAction;
 import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
 import com.mobenga.hm.openbet.dto.ModuleOutputMessage;
+import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
 import org.jetbrains.annotations.NotNull;
@@ -30,9 +33,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -59,6 +64,10 @@ public class ExternalModuleRestControllerTest {
 
     @Autowired
     private ExternalModuleSupportService moduleSupport;
+    @Autowired
+    private DateTimeConverter dtConverter;
+    @Autowired
+    private TimeService timer;
 
     @Autowired
     private WebApplicationContext wac;
@@ -85,6 +94,7 @@ public class ExternalModuleRestControllerTest {
     public void exchange() throws Exception {
         ExternalModulePing ping = new ExternalModulePing();
         ping.setHost("host");
+        ping.setState("active");
         ping.setModulePK("system|application|version");
         List<ModuleOutputMessage> output = new ArrayList<>();
         ping.setOutput(output);
@@ -92,15 +102,35 @@ public class ExternalModuleRestControllerTest {
             ModuleOutputMessage msg = new ModuleOutputMessage();
             msg.setMessageType("yyy");
             msg.setPayload("Test message 1");
-            msg.setWhenOccurred(HealthUtils.fromDate(new Date()));
+            msg.setWhenOccurred(nowTime());
             output.add(msg);
         }
         {
             ModuleOutputMessage msg = new ModuleOutputMessage();
             msg.setMessageType("yyy");
             msg.setPayload("Test message 2");
-            msg.setWhenOccurred(HealthUtils.fromDate(new Date()));
+            msg.setWhenOccurred(nowTime());
             output.add(msg);
+        }
+        List<ModuleAction> actions = new ArrayList<>();
+        ping.setActions(actions);
+        {
+            ModuleAction action = new ModuleAction();
+            action.setState("SUCCESS");
+            action.setDescription("Some activity in external module.");
+            action.setDuration(10);
+            action.setName("ImportantAction");
+            action.setStartTime(nowTime());
+            action.setFinishTime(nowTime());
+            List<ModuleOutputMessage> aOutput = new ArrayList<>();
+            action.setOutput(aOutput);
+            {
+                ModuleOutputMessage msg = new ModuleOutputMessage();
+                msg.setMessageType("yyy");
+                msg.setPayload("Test message 3");
+                msg.setWhenOccurred(nowTime());
+                aOutput.add(msg);
+            }
         }
         List<ModuleConfigurationItem> configuration = new ArrayList<>();
         ping.setConfiguration(configuration);
@@ -168,6 +198,8 @@ public class ExternalModuleRestControllerTest {
     private <T> T fromJson(String json, TypeReference clazz) throws Exception{
         return mapper.readValue(json, clazz);
     }
-
+    private String nowTime(){
+        return dtConverter.asString(timer.correctTime());
+    }
 
 }

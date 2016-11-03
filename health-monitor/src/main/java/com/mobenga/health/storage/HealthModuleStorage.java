@@ -5,7 +5,7 @@ import com.mobenga.health.model.HealthItemPK;
 /**
  * Heath services data storage
  */
-public interface HealthStorage {
+public interface HealthModuleStorage {
     /**
      * To get stored PK by exists PK
      *

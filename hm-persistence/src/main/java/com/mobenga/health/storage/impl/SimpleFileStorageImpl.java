@@ -33,7 +33,7 @@ import static com.mobenga.health.storage.impl.ConfiguredVariableItemLightWeightF
  */
 public class SimpleFileStorageImpl implements
         ConfigurationStorage,
-        HealthStorage,
+        HealthModuleStorage,
         HeartBeatStorage,
         MonitoredActionStorage,
         ModuleOutputStorage
