@@ -3,13 +3,12 @@ package com.mobenga.hm.openbet.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobenga.health.HealthUtils;
+import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.ModuleOutput;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.hm.openbet.configuration.test.RestControllerTestConfiguration;
-import com.mobenga.hm.openbet.dto.ExternalModulePing;
-import com.mobenga.hm.openbet.dto.ModuleAction;
-import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
-import com.mobenga.hm.openbet.dto.ModuleOutputMessage;
+import com.mobenga.hm.openbet.dto.*;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
@@ -41,6 +40,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import static com.mobenga.health.HealthUtils.key;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -91,7 +91,7 @@ public class ExternalModuleRestControllerTest {
         assertNotNull("the JSON message converter must be not null", this.mappingJackson2HttpMessageConverter);
     }
     @Test
-    public void exchange() throws Exception {
+    public void testExchange() throws Exception {
         ExternalModulePing ping = new ExternalModulePing();
         ping.setHost("host");
         ping.setState("active");
@@ -186,8 +186,88 @@ public class ExternalModuleRestControllerTest {
     }
 
     @Test
-    public void change() throws Exception {
+    public void testSimpleChange() throws Exception {
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn("monitor");
+        when(pk.getApplicationId()).thenReturn("config");
+        when(pk.getVersionId()).thenReturn("0.5");
+        when(pk.getDescription()).thenReturn("Description");
 
+        String module = key(pk);
+        String path = "1.2.3.a";
+        String value = "Hello";
+        ModuleConfigurationItem updated = new ModuleConfigurationItem();
+        updated.setPath(path);
+        updated.setType(ConfiguredVariableItem.Type.STRING.name());
+        updated.setValue(value);
+        when(moduleSupport.changeConfigurationItem(anyString(), anyString(), anyString())).thenReturn(updated);
+
+        MvcResult result =
+                this.mockMvc.perform(
+                        post("/module/update")
+                                .contentType(MediaType.APPLICATION_JSON)
+                        .param("module", module)
+                        .param("path", path)
+                        .param("value", value)
+                )
+
+                        .andExpect(status().isOk())
+                        .andExpect(content().contentType(contentType))
+                        .andReturn();
+
+        String json = result.getResponse().getContentAsString();
+        ModuleConfigurationItem item = fromJson(json, ModuleConfigurationItem.class);
+        assertNotNull(item);
+        assertEquals(item.getType(), updated.getType());
+        assertEquals(item.getPath(), updated.getPath());
+        assertEquals(item.getValue(), updated.getValue());
+    }
+    @Test
+    public void testBatchChange() throws Exception {
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn("monitor");
+        when(pk.getApplicationId()).thenReturn("config");
+        when(pk.getVersionId()).thenReturn("0.55");
+        when(pk.getDescription()).thenReturn("Description");
+
+        ConfigurationUpdate update = new ConfigurationUpdate();
+        update.setHost("host");
+        update.setModulePK(key(pk));
+        List<ModuleConfigurationItem> configuration = new ArrayList<>();
+        update.setUpdated(configuration);
+        {
+            ModuleConfigurationItem item = new ModuleConfigurationItem();
+            item.setPath("1.2.3.a");
+            item.setType("STRING");
+            item.setValue("abcd");
+            configuration.add(item);
+        }
+        {
+            ModuleConfigurationItem item = new ModuleConfigurationItem();
+            item.setPath("1.2.3.b");
+            item.setType("STRING");
+            item.setValue("bcde");
+            configuration.add(item);
+        }
+        when(moduleSupport.changeConfiguration(any())).thenReturn(configuration);
+
+        MvcResult result =
+                this.mockMvc.perform(
+                        post("/module/batchUpdate")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(toJson(update))
+                )
+
+                        .andExpect(status().isOk())
+                        .andExpect(content().contentType(contentType))
+                        .andReturn();
+
+        List<ModuleConfigurationItem> config =
+                fromJson(result.getResponse().getContentAsString(), new TypeReference<List<ModuleConfigurationItem>>() {});
+        assertNotNull(config);
+        assertEquals(2, config.size());
+        assertEquals("abcd", config.get(0).getValue());
+        assertEquals("bcde", config.get(1).getValue());
     }
     //    private methods
     private String toJson(Object o) throws IOException {
@@ -197,6 +277,10 @@ public class ExternalModuleRestControllerTest {
     }
     private <T> T fromJson(String json, TypeReference clazz) throws Exception{
         return mapper.readValue(json, clazz);
+    }
+    private <T> T fromJson(String json, Class<T> clazz) throws Exception{
+        MockHttpInputMessage message = new MockHttpInputMessage(json.getBytes());
+        return clazz.cast(mappingJackson2HttpMessageConverter.read(clazz, message));
     }
     private String nowTime(){
         return dtConverter.asString(timer.correctTime());
