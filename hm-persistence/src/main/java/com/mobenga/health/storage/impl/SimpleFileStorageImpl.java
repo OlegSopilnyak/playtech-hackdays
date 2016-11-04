@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
 import static com.mobenga.health.storage.impl.ConfiguredVariableItemLightWeightFactory.itemFor;
+import static com.oracle.jrockit.jfr.FlightRecorder.isActive;
 
 /**
  * Trivial implementation of system storage
@@ -142,6 +143,27 @@ public class SimpleFileStorageImpl implements
         }
     }
 
+    @Override
+    public void saveModuleState(HealthItemPK module, boolean isActive){
+        final Date nowDateTime = timer.now();
+        LOG.debug("Saving module heart-beat time '{}'", nowDateTime);
+        Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
+        String moduleId = key(module);
+        LOG.debug("Heart-beat is not stored in this version of storage.");
+        String key = moduleId + "."+hostName;
+        HealthConditionEntity condition = (HealthConditionEntity) repository.get(key);
+        if (condition == null || condition.isModuleActive() != isActive) {
+            condition = new HealthConditionEntity();
+            condition.setHealthPK(module);
+            condition.setHostAddress(hostIp);
+            condition.setHostName(hostName);
+            condition.setModuleActive(isActive);
+            repository.put(key, condition);
+            storeRepository(DATA_FILE_HEARTBEAT, repository);
+            hbRepo = repository;
+        }
+    }
+
     void removeModuleHB(HealthItemPK pk){
         Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
         final String key = key(pk) + "."+hostName;
@@ -232,12 +254,11 @@ public class SimpleFileStorageImpl implements
     /**
      * To change/replace module's configuration
      * <br/> Updates from external system (administrator change the parameters of module)
-     *
-     * @param module        configurable module
+     *  @param module        configurable module
      * @param configuration new configuration
      */
     @Override
-    public void replaceConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
+    public Map<String, ConfiguredVariableItem> replaceConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
         LOG.debug("Storing whole configuration for '{}'", module);
         final String moduleKey = key(getModulePK(module));
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
@@ -249,7 +270,7 @@ public class SimpleFileStorageImpl implements
             increaseVariablesVersionFor(moduleKey);
         } catch (Throwable e) {
             LOG.error("Can't increase configuration version for '{}'", moduleKey, e);
-            return;
+            return configuration;
         }
         configuration.entrySet().stream().forEach((e) -> {
             final ConfiguredVariableEntity entity = root.copy();
@@ -267,6 +288,7 @@ public class SimpleFileStorageImpl implements
             storeUpdatedItems(changedItems);
         }
 
+        return changedItems.stream().collect(Collectors.toMap( i -> i.getMapKey(), i -> i ));
     }
 
     void removeModuleConfiguration(HealthItemPK module){

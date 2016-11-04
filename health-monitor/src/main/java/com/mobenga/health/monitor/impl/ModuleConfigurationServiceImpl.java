@@ -3,10 +3,12 @@ package com.mobenga.health.monitor.impl;
 import com.hazelcast.core.HazelcastInstance;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.ConfigurationStorage;
+import com.mobenga.health.storage.HealthModuleStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,8 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
 
     @Autowired
     private ConfigurationStorage storage;
+    @Autowired
+    private HealthModuleStorage moduleStore;
 
     @Autowired
     private ModuleStateNotificationService notifier;
@@ -137,15 +141,15 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
      * 
      * @param module configurable module
      * @param configuration new configuration map
+     * @return stored configuration
      */
     @Override
-    public void changeConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
+    public Map<String, ConfiguredVariableItem> changeConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
         final String modulePK = key(module);
         LOG.debug("Replace configuration for '{}'", modulePK);
-        LOG.debug("Storing to configurations storage");
-        storage.replaceConfiguration(module, configuration);
-        LOG.debug("Update cache");
-        sharedCache.put(modulePK, configuration);
+        final Map<String, ConfiguredVariableItem> current = storage.replaceConfiguration(module, configuration);
+        sharedCache.put(modulePK, current);
+        return current;
     }
 
     /**
@@ -177,24 +181,26 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     /**
      * To get item by module-id and path
      *
-     * @param moduleId
-     * @param path
-     * @return
+     * @param moduleId module-id as string
+     * @param path path to value in configuration map
+     * @param value new value of parameter
+     * @return stored configuratio parameter or null if wrong parameters
      */
     @Override
     public ConfiguredVariableItem updateConfigurationItemByModule(String moduleId, String path, String value) {
-        final Map<String,ConfiguredVariableItem> configuration = sharedCache.get(moduleId);
-        if (configuration == null){
+        final Map<String,ConfiguredVariableItem> configuration;
+        if ((configuration = sharedCache.get(moduleId)) == null){
             return null;
         }
-        ConfiguredVariableItem item = configuration.get(path);
-        if (item == null){
-            return null;
+        ConfiguredVariableItem item;
+        if ((item = configuration.get(path)) == null){
+            String parts[] = path.split("\\.");
+            item = new LocalConfiguredVariableItem(parts[parts.length-1], "Updated by operator", value );
+        }else {
+            item.set(value);
         }
-        item.set(value);
         configuration.put(path, item);
-        sharedCache.put(moduleId, configuration);
-        return item;
+        return changeConfiguration(moduleStore.getModulePK(moduleId), configuration).get(path);
     }
 
     public Map<String, Map<String, ConfiguredVariableItem>> getSharedCache() {

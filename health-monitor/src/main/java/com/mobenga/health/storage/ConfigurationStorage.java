@@ -12,11 +12,11 @@ import java.util.Map;
 public interface ConfigurationStorage {
     /**
      * To change/replace module's configuration
-     * 
-     * @param module configurable module
+     *  @param module configurable module
      * @param configuration new configuration
+     * @return lastVersion of configuration
      */
-    void replaceConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration);
+    Map<String, ConfiguredVariableItem> replaceConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration);
     
     /**
      * To store the changed configuration to database

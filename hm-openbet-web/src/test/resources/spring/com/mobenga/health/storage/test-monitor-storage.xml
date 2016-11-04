@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="actionStorage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.MonitoredActionStorage" />
+    </bean>
+
+    <bean id="configStorage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.ConfigurationStorage" />
+    </bean>
+
+    <bean id="outputStorage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.ModuleOutputStorage" />
+    </bean>
+
+    <bean id="heartbeatStorage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.HeartBeatStorage" />
+    </bean>
+
+    <bean id="moduleStorage" class="org.mockito.Mockito" factory-method="mock">
+        <constructor-arg value="com.mobenga.health.storage.HealthModuleStorage" />
+    </bean>
+</beans>

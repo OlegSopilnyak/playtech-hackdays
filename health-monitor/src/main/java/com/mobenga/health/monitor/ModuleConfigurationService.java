@@ -41,8 +41,9 @@ public interface ModuleConfigurationService {
      * 
      * @param application configurable module
      * @param configuration new configuration map
+     * @return saved configuration
      */
-    void changeConfiguration(HealthItemPK application, Map<String, ConfiguredVariableItem> configuration);
+    Map<String, ConfiguredVariableItem> changeConfiguration(HealthItemPK application, Map<String, ConfiguredVariableItem> configuration);
 
     /**
      * To get the list of configurable groups

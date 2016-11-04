@@ -1,20 +1,23 @@
 package com.mobenga.hm.openbet.service.impl;
 
-import com.mobenga.health.model.ConfiguredVariableEntity;
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.*;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.HealthModuleStorage;
+import com.mobenga.health.storage.HeartBeatStorage;
+import com.mobenga.health.storage.ModuleOutputStorage;
+import com.mobenga.health.storage.MonitoredActionStorage;
 import com.mobenga.hm.openbet.dto.ConfigurationUpdate;
 import com.mobenga.hm.openbet.dto.ExternalModulePing;
 import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
+import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * External modules support realization
@@ -43,6 +46,17 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Autowired
     private ModuleStateNotificationService notifier;
 
+    @Autowired
+    private HeartBeatStorage hbStorage;
+
+    @Autowired
+    private ModuleOutputStorage outputStorage;
+    @Autowired
+    private DateTimeConverter dt;
+
+    @Autowired
+    private MonitoredActionStorage actionStorage;
+
     public void initialize(){
         notifier.register(this);
     }
@@ -54,19 +68,43 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public List<ModuleConfigurationItem> pong(ExternalModulePing ping) {
-        ping.getOutput().stream().forEach( (a) -> {System.out.println(" From "+ping.getHost()+" message "+a);});
         HealthItemPK pk = healthModuleStorage.getModulePK(ping.getModulePK());
+        // process heart-beat
+        hbStorage.saveModuleState(pk, "Active".equalsIgnoreCase(ping.getState()));
+        // process output
+        ping.getOutput().forEach(o->{
+            LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+            msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
+            msg.setModulePK(ping.getModulePK());
+            msg.setPayload(o.getPayload());
+            outputStorage.saveModuleOutput(msg);
+        });
+        // process output with actions
+        ping.getActions().forEach(a->{
+            MonitoredAction action = actionStorage.createMonitoredAction();
+            action.setDescription(a.getDescription());
+            action.setStart(dt.asDate(a.getStartTime()));
+            action.setFinish(dt.asDate(a.getFinishTime()));
+            action.setDuration(a.getDuration());
+            actionStorage.saveActionState(pk, action);
+            String actionId = action.getId();
+            a.getOutput().forEach(o->{
+                LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+                msg.setActionId(actionId);
+                msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
+                msg.setModulePK(ping.getModulePK());
+                msg.setPayload(o.getPayload());
+                outputStorage.saveModuleOutput(msg);
+            });
+        });
+        // processing configuration section
         Map<String,ConfiguredVariableItem> moduleConfig = new HashMap<>();
         ping.getConfiguration().forEach( (i) -> {moduleConfig.put(i.getPath(), transform(i, ping));});
         Map<String,ConfiguredVariableItem> update = configurationService.getUpdatedVariables(pk,moduleConfig);
         List<ModuleConfigurationItem> response = new ArrayList<>();
-        for(ConfiguredVariableItem item : update.values()){
-            ModuleConfigurationItem i = new ModuleConfigurationItem();
-            i.setValue(item.getValue());
-            i.setType(item.getType().name());
-            i.setPath(item.getName());
-            response.add(i);
-        }
+        update.entrySet().forEach(e -> {
+            response.add(new ModuleConfigurationItem(e.getKey(), e.getValue().getType().name(), e.getValue().getValue()));
+        });
         return response;
     }
 
@@ -99,7 +137,23 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update) {
-        return null;
+        HealthItemPK module = healthModuleStorage.getModulePK(update.getModulePK());
+        Map<String, ConfiguredVariableItem> updated, updating = new HashMap<>();
+        update.getUpdated().forEach(item -> {
+            String pack[] = item.getPath().split("\\.");
+            LocalConfiguredVariableItem i = new LocalConfiguredVariableItem(pack[0], "Updated item", item.getValue());
+            i.setType(ConfiguredVariableItem.Type.valueOf(item.getType()));
+            updating.put(item.getPath(), i);
+        });
+        updated = configurationService.changeConfiguration(module, updating);
+        return
+                updated.entrySet().stream().map(e -> {
+                    final ModuleConfigurationItem item = new ModuleConfigurationItem();
+                    item.setPath(e.getKey());
+                    item.setType(e.getValue().getType().name());
+                    item.setValue(e.getValue().getValue());
+                    return item;
+                }).collect(Collectors.toList());
     }
 
     /**

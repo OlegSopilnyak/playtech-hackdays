@@ -11,6 +11,15 @@ public class ModuleConfigurationItem {
     // the value of parameter
     private String value;
 
+    public ModuleConfigurationItem() {
+    }
+
+    public ModuleConfigurationItem(String path, String type, String value) {
+        this.path = path;
+        this.type = type;
+        this.value = value;
+    }
+
     public String getPath() {
         return path;
     }

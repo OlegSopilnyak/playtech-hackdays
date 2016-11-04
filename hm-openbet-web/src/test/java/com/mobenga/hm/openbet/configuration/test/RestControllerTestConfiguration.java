@@ -3,6 +3,11 @@ package com.mobenga.hm.openbet.configuration.test;
 import com.mobenga.health.configuration.BasicMonitorConfiguration;
 import com.mobenga.health.configuration.FactoryConfiguration;
 import com.mobenga.health.configuration.PersistenceConfiguration;
+import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.LogMessage;
+import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.storage.*;
 import com.mobenga.hm.openbet.configuration.ApplicationConfiguration;
 import com.mobenga.hm.openbet.controller.ApplicationController;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
@@ -13,7 +18,10 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.web.AnnotationConfigWebContextLoader;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test configuration for the rest
@@ -22,7 +30,7 @@ import static org.mockito.Mockito.mock;
 @ComponentScan(basePackages = "com.mobenga.hm.openbet.controller",
         excludeFilters = {@ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, value = ApplicationController.class)}
 )
-@Import({ApplicationConfiguration.class})
+@Import({ApplicationConfiguration.class, FactoryConfiguration.class, MockedStorageConfiguration.class})
 @EnableWebMvc
 public class RestControllerTestConfiguration {
 
@@ -31,10 +39,4 @@ public class RestControllerTestConfiguration {
         return mock(ExternalModuleSupportService.class);
     }
 
-
-    @Bean
-    public OpenbetOperationsManipulationService createOperationsStorage(){
-        OpenbetOperationsManipulationService service = mock(OpenbetOperationsManipulationService.class);
-        return service;
-    }
 }

@@ -1,5 +1,6 @@
 package com.mobenga.health.storage;
 
+import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleHealthItem;
 import com.mobenga.health.monitor.behavior.ModuleHealth;
 
@@ -16,6 +17,14 @@ public interface HeartBeatStorage {
      * @param module state of module
      */
     void saveHeartBeat(ModuleHealth module);
+
+    /**
+     * To save the module's state
+     *
+     * @param module checked module
+     * @param isActive flag oi module active
+     */
+    void saveModuleState(HealthItemPK module, boolean isActive);
 
     /**
      * To get states of all modules

@@ -21,8 +21,7 @@ import org.springframework.context.annotation.Import;
  * Configuration of business-logic
  */
 @Configuration
-//@Import({OpenbetPersistenceConfiguration.class})
-@Import({BasicMonitorConfiguration.class, FactoryConfiguration.class, PersistenceConfiguration.class})
+@Import({BasicMonitorConfiguration.class, FactoryConfiguration.class})
 @ComponentScan(basePackages = "com.mobenga.hm.openbet.controller")
 public class ApplicationConfiguration {
     
