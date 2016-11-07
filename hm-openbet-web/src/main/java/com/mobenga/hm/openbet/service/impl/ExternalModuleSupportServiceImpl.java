@@ -14,15 +14,21 @@ import com.mobenga.hm.openbet.dto.ExternalModulePing;
 import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * External modules support realization
  */
 public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportService, MonitoredService {
+    private static final Logger LOG = LoggerFactory.getLogger(ExternalModuleSupportServiceImpl.class);
     public static final String PARAMS_PACKAGE = "health.monitor.module.external.service";
     private static final ConfiguredVariableItem PARAM1 =
             new LocalConfiguredVariableItem("parameter1", "Example of parameter number", 150);
@@ -68,10 +74,13 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public List<ModuleConfigurationItem> pong(ExternalModulePing ping) {
+        LOG.debug("Received ping from '{}'", ping.getHost());
         HealthItemPK pk = healthModuleStorage.getModulePK(ping.getModulePK());
         // process heart-beat
+        LOG.debug("Processing state of module '{}'", ping.getState());
         hbStorage.saveModuleState(pk, "Active".equalsIgnoreCase(ping.getState()));
         // process output
+        LOG.debug("Processing '{}' messages of raw log.", ping.getOutput().size());
         ping.getOutput().forEach(o->{
             LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
             msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
@@ -80,6 +89,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
             outputStorage.saveModuleOutput(msg);
         });
         // process output with actions
+        LOG.debug("Processing '{}' actions of action log.", ping.getActions().size());
         ping.getActions().forEach(a->{
             MonitoredAction action = actionStorage.createMonitoredAction();
             action.setDescription(a.getDescription());
@@ -88,6 +98,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
             action.setDuration(a.getDuration());
             actionStorage.saveActionState(pk, action);
             String actionId = action.getId();
+            LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getName());
             a.getOutput().forEach(o->{
                 LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
                 msg.setActionId(actionId);
@@ -98,11 +109,13 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
             });
         });
         // processing configuration section
+        LOG.debug("Processing module configuration items:'{}'", ping.getConfiguration().size());
         Map<String,ConfiguredVariableItem> moduleConfig = new HashMap<>();
         ping.getConfiguration().forEach( (i) -> {moduleConfig.put(i.getPath(), transform(i, ping));});
-        Map<String,ConfiguredVariableItem> update = configurationService.getUpdatedVariables(pk,moduleConfig);
+        Map<String,ConfiguredVariableItem> updated = configurationService.getUpdatedVariables(pk,moduleConfig);
         List<ModuleConfigurationItem> response = new ArrayList<>();
-        update.entrySet().forEach(e -> {
+        LOG.debug("Return '{}' updated configuration's items.", updated.size());
+        updated.entrySet().forEach(e -> {
             response.add(new ModuleConfigurationItem(e.getKey(), e.getValue().getType().name(), e.getValue().getValue()));
         });
         return response;
@@ -118,6 +131,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public ModuleConfigurationItem changeConfigurationItem(String module, String path, String value) {
+        LOG.debug("Request to change for '{}' path '{}' to value :'{}'", module, path, value);
         final ConfiguredVariableItem item = configurationService.updateConfigurationItemByModule(module, path, value);
         if (item == null) {
             return null;
@@ -137,15 +151,21 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update) {
+        LOG.debug("Request batch change configuration from '{}' for '{}'", update.getHost(), update.getModulePK());
         HealthItemPK module = healthModuleStorage.getModulePK(update.getModulePK());
         Map<String, ConfiguredVariableItem> updated, updating = new HashMap<>();
         update.getUpdated().forEach(item -> {
             String pack[] = item.getPath().split("\\.");
-            LocalConfiguredVariableItem i = new LocalConfiguredVariableItem(pack[0], "Updated item", item.getValue());
+            LocalConfiguredVariableItem i = new LocalConfiguredVariableItem(pack[pack.length-1], "Updated item", item.getValue());
             i.setType(ConfiguredVariableItem.Type.valueOf(item.getType()));
-            updating.put(item.getPath(), i);
+            if (i.isValid()) {
+                updating.put(item.getPath(), i);
+            }else {
+                LOG.error("Invalid item '{}' received.", item);
+            }
         });
         updated = configurationService.changeConfiguration(module, updating);
+        LOG.debug("New configuration size is '{}'", updated.size());
         return
                 updated.entrySet().stream().map(e -> {
                     final ModuleConfigurationItem item = new ModuleConfigurationItem();
@@ -221,7 +241,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public String getDescription() {
-        return "RestController for external modules";
+        return "Service to work with external modules";
     }
 
     /**

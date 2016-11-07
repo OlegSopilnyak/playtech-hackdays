@@ -1,17 +1,12 @@
 package com.mobenga.hm.openbet.service.impl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.mobenga.health.configuration.PersistenceConfiguration;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.storage.ConfigurationStorage;
 import com.mobenga.hm.openbet.configuration.ApplicationConfiguration;
 import com.mobenga.hm.openbet.configuration.test.MockedStorageConfiguration;
-import com.mobenga.hm.openbet.dto.ExternalModulePing;
-import com.mobenga.hm.openbet.dto.ModuleAction;
-import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
-import com.mobenga.hm.openbet.dto.ModuleOutputMessage;
+import com.mobenga.hm.openbet.dto.*;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import org.junit.Test;
@@ -19,23 +14,19 @@ import org.junit.runner.RunWith;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.mock.http.MockHttpInputMessage;
-import org.springframework.mock.http.MockHttpOutputMessage;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
-import static com.sun.corba.se.spi.activation.IIOP_CLEAR_TEXT.value;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -143,16 +134,51 @@ public class ExternalModuleSupportServiceImplTest {
 
         configService.newConfiguredVariables(pk, new HashMap<>());
 
-        String path = "1.2.3.4.5.a", value = "Hello";
+        String path = "1.2.3.4.5.d", value = "Hello";
 
         ModuleConfigurationItem changed = service.changeConfigurationItem(key(pk), path, value);
         assertEquals(path,changed.getPath());
         assertEquals(value,changed.getValue());
+
+
     }
 
     @Test
     public void changeConfiguration() throws Exception {
+        final String system = "mockSys",
+                application = "mockApp",
+                version = "mockVer",
+                description = "mockDescription"
+                        ;
 
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+        configService.newConfiguredVariables(pk, new HashMap<>());
+        when(configStorage.replaceConfiguration(any(HealthItemPK.class), any(Map.class))).then(new Answer<Map>() {
+            @Override
+            public Map answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return (Map) invocationOnMock.getArguments()[1];
+            }
+        });
+
+        ConfigurationUpdate update = new ConfigurationUpdate();
+        update.setHost("host");
+        update.setModulePK(key(pk));
+        List<ModuleConfigurationItem> updatedConfig = new ArrayList<>();
+        update.setUpdated(updatedConfig);
+        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.a", "INTEGER", "100"));
+        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.b", "STRING", "100a"));
+        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.c", "INTEGER", "300"));
+
+        List<ModuleConfigurationItem> config = service.changeConfiguration(update);
+        assertEquals(3, config.size());
+        Map<String, ModuleConfigurationItem> cfg = config.stream().collect(Collectors.toMap(i ->i.getPath(), i->i));
+        assertEquals("100", cfg.get("1.2.3.4.5.a").getValue());
+        assertEquals("100a", cfg.get("1.2.3.4.5.b").getValue());
+        assertEquals("300", cfg.get("1.2.3.4.5.c").getValue());
     }
 
     //    private methods

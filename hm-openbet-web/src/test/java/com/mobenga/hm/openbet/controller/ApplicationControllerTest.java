@@ -1,7 +1,5 @@
 package com.mobenga.hm.openbet.controller;
 
-import static org.junit.Assert.*;
-
 /**
  * Integration test for controller
  */

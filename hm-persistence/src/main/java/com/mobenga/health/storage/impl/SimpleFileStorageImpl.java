@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
 import static com.mobenga.health.storage.impl.ConfiguredVariableItemLightWeightFactory.itemFor;
-import static com.oracle.jrockit.jfr.FlightRecorder.isActive;
 
 /**
  * Trivial implementation of system storage

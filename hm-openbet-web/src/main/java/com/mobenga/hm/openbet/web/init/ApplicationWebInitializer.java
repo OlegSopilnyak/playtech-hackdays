@@ -2,12 +2,13 @@ package com.mobenga.hm.openbet.web.init;
 
 import com.mobenga.hm.openbet.configuration.ApplicationConfiguration;
 import com.mobenga.hm.openbet.configuration.WebMvcConfiguration;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRegistration.Dynamic;
 import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRegistration.Dynamic;
 
 /**
  * Instead of use web.xml used this class

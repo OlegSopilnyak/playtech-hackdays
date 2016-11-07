@@ -1,5 +1,6 @@
 package com.mobenga.hm.openbet.configuration.test;
 
+import com.hazelcast.core.HazelcastInstance;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.LogMessage;
@@ -12,14 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 
 import java.util.Date;
-import java.util.Map;
 import java.util.StringTokenizer;
 
 import static org.mockito.Matchers.*;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -141,5 +138,10 @@ public class MockedStorageConfiguration {
         public String getDescription() {
             return "Stub for "+sysId+"|"+appId+"|"+verId;
         }
+    }
+
+    @Bean
+    public HazelcastInstance cache(){
+        return mock(HazelcastInstance.class);
     }
 }
