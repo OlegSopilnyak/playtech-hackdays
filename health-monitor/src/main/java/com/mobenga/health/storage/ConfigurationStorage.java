@@ -27,13 +27,6 @@ public interface ConfigurationStorage {
     void storeChangedConfiguration(HealthItemPK application, Map<String, ConfiguredVariableItem> configuration);
 
     /**
-     * To get stored list of application PKs
-     *
-     * @return the list of available PKs
-     */
-    List<String> getApplicationsPKs();
-
-    /**
      * To get configuration for particular application
      *
      * @param modulePK application's primary key

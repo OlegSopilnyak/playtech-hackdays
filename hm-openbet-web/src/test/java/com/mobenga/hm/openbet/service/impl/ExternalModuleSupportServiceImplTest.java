@@ -52,10 +52,22 @@ public class ExternalModuleSupportServiceImplTest {
 
     @Test
     public void pong() throws Exception {
+        final String system = "mockSys",
+                application = "mockApp",
+                version = "mockVer",
+                description = "mockDescription"
+                        ;
+
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn(system);
+        when(pk.getApplicationId()).thenReturn(application);
+        when(pk.getVersionId()).thenReturn(version);
+        when(pk.getDescription()).thenReturn(description);
+
         ExternalModulePing ping = new ExternalModulePing();
         ping.setHost("host");
         ping.setState("active");
-        ping.setModulePK("system|application|version");
+        ping.setModule(pk);
         List<ModuleOutputMessage> output = new ArrayList<>();
         ping.setOutput(output);
         {
@@ -114,10 +126,10 @@ public class ExternalModuleSupportServiceImplTest {
 
     @Test
     public void changeConfigurationItem() throws Exception {
-        final String system = "mockSys",
-                application = "mockApp",
-                version = "mockVer",
-                description = "mockDescription"
+        final String system = "mockSys-1",
+                application = "mockApp-1",
+                version = "mockVer-1",
+                description = "mockDescription-1"
                         ;
 
         HealthItemPK pk = mock(HealthItemPK.class);
@@ -166,7 +178,7 @@ public class ExternalModuleSupportServiceImplTest {
 
         ConfigurationUpdate update = new ConfigurationUpdate();
         update.setHost("host");
-        update.setModulePK(key(pk));
+        update.setModule(pk);
         List<ModuleConfigurationItem> updatedConfig = new ArrayList<>();
         update.setUpdated(updatedConfig);
         updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.a", "INTEGER", "100"));

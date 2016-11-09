@@ -1,5 +1,8 @@
 package com.mobenga.hm.openbet.dto;
 
+import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.transport.ModuleWrapper;
+
 import java.util.List;
 
 /**
@@ -8,8 +11,8 @@ import java.util.List;
 public class ConfigurationUpdate {
     // the source of update request
     private String host;
-    // module-id as string
-    private String modulePK;
+    // module as wrapper
+    private ModuleWrapper module;
     // items to update
     private List<ModuleConfigurationItem> updated;
 
@@ -21,12 +24,12 @@ public class ConfigurationUpdate {
         this.host = host;
     }
 
-    public String getModulePK() {
-        return modulePK;
+    public HealthItemPK getModule() {
+        return module;
     }
 
-    public void setModulePK(String modulePK) {
-        this.modulePK = modulePK;
+    public void setModule(HealthItemPK module) {
+        this.module = new ModuleWrapper(module);
     }
 
     public List<ModuleConfigurationItem> getUpdated() {
@@ -41,7 +44,7 @@ public class ConfigurationUpdate {
     public String toString() {
         return "ConfigurationUpdate{" +
                 "host='" + host + '\'' +
-                ", modulePK='" + modulePK + '\'' +
+                ", module='" + module + '\'' +
                 ", updated=" + updated +
                 '}';
     }

@@ -1,14 +1,10 @@
 package com.mobenga.health.monitor.impl;
 
-import com.hazelcast.core.HazelcastInstance;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
-import com.mobenga.health.monitor.ModuleConfigurationService;
-import com.mobenga.health.monitor.ModuleStateNotificationService;
-import com.mobenga.health.monitor.MonitoredService;
+import com.mobenga.health.monitor.*;
 import com.mobenga.health.storage.ConfigurationStorage;
-import com.mobenga.health.storage.HealthModuleStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,16 +27,17 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
 
     private Map<String, Map<String, ConfiguredVariableItem>> sharedCache;
 
-    @Value("${configuration.shared.map.name:'modules-configuration'}")
+    @Value("${configuration.shared.config.map.name:'modules-configuration'}")
     private String sharedMapName;
 
     @Autowired
-    private HazelcastInstance hazelcastInstance;
+    private DistributedContainersService distributed;
 
     @Autowired
     private ConfigurationStorage storage;
+
     @Autowired
-    private HealthModuleStorage moduleStore;
+    private HealthModuleService modules;
 
     @Autowired
     private ModuleStateNotificationService notifier;
@@ -48,11 +45,11 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
 
     public void initialize(){
-        final Map<String, Map<String, ConfiguredVariableItem>> sharedMap = hazelcastInstance.getMap(sharedMapName);
+        final Map<String, Map<String, ConfiguredVariableItem>> sharedMap = distributed.map(sharedMapName);
         if (sharedMap.isEmpty()){
             LOG.info("It seems node is alone. Loading stored configurations.");
             try {
-                storage.getApplicationsPKs()
+                modules.getModules().stream().map(m->key(m))
                         .forEach(module -> sharedMap.putIfAbsent(module, storage.getConfiguration(module)));
             } catch (Throwable t) {
                 LOG.error("Basic configuration not initialized.", t);
@@ -160,7 +157,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     @Override
     public List<String> getConfigurableGroups() {
         try {
-            return storage.getApplicationsPKs();
+            return modules.getModules().stream().map(m -> key(m)).collect(Collectors.toList());
         }catch(Throwable t){
             LOG.error("Can't get list of configured groups", t);
             return Collections.<String>emptyList();
@@ -200,7 +197,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
             item.set(value);
         }
         configuration.put(path, item);
-        return changeConfiguration(moduleStore.getModulePK(moduleId), configuration).get(path);
+        return changeConfiguration(modules.getModule(moduleId), configuration).get(path);
     }
 
     public Map<String, Map<String, ConfiguredVariableItem>> getSharedCache() {

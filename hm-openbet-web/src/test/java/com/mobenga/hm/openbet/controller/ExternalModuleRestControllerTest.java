@@ -86,10 +86,16 @@ public class ExternalModuleRestControllerTest {
     }
     @Test
     public void testExchange() throws Exception {
+        HealthItemPK pk = mock(HealthItemPK.class);
+        when(pk.getSystemId()).thenReturn("externalModule");
+        when(pk.getApplicationId()).thenReturn("config");
+        when(pk.getVersionId()).thenReturn("0.5");
+        when(pk.getDescription()).thenReturn("Description");
+
         ExternalModulePing ping = new ExternalModulePing();
         ping.setHost("host");
         ping.setState("active");
-        ping.setModulePK("system|application|version");
+        ping.setModule(pk);
         List<ModuleOutputMessage> output = new ArrayList<>();
         ping.setOutput(output);
         {
@@ -226,7 +232,7 @@ public class ExternalModuleRestControllerTest {
 
         ConfigurationUpdate update = new ConfigurationUpdate();
         update.setHost("host");
-        update.setModulePK(key(pk));
+        update.setModule(pk);
         List<ModuleConfigurationItem> configuration = new ArrayList<>();
         update.setUpdated(configuration);
         {

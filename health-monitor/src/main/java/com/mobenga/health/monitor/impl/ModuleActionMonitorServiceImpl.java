@@ -1,9 +1,13 @@
 package com.mobenga.health.monitor.impl;
 
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IQueue;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleMonitoringService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
@@ -11,10 +15,17 @@ import com.mobenga.health.storage.MonitoredActionStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.mobenga.health.HealthUtils.key;
 
@@ -33,6 +44,21 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
     @Autowired
     private ModuleStateNotificationService notifier;
 
+   @Autowired
+    private DistributedContainersService distributed;
+
+    private MonitoredAction templateAction;
+
+    @Autowired
+    @Qualifier("serviceRunner")
+    private ExecutorService executor;
+    private final AtomicBoolean serviceRuns = new AtomicBoolean(false);
+    private volatile boolean active;
+
+    @Value("${configuration.shared.actions.queue.name:'actions-storage-queue'}")
+    private String sharedQueueName;
+    private BlockingQueue<StoreActionWrapper> distributedStorageQueue;
+
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
 
     private String ignoreModules;
@@ -45,10 +71,24 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
     }
 
     public void initialize(){
+        if (isActive()) {
+            return;
+        }
+        distributedStorageQueue = distributed.queue(sharedQueueName);
+        templateAction = storage.createMonitoredAction();
         notifier.register(this);
+        serviceRuns.getAndSet(false);
+        executor.submit(()->serveDistributedQueue());
+        while(!serviceRuns.get());
+        LOG.info("Service runs");
     }
+
     public void shutdown(){
         notifier.unRegister(this);
+        templateAction = null;
+        active = false;
+        while(serviceRuns.get());
+        LOG.info("Service stopped.");
     }
 
     public String getIgnoreModules() {
@@ -67,7 +107,7 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
     @Override
     public MonitoredAction createMonitoredAction() {
         LOG.debug("Creating MonitoredAction instance");
-        return storage.createMonitoredAction();
+        return templateAction.copy();
     }
 
     /**
@@ -78,9 +118,25 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
      */
     @Override
     public void actionMonitoring(HealthItemPK application, MonitoredAction action) {
-        LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{application, action});
         if (!moduleIsIgnored(application)) {
-            storage.saveActionState(application, action);
+            distributedStorageQueue.offer(new StoreActionWrapper(application, action));
+        }
+    }
+
+    private void serveDistributedQueue(){
+        serviceRuns.getAndSet(active = true);
+        try {
+            while (active) {
+                final StoreActionWrapper wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
+                if (wrappedAction != null){
+                    LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
+                    storage.saveActionState(wrappedAction.module, wrappedAction.action);
+                }
+            }
+        }catch (Exception e){
+            LOG.error("Error detected during serve distributed queue", e);
+        }finally {
+            serviceRuns.getAndSet(active = false);
         }
     }
 
@@ -90,6 +146,8 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
     @Override
     public void restart() {
         LOG.info("Restarting...");
+        shutdown();
+        initialize();
     }
 
     /**
@@ -177,7 +235,7 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
      */
     @Override
     public boolean isActive() {
-        return true;
+        return active;
     }
 
     @Override
@@ -206,5 +264,15 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
             }
         }
         return false;
+    }
+    // private classes
+    private static class StoreActionWrapper implements Serializable {
+        final ModuleWrapper module;
+        final MonitoredAction action;
+
+        public StoreActionWrapper(HealthItemPK module, MonitoredAction action) {
+            this.module = new ModuleWrapper(module);
+            this.action = action;
+        }
     }
 }

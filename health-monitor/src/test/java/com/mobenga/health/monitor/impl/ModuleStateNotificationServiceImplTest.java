@@ -12,8 +12,11 @@ import org.junit.runner.RunWith;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import java.util.concurrent.ExecutorService;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -40,10 +43,18 @@ public class ModuleStateNotificationServiceImplTest {
     @Autowired
     private ModuleConfigurationService configuration;
 
+    @Autowired
+    private ModuleActionMonitorServiceImpl actionService;
+
+    @Autowired
+    @Qualifier("serviceRunner")
+    private ExecutorService executor;
+
     private MonitoredService state = mockState();
 
     @Before
     public void beforeTestService() throws Exception {
+        actionService.initialize();
         service.stopService();
         service.unregisterAll();
         service.setHeartbeatDelay(10);

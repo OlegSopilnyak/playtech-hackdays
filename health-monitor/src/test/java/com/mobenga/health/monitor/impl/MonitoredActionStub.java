@@ -2,12 +2,14 @@ package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.MonitoredAction;
 
+import java.io.Serializable;
 import java.util.Date;
+import java.util.Objects;
 
 /**
  * The monitored-action stub for tests
  */
-public class MonitoredActionStub extends MonitoredAction implements Cloneable {
+public class MonitoredActionStub extends MonitoredAction implements Cloneable, Serializable {
 
     private String id;
     private String healthPK;
@@ -148,5 +150,25 @@ public class MonitoredActionStub extends MonitoredAction implements Cloneable {
     @Override
     public void setHost(String host) {
         this.host = host;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MonitoredActionStub that = (MonitoredActionStub) o;
+        return getDuration() == that.getDuration() &&
+                Objects.equals(getId(), that.getId()) &&
+                Objects.equals(getHealthPK(), that.getHealthPK()) &&
+                Objects.equals(getDescription(), that.getDescription()) &&
+                getState() == that.getState() &&
+                Objects.equals(getStart(), that.getStart()) &&
+                Objects.equals(getFinish(), that.getFinish()) &&
+                Objects.equals(getHost(), that.getHost());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getHealthPK(), getDescription(), getState(), getStart(), getFinish(), getDuration(), getHost());
     }
 }

@@ -95,7 +95,7 @@ public class SimpleFileStorageImpl implements
      * @param application the PK instance
      * @return the instance
      */
-    @Override
+//    @Override
     public HealthItemPK getModulePK(HealthItemPK application) {
         return getOrCreateModuleEntity(application);
     }
@@ -104,7 +104,7 @@ public class SimpleFileStorageImpl implements
      * @param applicationId
      * @return
      */
-    @Override
+//    @Override
     public HealthItemPK getModulePK(String applicationId) {
         String moduleString = modules.getProperty(applicationId);
         if (moduleString == null){
@@ -344,7 +344,7 @@ public class SimpleFileStorageImpl implements
      *
      * @return the list of available PKs
      */
-    @Override
+//    @Override
     public List<String> getApplicationsPKs() {
         LOG.debug("Getting the list of available modules.");
         try {
@@ -684,5 +684,33 @@ public class SimpleFileStorageImpl implements
             final Integer currentVersion = configVersions.computeIfAbsent(moduleKey, key -> version);
             configVersions.put(moduleKey, version > currentVersion ? version : currentVersion);
         });
+    }
+
+    /**
+     * Try to save module's information
+     *
+     * @param module information of module to save
+     */
+    @Override
+    public void save(HealthItemPK module) {
+        LOG.debug("Removing module {}.", module);
+        reStoreModules();
+        final String moduleId = key(module);
+        StructureModuleEntity template = new StructureModuleEntity(module);
+        template.setId(moduleId);
+        modules.setProperty(moduleId, template.toString());
+        storeModules();
+    }
+
+    /**
+     * To return the list of stored modules
+     *
+     * @return
+     */
+    @Override
+    public List<HealthItemPK> modulesList() {
+        return modules.values().stream()
+                .map(s-> (StructureModuleEntity)moduleTemplate.fromString((String) s))
+                .collect(Collectors.toList());
     }
 }

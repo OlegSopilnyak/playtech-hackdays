@@ -2,18 +2,22 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
     <bean id="service" class="com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl"/>
+
+    <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
+        <constructor-arg value="3"/>
+    </bean>
+
+    <bean id="action" class="com.mobenga.health.monitor.impl.MonitoredActionStub" />
+
+
     <bean id="storage" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.storage.MonitoredActionStorage" />
     </bean>
     <bean id="notifier" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.monitor.ModuleStateNotificationService" />
-    </bean>
-    <bean id="hazecast" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.hazelcast.core.HazelcastInstance" />
-    </bean>
-    <bean id="action" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.mobenga.health.model.MonitoredAction" />
     </bean>
     <bean id="module" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.model.HealthItemPK" />

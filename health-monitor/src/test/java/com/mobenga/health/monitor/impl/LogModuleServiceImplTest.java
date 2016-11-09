@@ -75,7 +75,7 @@ public class LogModuleServiceImplTest {
         assertNotNull(device);
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
+        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         device.out("Hello world");
         Thread.sleep(100);
@@ -83,9 +83,9 @@ public class LogModuleServiceImplTest {
 
     @Test
     public void deviceOut() throws Exception {
-        final String system = "mockSys",
-                application = "mockApp",
-                version = "mockVer",
+        final String system = "mockSys-1",
+                application = "mockApp-1",
+                version = "mockVer-1",
                 description = "mockDescription1";
 
         HealthItemPK pk = mock(HealthItemPK.class);
@@ -98,7 +98,7 @@ public class LogModuleServiceImplTest {
         assertNotNull(device);
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
+        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         device.out("Hello world");
         device.out("Hello world");
@@ -106,7 +106,7 @@ public class LogModuleServiceImplTest {
         device.out("Hello world");
         Thread.sleep(1000);
 
-        verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(storage, times(4)).createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE));
         verify(output, times(4)).setId(any());
         verify(output, times(4)).setActionId(anyString());
         verify(output, times(4)).setPayload(eq("Hello world"));
@@ -116,10 +116,10 @@ public class LogModuleServiceImplTest {
 
     @Test
     public void deviceActionOutSuccess() throws Exception {
-        final String system = "mockSys",
-                application = "mockApp",
-                version = "mockVer",
-                description = "mockDescription";
+        final String system = "mockSys-2",
+                application = "mockApp-2",
+                version = "mockVer-2",
+                description = "mockDescription-2";
 
         HealthItemPK pk = mock(HealthItemPK.class);
         when(pk.getSystemId()).thenReturn(system);
@@ -132,7 +132,7 @@ public class LogModuleServiceImplTest {
         assertNotNull(device);
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
+        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         MonitoredActionStub action = new MonitoredActionStub();
         action.setId("AAA");
@@ -153,7 +153,7 @@ public class LogModuleServiceImplTest {
         verify(output, times(4)).setPayload(eq("Hello world"));
         verify(storage, times(4)).saveModuleOutput(eq(output));
 
-        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
+        verify(actionStorage, times(3)).saveActionState(any(HealthItemPK.class), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.SUCCESS, action.getState());
         reset(storage, actionStorage);
@@ -161,10 +161,10 @@ public class LogModuleServiceImplTest {
 
     @Test
     public void deviceActionOutFail() throws Exception {
-        final String system = "mockSys",
-                application = "mockApp",
-                version = "mockVer",
-                description = "mockDescription";
+        final String system = "mockSys-3",
+                application = "mockApp-3",
+                version = "mockVer-3",
+                description = "mockDescription-3";
 
         HealthItemPK pk = mock(HealthItemPK.class);
         when(pk.getSystemId()).thenReturn(system);
@@ -177,7 +177,7 @@ public class LogModuleServiceImplTest {
         assertNotNull(device);
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE)).thenReturn(output);
+        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         MonitoredActionStub action = new MonitoredActionStub();
         action.setId("AAA");
@@ -193,13 +193,13 @@ public class LogModuleServiceImplTest {
 
         Thread.sleep(1000);
 
-        verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(storage, times(4)).createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE));
         verify(output, times(4)).setId(any());
         verify(output, times(4)).setActionId(eq("AAA"));
         verify(output, times(4)).setPayload(eq("Hello world"));
         verify(storage, times(4)).saveModuleOutput(eq(output));
 
-        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
+        verify(actionStorage, times(3)).saveActionState(any(HealthItemPK.class), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.FAIL, action.getState());
         reset(storage, actionStorage);
@@ -224,7 +224,7 @@ public class LogModuleServiceImplTest {
         service.setIgnoreModules(key(pk));
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         MonitoredActionStub action = new MonitoredActionStub();
         action.setId("AAA");
@@ -239,15 +239,13 @@ public class LogModuleServiceImplTest {
         Thread.sleep(1000);
 
 
-System.out.println("Log Service is active = "+service.isActive());
-
-        verify(storage, times(0)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(storage, times(0)).createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE));
         verify(output, times(0)).setId(any());
         verify(output, times(0)).setActionId(eq("AAA"));
         verify(output, times(0)).setPayload(eq("Hello world"));
         verify(storage, times(0)).saveModuleOutput(eq(output));
 
-        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
+        verify(actionStorage, times(3)).saveActionState(any(HealthItemPK.class), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.FAIL, action.getState());
         reset(storage, actionStorage);

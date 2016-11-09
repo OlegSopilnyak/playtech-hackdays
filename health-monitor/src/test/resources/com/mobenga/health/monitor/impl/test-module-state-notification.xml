@@ -6,14 +6,16 @@
         <property name="heartbeatDelay" value="10"/>
     </bean>
     <bean id="actionService" class="com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl"/>
+
     <bean id="logService" class="com.mobenga.health.monitor.impl.LogModuleServiceImpl"
           destroy-method="stopService" scope="singleton">
     </bean>
 
 
     <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
-        <constructor-arg value="3"/>
+        <constructor-arg value="4"/>
     </bean>
+
     <bean id="moduleConfigurationService" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.monitor.ModuleConfigurationService"/>
     </bean>
@@ -22,8 +24,5 @@
     </bean>
     <bean id="heartbeatStorage" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.storage.HeartBeatStorage"/>
-    </bean>
-    <bean id="hazecast" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.hazelcast.core.HazelcastInstance"/>
     </bean>
 </beans>

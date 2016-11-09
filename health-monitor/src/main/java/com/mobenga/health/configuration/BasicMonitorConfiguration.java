@@ -24,12 +24,6 @@ public class BasicMonitorConfiguration {
     @Value("${threads.pool.init:7}")
     private int corePoolSize;
 
-    @Bean
-    public HazelcastInstance hazelcastInstance(){
-        return Hazelcast.newHazelcastInstance();
-
-    }
-
     @Bean(name = "serviceRunner")
     public ExecutorService serviceRunner(){
         return Executors.newScheduledThreadPool(corePoolSize);

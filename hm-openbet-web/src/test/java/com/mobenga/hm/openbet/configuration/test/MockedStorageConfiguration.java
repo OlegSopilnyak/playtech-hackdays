@@ -88,20 +88,20 @@ public class MockedStorageConfiguration {
     @Bean
     public HealthModuleStorage createModuleStorage(){
         HealthModuleStorage storage = mock(HealthModuleStorage.class);
-        when(storage.getModulePK(any(HealthItemPK.class))).then(new Answer<HealthItemPK>() {
-            @Override
-            public HealthItemPK answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Object[] args = invocationOnMock.getArguments();
-                return new ModuleStub((HealthItemPK) args[0]);
-            }
-        });
-        when(storage.getModulePK(anyString())).then(new Answer<HealthItemPK>() {
-            @Override
-            public HealthItemPK answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Object[] args = invocationOnMock.getArguments();
-                return new ModuleStub((String) args[0]);
-            }
-        });
+//        when(storage.getModulePK(any(HealthItemPK.class))).then(new Answer<HealthItemPK>() {
+//            @Override
+//            public HealthItemPK answer(InvocationOnMock invocationOnMock) throws Throwable {
+//                Object[] args = invocationOnMock.getArguments();
+//                return new ModuleStub((HealthItemPK) args[0]);
+//            }
+//        });
+//        when(storage.getModulePK(anyString())).then(new Answer<HealthItemPK>() {
+//            @Override
+//            public HealthItemPK answer(InvocationOnMock invocationOnMock) throws Throwable {
+//                Object[] args = invocationOnMock.getArguments();
+//                return new ModuleStub((String) args[0]);
+//            }
+//        });
         return storage;
     }
     // private inner classes

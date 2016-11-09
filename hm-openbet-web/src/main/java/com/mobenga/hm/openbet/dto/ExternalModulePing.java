@@ -1,13 +1,16 @@
 package com.mobenga.hm.openbet.dto;
 
+import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.transport.ModuleWrapper;
+
 import java.util.List;
 
 /**
  * DTO. Ping from external module
  */
 public class ExternalModulePing {
-    // the pipeline separated parameters of the module (sys,app,version)
-    private String modulePK;
+    // the wrapper of real module
+    private ModuleWrapper module;
     // the host where module works
     private String host;
     // The module's state (active|passive)
@@ -19,12 +22,12 @@ public class ExternalModulePing {
     // the ouput of module from last ping (with related actions
     private List<ModuleAction> actions;
 
-    public String getModulePK() {
-        return modulePK;
+    public HealthItemPK getModule() {
+        return module;
     }
 
-    public void setModulePK(String modulePK) {
-        this.modulePK = modulePK;
+    public void setModule(HealthItemPK module) {
+        this.module = new ModuleWrapper(module);
     }
 
     public String getHost() {
@@ -70,7 +73,7 @@ public class ExternalModulePing {
     @Override
     public String toString() {
         return "ExternalModulePing{" +
-                "modulePK='" + modulePK + '\'' +
+                "module='" + module + '\'' +
                 ", host='" + host + '\'' +
                 ", state='" + state + '\'' +
                 ", configuration=" + configuration +

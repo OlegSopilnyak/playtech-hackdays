@@ -7,8 +7,11 @@
     </bean>
 
     <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
-        <constructor-arg value="2"/>
+        <constructor-arg value="3"/>
     </bean>
+
+
+
     <bean id="notifier" class="org.mockito.Mockito" factory-method="mock">
         <constructor-arg value="com.mobenga.health.monitor.ModuleStateNotificationService" />
     </bean>

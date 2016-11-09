@@ -24,7 +24,10 @@ import static org.mockito.Mockito.when;
  * @see ModuleConfigurationServiceImpl
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:com/mobenga/health/monitor/impl/test-module-configuration.xml"})
+@ContextConfiguration(locations = {
+        "classpath:com/mobenga/health/monitor/impl/test-module-configuration.xml",
+        "classpath:com/mobenga/health/monitor/factory/impl/test-basic-monitor-services.xml"
+})
 public class ModuleConfigurationServiceImplTest {
 
     @Autowired

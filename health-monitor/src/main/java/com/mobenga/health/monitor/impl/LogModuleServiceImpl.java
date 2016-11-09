@@ -5,6 +5,8 @@ import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.UniqueIdGenerator;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.ModuleOutputStorage;
@@ -13,15 +15,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.mobenga.health.HealthUtils.key;
@@ -52,9 +57,15 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     @Autowired
     private ModuleStateNotificationService notifier;
 
+    @Autowired
+    private DistributedContainersService distributed;
     private final AtomicBoolean serviceWorks = new AtomicBoolean(false);
+    private volatile boolean active = false;
 
-    private final BlockingQueue<Event> eventsQueue = new LinkedBlockingQueue<>();
+    @Value("${configuration.shared.output.log.queue.name:'log-output-storage-queue'}")
+    private String sharedQueueName;
+    private BlockingQueue<Event> distributedStorageQueue;
+    private BlockingQueue<Event> offlineQueue = new LinkedBlockingQueue<>();
 
     private String ignoreModules;
 
@@ -67,13 +78,15 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         ModuleOutputDeviceFactory.registerDeviceFactory(this);
     }
 
+
     @Override
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
         startService();
     }
 
     public void startService(){
-        if (serviceWorks.get()) return;
+        if (active) return;
+        distributedStorageQueue = distributed.queue(sharedQueueName);
         LOG.info("Starting service storage='{}'", storage);
         executor.submit(()->processEvents());
         while (!serviceWorks.get());
@@ -82,9 +95,9 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     }
 
     public void stopService(){
-        if (!serviceWorks.get()) return;
+        if (!active) return;
         LOG.info("Stopping service storage='{}'", storage);
-        eventsQueue.offer(Event.NULL);
+        active  = false;
         while (serviceWorks.get());
         LOG.info("Service stopped");
         // un register the module
@@ -144,9 +157,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
      */
     @Override
     public void restart() {
-        if (isActive()){
-            stopService();
-        }
+        stopService();
         startService();
     }
 
@@ -224,24 +235,27 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     }
 
     // private methods
+    private BlockingQueue<Event> distributedQueue() {
+        return distributedStorageQueue == null ? offlineQueue : distributedStorageQueue;
+    }
+
     private void processEvents(){
-        serviceWorks.getAndSet(true);
+        offlineQueue.forEach( e -> distributedStorageQueue.offer(e));
+        offlineQueue.clear();
+        serviceWorks.getAndSet(active = true);
         try{
-            while (serviceWorks.get()){
-                final Event event = eventsQueue.take();
-                if (Event.NULL == event){
-                    LOG.debug("Received signal to stop service.");
-                    break;
+            while (active){
+                final Event event = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
+                if (event != null){
+                    event.save(this);
                 }
-                event.save();
             }
         } catch (InterruptedException e) {
             LOG.error("Events queue iterrupted", e);
         } catch (Throwable t) {
             LOG.error("Caught unexpected exception", t);
         } finally {
-            eventsQueue.clear();
-            serviceWorks.getAndSet(false);
+            serviceWorks.getAndSet(active = false);
             LOG.info("Service stopped.");
         }
     }
@@ -267,18 +281,21 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
 
 
     // inner classes
-    private static abstract class Event {
-        // marker of end of working
-        public static Event NULL = new Event(null) {@Override protected void save() {}};
+    private static abstract class Event implements Serializable {
         // event's parameters
-        protected final HealthItemPK module;
+        protected final ModuleWrapper module;
 
-        public Event(HealthItemPK module) {this.module = module;}
+        public Event(HealthItemPK module) {this.module = new ModuleWrapper(module);}
         // to save the event like Bean Managed Persistence
-        protected abstract void save();
+
+        /**
+         * To save the values of event
+         * @param service log-service instance
+         */
+        protected abstract void save(LogModuleServiceImpl service);
     }
     // output event
-    private class OutputEvent extends Event {
+    private static class OutputEvent extends Event {
         // event's parameters
         private final String actionId;
         private final Object [] arguments;
@@ -290,26 +307,26 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         }
 
         @Override
-        protected void save() {
+        protected void save(final LogModuleServiceImpl service) {
             final String moduleKey = key(module);
-            if (moduleIsIgnored(moduleKey)){
+            if (service.moduleIsIgnored(moduleKey)){
                 LOG.warn("The module '{}' is ignored for save.", moduleKey);
                 return;
             }
-            final LogMessage message = (LogMessage) storage.createModuleOutput(module, LogMessage.OUTPUT_TYPE);
+            final LogMessage message = (LogMessage) service.storage.createModuleOutput(module, LogMessage.OUTPUT_TYPE);
             if (message != null) {
-                message.setId(idGenerator.generate());
+                message.setId(service.idGenerator.generate());
                 message.setActionId(actionId);
-                message.setWhenOccured(timeService.now());
+                message.setWhenOccured(service.timeService.now());
                 final StringBuilder msg = new StringBuilder();
                 for (Object arg : arguments) msg.append(arg);
                 message.setPayload(msg.toString());
-                storage.saveModuleOutput(message);
+                service.storage.saveModuleOutput(message);
             }
         }
     }
     // monitored action changes event
-    private class ActionEvent extends Event {
+    private static class ActionEvent extends Event {
         private final MonitoredAction action;
 
         public ActionEvent(HealthItemPK module, MonitoredAction action) {
@@ -317,8 +334,8 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
             this.action = action;
         }
         @Override
-        protected void save() {
-            actionStorage.saveActionState(module, action);
+        protected void save(final LogModuleServiceImpl service) {
+            service.actionStorage.saveActionState(module, action);
         }
     }
 
@@ -338,7 +355,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         @Override
         public void out(Object... arguments) {
             LOG.debug("Output from module '{}'", module);
-            eventsQueue.offer(new OutputEvent(module, action == null ? null : action.getId(), arguments));
+            distributedQueue().offer(new OutputEvent(module, action == null ? null : action.getId(), arguments));
         }
 
         /**
@@ -351,7 +368,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
             this.action = action;
             action.setState(MonitoredAction.State.INIT);
             action.setStart(timeService.now());
-            eventsQueue.offer(new ActionEvent(module, action.copy()));
+            distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
         }
 
         /**
@@ -361,7 +378,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         public void actionBegin() {
             if (action != null){
                 action.setState(MonitoredAction.State.PROGRESS);
-                eventsQueue.offer(new ActionEvent(module, action.copy()));
+                distributedQueue().offer(new ActionEvent(module, action.copy()));
             }
         }
 
@@ -374,7 +391,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
                 action.setState(MonitoredAction.State.SUCCESS);
                 action.setFinish(timeService.now());
                 action.setDuration(action.getFinish().getTime() - action.getStart().getTime());
-                eventsQueue.offer(new ActionEvent(module, action.copy()));
+                distributedQueue().offer(new ActionEvent(module, action.copy()));
             }
         }
 
@@ -387,7 +404,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
                 action.setState(MonitoredAction.State.FAIL);
                 action.setFinish(timeService.now());
                 action.setDuration(action.getFinish().getTime() - action.getStart().getTime());
-                eventsQueue.offer(new ActionEvent(module, action.copy()));
+                distributedQueue().offer(new ActionEvent(module, action.copy()));
             }
         }
     }

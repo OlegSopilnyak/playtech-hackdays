@@ -17,12 +17,15 @@ import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.mobenga.health.HealthUtils.key;
 
 /**
  * External modules support realization
@@ -63,6 +66,10 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Autowired
     private MonitoredActionStorage actionStorage;
 
+    @Autowired
+    @Qualifier("logService")
+    private ModuleOutput.DeviceFactory deviceFactory;
+
     public void initialize(){
         notifier.register(this);
     }
@@ -75,7 +82,9 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Override
     public List<ModuleConfigurationItem> pong(ExternalModulePing ping) {
         LOG.debug("Received ping from '{}'", ping.getHost());
-        HealthItemPK pk = healthModuleStorage.getModulePK(ping.getModulePK());
+        final HealthItemPK pk = ping.getModule();
+        final String modulePK = key(pk);
+        final ModuleOutput.Device logger = deviceFactory.create(pk);
         // process heart-beat
         LOG.debug("Processing state of module '{}'", ping.getState());
         hbStorage.saveModuleState(pk, "Active".equalsIgnoreCase(ping.getState()));
@@ -84,7 +93,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         ping.getOutput().forEach(o->{
             LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
             msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
-            msg.setModulePK(ping.getModulePK());
+            msg.setModulePK(modulePK);
             msg.setPayload(o.getPayload());
             outputStorage.saveModuleOutput(msg);
         });
@@ -103,7 +112,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
                 LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
                 msg.setActionId(actionId);
                 msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
-                msg.setModulePK(ping.getModulePK());
+                msg.setModulePK(modulePK);
                 msg.setPayload(o.getPayload());
                 outputStorage.saveModuleOutput(msg);
             });
@@ -151,8 +160,8 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update) {
-        LOG.debug("Request batch change configuration from '{}' for '{}'", update.getHost(), update.getModulePK());
-        HealthItemPK module = healthModuleStorage.getModulePK(update.getModulePK());
+        LOG.debug("Request batch change configuration from '{}' for '{}'", update.getHost(), update.getModule());
+        HealthItemPK module = update.getModule();
         Map<String, ConfiguredVariableItem> updated, updating = new HashMap<>();
         update.getUpdated().forEach(item -> {
             String pack[] = item.getPath().split("\\.");
@@ -275,7 +284,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         entity.setName(item.getPath());
         entity.setType(ConfiguredVariableItem.Type.STRING);
         entity.setDescription("external module propery");
-        entity.setModuleKey(ping.getModulePK());
+        entity.setModuleKey(key(ping.getModule()));
         entity.setPackageKey(getPackage(item.getPath()));
         entity.setVersion(0);
         return entity;

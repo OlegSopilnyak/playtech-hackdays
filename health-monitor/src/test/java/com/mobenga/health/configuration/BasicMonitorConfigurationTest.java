@@ -29,7 +29,12 @@ import static junit.framework.Assert.*;
                 "classpath:com/mobenga/health/monitor/configuration/test-module-configuration-monitor.xml",
                 "classpath:com/mobenga/health/monitor/storage/test-monitor-stubs.xml"
         })
-        ,@ContextConfiguration(classes = {BasicMonitorConfiguration.class, FactoryConfiguration.class}, loader = AnnotationConfigContextLoader.class)
+        ,@ContextConfiguration(classes =
+                        {
+                                BasicMonitorConfiguration.class,
+                                FactoryConfiguration.class,
+                                DistributedConfiguration.class
+                        }, loader = AnnotationConfigContextLoader.class)
 })
 public class BasicMonitorConfigurationTest {
 

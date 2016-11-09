@@ -36,13 +36,11 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
 
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
     private final Set<MonitoredService> monitored = Collections.synchronizedSet(new LinkedHashSet());
+
     private final AtomicBoolean healthMonitorRun = new AtomicBoolean(false);
-
     private volatile boolean active = false;
-    private int heartbeatDelay = HB_DELAY.get(Integer.class);
 
-//    @Autowired
-//    private HazelcastInstance hazelcastInstance;
+    private int heartbeatDelay = HB_DELAY.get(Integer.class);
 
     @Autowired
     private HeartBeatStorage storage;
@@ -242,9 +240,9 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
         moduleLog.actionBegin();
         // service is active for the moment, process module's heart-beat
         try {
-            moduleLog.out("Saving heart-beat of module ",module);
+            moduleLog.out("Saving heart-beat of module ",module.toString());
             storage.saveHeartBeat(module);
-            moduleLog.out("Getting config updates for module ", module);
+            moduleLog.out("Getting config updates for module ", module.toString());
             final Map<String, ConfiguredVariableItem> updated =
                     configurationService.getUpdatedVariables(module.getModulePK(), module.getConfiguration());
             if (!updated.isEmpty()) {
@@ -301,7 +299,7 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
 
     private void heartBeat(final ModuleOutput.Device moduleLog) {
         synchronized (monitored) {
-            monitored.forEach(module -> {moduleLog.out("Processing ",module);checkHealth(module);});
+            monitored.forEach(module -> {moduleLog.out("Processing ",module.toString());checkHealth(module);});
         }
     }
 
