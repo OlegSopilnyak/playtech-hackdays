@@ -126,7 +126,7 @@ public class ExternalModuleSupportServiceImplTest {
     }
 
     @Test
-    @Ignore
+//    @Ignore
     public void changeConfigurationItem() throws Exception {
         final String system = "mockSys-1",
                 application = "mockApp-1",

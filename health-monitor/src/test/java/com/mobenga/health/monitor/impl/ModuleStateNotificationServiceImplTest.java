@@ -96,7 +96,7 @@ public class ModuleStateNotificationServiceImplTest {
             semaphore.wait(1000);
         }
         verify(storage, atLeastOnce()).saveHeartBeat(eq(state));
-        verify(configuration, atLeastOnce()).getUpdatedVariables(eq(state.getModulePK()),any());
+        verify(configuration, atLeastOnce()).getUpdatedVariables(any(HealthItemPK.class),any());
         reset(storage, configuration);
         // unregister
         service.unRegister(state);

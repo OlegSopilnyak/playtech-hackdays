@@ -1,5 +1,6 @@
 package com.mobenga.hm.openbet.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleWrapper;
 
@@ -24,6 +25,7 @@ public class ConfigurationUpdate {
         this.host = host;
     }
 
+    @JsonDeserialize(as = ModuleWrapper.class)
     public HealthItemPK getModule() {
         return module;
     }

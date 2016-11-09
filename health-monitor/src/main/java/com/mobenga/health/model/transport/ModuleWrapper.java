@@ -10,8 +10,6 @@ import java.util.Objects;
 /**
  * Wrapper for module to transport
  */
-@XmlRootElement
-@XmlType(propOrder = {"systemId","applicationId", "versionId", "description"})
 public class ModuleWrapper implements HealthItemPK {
     private String systemId;
     private String applicationId;
@@ -28,22 +26,18 @@ public class ModuleWrapper implements HealthItemPK {
         this.description = module.getDescription();
     }
 
-    @XmlElement
     @Override
     public String getSystemId() {
         return systemId;
     }
-    @XmlElement
     @Override
     public String getApplicationId() {
         return applicationId;
     }
-    @XmlElement
     @Override
     public String getVersionId() {
         return versionId;
     }
-    @XmlElement
     @Override
     public String getDescription() {
         return description;

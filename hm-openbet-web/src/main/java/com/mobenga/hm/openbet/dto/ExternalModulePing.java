@@ -1,6 +1,8 @@
 package com.mobenga.hm.openbet.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.ModuleOutput;
 import com.mobenga.health.model.transport.ModuleWrapper;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -10,7 +12,6 @@ import java.util.List;
 /**
  * DTO. Ping from external module
  */
-@XmlRootElement
 public class ExternalModulePing {
     // the wrapper of real module
     private ModuleWrapper module;
@@ -25,7 +26,7 @@ public class ExternalModulePing {
     // the ouput of module from last ping (with related actions
     private List<ModuleAction> actions;
 
-    @XmlElement
+    @JsonDeserialize(as = ModuleWrapper.class)
     public ModuleWrapper getModule() {
         return module;
     }
@@ -34,7 +35,6 @@ public class ExternalModulePing {
         this.module = new ModuleWrapper(module);
     }
 
-    @XmlElement
     public String getHost() {
         return host;
     }
@@ -43,7 +43,6 @@ public class ExternalModulePing {
         this.host = host;
     }
 
-    @XmlElement
     public String getState() {
         return state;
     }
@@ -52,7 +51,6 @@ public class ExternalModulePing {
         this.state = state;
     }
 
-    @XmlElement
     public List<ModuleConfigurationItem> getConfiguration() {
         return configuration;
     }
@@ -61,7 +59,6 @@ public class ExternalModulePing {
         this.configuration = configuration;
     }
 
-    @XmlElement
     public List<ModuleOutputMessage> getOutput() {
         return output;
     }
@@ -70,7 +67,6 @@ public class ExternalModulePing {
         this.output = output;
     }
 
-    @XmlElement
     public List<ModuleAction> getActions() {
         return actions;
     }

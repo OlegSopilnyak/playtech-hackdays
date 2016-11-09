@@ -1,17 +1,25 @@
 package com.mobenga.health.monitor.impl;
 
+import com.hazelcast.map.impl.mapstore.writebehind.StoreEvent;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.monitor.*;
 import com.mobenga.health.storage.ConfigurationStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 
+import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
@@ -26,9 +34,12 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     private static final Logger LOG = LoggerFactory.getLogger(ModuleConfigurationServiceImpl.class);
 
     private Map<String, Map<String, ConfiguredVariableItem>> sharedCache;
+    private BlockingQueue<ModuleConfigurationServiceImpl.StoreEvent> sharedQueue;
 
     @Value("${configuration.shared.config.map.name:'modules-configuration'}")
     private String sharedMapName;
+    @Value("${configuration.shared.config.queue.name:'modules-configuration-queue'}")
+    private String sharedQueueName;
 
     @Autowired
     private DistributedContainersService distributed;
@@ -42,24 +53,33 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     @Autowired
     private ModuleStateNotificationService notifier;
 
+    @Autowired
+    @Qualifier("serviceRunner")
+    private ExecutorService executor;
+    private final AtomicBoolean serviceRuns = new AtomicBoolean(false);
+    private volatile boolean active;
+
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
 
     public void initialize(){
+        if (active) return;
         final Map<String, Map<String, ConfiguredVariableItem>> sharedMap = distributed.map(sharedMapName);
-        if (sharedMap.isEmpty()){
+        if (sharedMap.isEmpty()) {
             LOG.info("It seems node is alone. Loading stored configurations.");
-            try {
-                modules.getModules().stream().map(m->key(m))
-                        .forEach(module -> sharedMap.putIfAbsent(module, storage.getConfiguration(module)));
-            } catch (Throwable t) {
-                LOG.error("Basic configuration not initialized.", t);
-            }
+            modules.getModules().stream().map(m -> key(m))
+                    .forEach(module -> sharedMap.putIfAbsent(module, storage.getConfiguration(module)));
         }
         sharedCache = sharedMap;
+        sharedQueue = distributed.queue(sharedQueueName);
+        executor.submit(()->processStoreEventsQueue());
+        while (!serviceRuns.get());
         notifier.register(this);
     }
 
     public void shutdown(){
+        if (!active) return;
+        active = false;
+        while (serviceRuns.get());
         notifier.unRegister(this);
     }
     /**
@@ -74,7 +94,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         final String normalizedGroup = normal(groupName);
         LOG.debug("Getting configuration for '{}' from group '{}'", new Object[]{key(module), normalizedGroup});
         final Map<String, ConfiguredVariableItem> cachedConfiguration =
-                sharedCache.computeIfAbsent(key(module), (s) -> new LinkedHashMap<>());
+                sharedCache.computeIfAbsent(key(modules.getModule(module)), (s) -> new LinkedHashMap<>());
         return cachedConfiguration
                 .entrySet()
                 .stream()
@@ -123,12 +143,15 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
      */
     @Override
     public void newConfiguredVariables(HealthItemPK module, Map<String, ConfiguredVariableItem> notCachedConfiguration) {
-        final String modulePK = key(module);
+        final String modulePK = key(modules.getModule(module));
         LOG.debug("Update configuration for '{}'", modulePK);
+
+        sharedQueue.offer(new UpdateConfigurationEvent(module, notCachedConfiguration));
+
         final Map<String, ConfiguredVariableItem> cachedConfiguration = sharedCache.computeIfAbsent(modulePK, s -> new LinkedHashMap<>());
         cachedConfiguration.putAll(notCachedConfiguration);
-        LOG.debug("Storing to configurations storage");
-        storage.storeChangedConfiguration(module, notCachedConfiguration);
+//        LOG.debug("Storing to configurations storage");
+//        storage.storeChangedConfiguration(module, notCachedConfiguration);
         LOG.debug("Refresh cache");
         sharedCache.put(modulePK, cachedConfiguration);
     }
@@ -142,11 +165,14 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
      */
     @Override
     public Map<String, ConfiguredVariableItem> changeConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
-        final String modulePK = key(module);
+        final String modulePK = key(modules.getModule(module));
+
+        sharedQueue.offer(new ChangeConfigurationEvent(module, configuration));
+
         LOG.debug("Replace configuration for '{}'", modulePK);
-        final Map<String, ConfiguredVariableItem> current = storage.replaceConfiguration(module, configuration);
-        sharedCache.put(modulePK, current);
-        return current;
+//        final Map<String, ConfiguredVariableItem> current = storage.replaceConfiguration(module, configuration);
+        sharedCache.put(modulePK, configuration);
+        return configuration;
     }
 
     /**
@@ -208,11 +234,6 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         this.sharedCache = sharedCache;
     }
 
-
-    // private methods
-    private static String normal(String groupName) {
-        return StringUtils.isEmpty(groupName) ? "" : groupName.endsWith(".") ? groupName : groupName + ".";
-    }
 
     /**
      * The handle to restart monitored service
@@ -305,4 +326,60 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         return "-ModuleConfigurationService-";
     }
 
+    // private methods
+    private static String normal(String groupName) {
+        return StringUtils.isEmpty(groupName) ? "" : groupName.endsWith(".") ? groupName : groupName + ".";
+    }
+
+    private void processStoreEventsQueue(){
+        serviceRuns.getAndSet(active = true);
+        try {
+            while (active) {
+                final StoreEvent event = sharedQueue.poll(100, TimeUnit.MILLISECONDS);
+                event.storeData(this);
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Distributed Queue's polling was interrupted", e);
+        } catch (Throwable e) {
+            LOG.error("Unhandled Exception was caught", e);
+        } finally {
+            serviceRuns.getAndSet(active = false);
+            LOG.info("Service stopped.");
+        }
+    }
+    // inner-classes for distributed queue
+    private static abstract class StoreEvent implements Serializable{
+        protected final ModuleWrapper module;
+        protected final Map<String, ConfiguredVariableItem> configuration;
+        public StoreEvent(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration){
+            this.module = new ModuleWrapper(module);
+            this.configuration = new HashMap<>(configuration);
+        }
+        public abstract void storeData(ModuleConfigurationServiceImpl service);
+    }
+    private static class UpdateConfigurationEvent extends ModuleConfigurationServiceImpl.StoreEvent {
+
+        public UpdateConfigurationEvent(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
+            super(module, configuration);
+        }
+
+        @Override
+        public void storeData(ModuleConfigurationServiceImpl service) {
+            LOG.debug("Storing to configurations storage");
+            service.storage.storeChangedConfiguration(module, configuration);
+        }
+    }
+    private static class ChangeConfigurationEvent extends ModuleConfigurationServiceImpl.StoreEvent {
+
+        public ChangeConfigurationEvent(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
+            super(module, configuration);
+        }
+
+        @Override
+        public void storeData(ModuleConfigurationServiceImpl service) {
+            final String modulePK = key(module);
+            LOG.debug("Replace configuration for '{}'", modulePK);
+            service.sharedCache.put(modulePK, service.storage.replaceConfiguration(module, configuration));
+        }
+    }
 }
