@@ -59,6 +59,11 @@
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -83,11 +88,6 @@
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
                 <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
@@ -157,7 +157,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <platform.version>3.65</platform.version>
         <!--<spring.version>3.2.10.RELEASE</spring.version>-->
-        <jackson.version>2.6.6</jackson.version>
+        <jackson.version>2.7.3</jackson.version>
         <spring.version>4.2.6.RELEASE</spring.version>
         <handlebars.version>2.0.0</handlebars.version>
         <jaxws.version>2.3</jaxws.version>

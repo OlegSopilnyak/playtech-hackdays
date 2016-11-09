@@ -2,39 +2,67 @@ package com.mobenga.health.model.transport;
 
 import com.mobenga.health.model.HealthItemPK;
 
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import java.util.Objects;
 
 /**
  * Wrapper for module to transport
  */
+@XmlRootElement
+@XmlType(propOrder = {"systemId","applicationId", "versionId", "description"})
 public class ModuleWrapper implements HealthItemPK {
-    final String systemId;
-    final String applicationId;
-    final String versionId;
-    final String desription;
+    private String systemId;
+    private String applicationId;
+    private String versionId;
+    private String description;
+
+    public ModuleWrapper() {
+    }
 
     public ModuleWrapper(HealthItemPK module) {
         this.systemId = module.getSystemId();
         this.applicationId = module.getApplicationId();
         this.versionId = module.getVersionId();
-        this.desription = module.getDescription();
+        this.description = module.getDescription();
     }
 
+    @XmlElement
     @Override
     public String getSystemId() {
         return systemId;
     }
+    @XmlElement
     @Override
     public String getApplicationId() {
         return applicationId;
     }
+    @XmlElement
     @Override
     public String getVersionId() {
         return versionId;
     }
+    @XmlElement
     @Override
     public String getDescription() {
-        return desription;
+        return description;
+    }
+
+    public void setSystemId(String systemId) {
+        this.systemId = systemId;
+    }
+
+    public void setApplicationId(String applicationId) {
+        this.applicationId = applicationId;
+    }
+
+    public void setVersionId(String versionId) {
+        this.versionId = versionId;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     @Override
@@ -59,7 +87,7 @@ public class ModuleWrapper implements HealthItemPK {
                 "systemId='" + systemId + '\'' +
                 ", applicationId='" + applicationId + '\'' +
                 ", versionId='" + versionId + '\'' +
-                ", desription='" + desription + '\'' +
+                ", description='" + description + '\'' +
                 '}';
     }
 }

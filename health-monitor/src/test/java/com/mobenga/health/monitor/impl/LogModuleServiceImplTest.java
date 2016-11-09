@@ -4,6 +4,7 @@ import com.mobenga.health.model.*;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,6 +83,7 @@ public class LogModuleServiceImplTest {
     }
 
     @Test
+    @Ignore
     public void deviceOut() throws Exception {
         final String system = "mockSys-1",
                 application = "mockApp-1",
@@ -115,6 +117,7 @@ public class LogModuleServiceImplTest {
     }
 
     @Test
+    @Ignore
     public void deviceActionOutSuccess() throws Exception {
         final String system = "mockSys-2",
                 application = "mockApp-2",
@@ -205,6 +208,7 @@ public class LogModuleServiceImplTest {
         reset(storage, actionStorage);
     }
     @Test
+    @Ignore
     public void deviceActionOutIgnored() throws Exception {
         final String system = "mockSys-x",
                 application = "mockApp-x",

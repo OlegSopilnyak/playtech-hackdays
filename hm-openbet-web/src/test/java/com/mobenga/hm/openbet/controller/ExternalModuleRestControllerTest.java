@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.factory.TimeService;
+import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.hm.openbet.configuration.test.RestControllerTestConfiguration;
 import com.mobenga.hm.openbet.dto.*;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
@@ -35,6 +36,7 @@ import java.util.List;
 
 import static com.mobenga.health.HealthUtils.key;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -84,8 +86,8 @@ public class ExternalModuleRestControllerTest {
 
         assertNotNull("the JSON message converter must be not null", this.mappingJackson2HttpMessageConverter);
     }
-    @Test
-    public void testExchange() throws Exception {
+
+    private ExternalModulePing createPing(){
         HealthItemPK pk = mock(HealthItemPK.class);
         when(pk.getSystemId()).thenReturn("externalModule");
         when(pk.getApplicationId()).thenReturn("config");
@@ -132,6 +134,40 @@ public class ExternalModuleRestControllerTest {
                 aOutput.add(msg);
             }
         }
+        return ping;
+    }
+    @Test
+    public void testTransformations() throws Exception {
+        ExternalModulePing ping = createPing();
+        List<ModuleConfigurationItem> configuration = new ArrayList<>();
+        ping.setConfiguration(configuration);
+        {
+            ModuleConfigurationItem item = new ModuleConfigurationItem();
+            item.setPath("1.2.3.a");
+            item.setType("STRING");
+            item.setValue("abcd");
+            configuration.add(item);
+        }
+        {
+            ModuleConfigurationItem item = new ModuleConfigurationItem();
+            item.setPath("1.2.3.b");
+            item.setType("STRING");
+            item.setValue("bcde");
+            configuration.add(item);
+        }
+        String jsonPing = toJson(ping);
+        Object restored = fromJson(jsonPing, ExternalModulePing.class);
+        assertNotNull(restored);
+        assertFalse( !(restored instanceof ExternalModulePing));
+        ExternalModulePing restoredPing = (ExternalModulePing) restored;
+        assertEquals(ping.getHost(), restoredPing.getHost());
+        assertEquals(ping.getModule(), restoredPing.getModule());
+
+    }
+
+    @Test
+    public void testExchange() throws Exception {
+        ExternalModulePing ping = createPing();
         List<ModuleConfigurationItem> configuration = new ArrayList<>();
         ping.setConfiguration(configuration);
         {

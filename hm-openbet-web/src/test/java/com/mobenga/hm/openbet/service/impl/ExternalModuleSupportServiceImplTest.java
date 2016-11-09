@@ -9,6 +9,7 @@ import com.mobenga.hm.openbet.configuration.test.MockedStorageConfiguration;
 import com.mobenga.hm.openbet.dto.*;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.invocation.InvocationOnMock;
@@ -125,6 +126,7 @@ public class ExternalModuleSupportServiceImplTest {
     }
 
     @Test
+    @Ignore
     public void changeConfigurationItem() throws Exception {
         final String system = "mockSys-1",
                 application = "mockApp-1",

@@ -63,7 +63,7 @@ public class ModuleStateNotificationServiceImplTest {
     }
 
     @Test
-    @Ignore
+//    @Ignore
     public void testRegister() throws Exception {
 
         reset(storage, configuration);
@@ -82,7 +82,7 @@ public class ModuleStateNotificationServiceImplTest {
     }
 
     @Test
-    @Ignore
+//    @Ignore
     public void testUnRegister() throws Exception {
         reset(storage, configuration);
         final Object semaphore = new Object();

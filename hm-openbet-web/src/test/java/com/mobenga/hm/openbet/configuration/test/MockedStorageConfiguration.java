@@ -5,6 +5,8 @@ import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.LogMessage;
 import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.monitor.DistributedContainersService;
+import com.mobenga.health.monitor.impl.DistributedContainersServiceTrivialImpl;
 import com.mobenga.health.storage.*;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
 import org.mockito.invocation.InvocationOnMock;
@@ -39,8 +41,13 @@ public class MockedStorageConfiguration {
     }
 
     @Bean
+    public DistributedContainersService makeDistributed(){
+        return new DistributedContainersServiceTrivialImpl();
+    }
+    @Bean
     public MonitoredAction mockedAction(){
         MonitoredAction action = mock(MonitoredAction.class);
+        when(action.copy()).thenReturn(action);
         when(action.getStart()).thenReturn(now);
         when(action.getFinish()).thenReturn(now);
         return action;
