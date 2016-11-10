@@ -1,6 +1,7 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.HeartBeatStorage;
@@ -60,13 +61,12 @@ public class ModuleStateNotificationServiceImplTest {
         service.setHeartbeatDelay(10);
         service.startService();
         service.unRegister(service);
+        reset(configuration, storage);
     }
 
     @Test
 //    @Ignore
     public void testRegister() throws Exception {
-
-        reset(storage, configuration);
 
         final Object semaphore = new Object();
         final Answer signal = new signal(semaphore);
@@ -75,7 +75,7 @@ public class ModuleStateNotificationServiceImplTest {
         service.register(state);
 
         synchronized (semaphore){
-            semaphore.wait(1000);
+            semaphore.wait(100);
         }
         verify(storage, atLeastOnce()).saveHeartBeat(eq(state));
         verify(configuration, atLeastOnce()).getUpdatedVariables(eq(state.getModulePK()),any());
@@ -84,7 +84,6 @@ public class ModuleStateNotificationServiceImplTest {
     @Test
 //    @Ignore
     public void testUnRegister() throws Exception {
-        reset(storage, configuration);
         final Object semaphore = new Object();
         final Answer signal = new signal(semaphore);
 
@@ -149,7 +148,11 @@ public class ModuleStateNotificationServiceImplTest {
     @NotNull
     private MonitoredService mockState() {
         final MonitoredService state = mock(MonitoredService.class);
-        final HealthItemPK module = mock(HealthItemPK.class);
+        final ModuleWrapper module = new ModuleWrapper();
+        module.setDescription("descr");
+        module.setSystemId("sys-id");
+        module.setApplicationId("app-id");
+        module.setVersionId("ver-id");
         when(state.getModulePK()).thenReturn(module);
         return state;
     }

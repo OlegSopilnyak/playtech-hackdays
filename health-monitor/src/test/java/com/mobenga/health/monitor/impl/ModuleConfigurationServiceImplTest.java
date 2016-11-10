@@ -43,6 +43,7 @@ public class ModuleConfigurationServiceImplTest {
 
     @Before
     public void initCache() throws Exception {
+        reset(storage);
         module.setSystemId("sys");
         module.setApplicationId("app");
         module.setVersionId("test");
@@ -135,6 +136,12 @@ public class ModuleConfigurationServiceImplTest {
             when(item.getValue()).thenReturn("5");
             putToCache("1.2.3", item, moduleCache);
         }
+        when(storage.replaceConfiguration(eq(module), any(Map.class))).then(new Answer<Map>() {
+            @Override
+            public Map answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return (Map) invocationOnMock.getArguments()[1];
+            }
+        });
 
         Map<String, ConfiguredVariableItem> currentModuleCache = service.changeConfiguration(module, moduleCache);
         assertEquals(3, (currentModuleCache).size());
