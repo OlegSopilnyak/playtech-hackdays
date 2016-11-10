@@ -36,7 +36,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     private Map<String, Map<String, ConfiguredVariableItem>> sharedCache;
     private BlockingQueue<ModuleConfigurationServiceImpl.StoreEvent> sharedQueue;
 
-    @Value("${configuration.shared.config.map.name:'modules-configuration'}")
+    @Value("${configuration.shared.config.map.name:'modules-configuration-map'}")
     private String sharedMapName;
     @Value("${configuration.shared.config.queue.name:'modules-configuration-queue'}")
     private String sharedQueueName;
@@ -92,12 +92,9 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     @Override
     public Map<String, ConfiguredVariableItem> getConfigurationGroup(HealthItemPK module, String groupName) {
         final String normalizedGroup = normal(groupName);
-        LOG.debug("Getting configuration for '{}' from group '{}'", new Object[]{key(module), normalizedGroup});
-        final Map<String, ConfiguredVariableItem> cachedConfiguration =
-                sharedCache.computeIfAbsent(key(modules.getModule(module)), (s) -> new LinkedHashMap<>());
-        return cachedConfiguration
-                .entrySet()
-                .stream()
+        final String moduleKey = key(modules.getModule(module));
+        LOG.debug("Getting configuration for '{}' from group '{}'", new Object[]{moduleKey, normalizedGroup});
+        return sharedCache.computeIfAbsent(moduleKey, (mk) -> new LinkedHashMap<>()).entrySet().stream()
                 .filter(p -> p.getKey().startsWith(normalizedGroup))
                 .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()));
     }
@@ -114,22 +111,25 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         if(!isActive()){
             return Collections.EMPTY_MAP;
         }
-        LOG.debug("Getting real configuration for '{}'", new Object[]{key(module)});
-        final Map<String, ConfiguredVariableItem> cachedConfiguration = sharedCache.computeIfAbsent(key(module), (s) -> new LinkedHashMap<>());
+        final String moduleKey = key(modules.getModule(module));
+        LOG.debug("Getting real configuration for '{}'", moduleKey);
+        final Map<String, ConfiguredVariableItem> cachedConfiguration = sharedCache.computeIfAbsent(moduleKey, (mk) -> new LinkedHashMap<>());
         final Map<String, ConfiguredVariableItem> notCachedConfiguration = new LinkedHashMap<>();
         final Map<String, ConfiguredVariableItem> updatedVarsConfiguration = new LinkedHashMap<>();
-        currentConfiguration.entrySet().stream().forEach((current) -> {
-            final ConfiguredVariableItem cachedVarItem = cachedConfiguration.get(current.getKey());
+        currentConfiguration.entrySet().forEach((entry) -> {
+            final String itemPath = entry.getKey();
+            final ConfiguredVariableItem currentVarItem = entry.getValue();
+            final ConfiguredVariableItem cachedVarItem = cachedConfiguration.get(itemPath);
             if (cachedVarItem == null) {
-                LOG.debug("Cached configuration has no key:'{}'", current.getKey());
-                notCachedConfiguration.put(current.getKey(), current.getValue());
-            } else if (!cachedVarItem.equals(current.getValue())) {
-                LOG.debug("Cached configuration has different value for key:'{}' input:'{}' cached:'{}'", new Object[]{current.getKey(), current.getValue(), cachedVarItem});
-                updatedVarsConfiguration.put(current.getKey(), cachedVarItem);
+                LOG.debug("Cached configuration has no key:'{}'", itemPath);
+                notCachedConfiguration.put(itemPath, currentVarItem);
+            } else if (!cachedVarItem.equals(currentVarItem)) {
+                LOG.debug("Cached configuration has different value for key:'{}' input:'{}' cached:'{}'", new Object[]{itemPath, currentVarItem, cachedVarItem});
+                updatedVarsConfiguration.put(itemPath, cachedVarItem);
             }
         });
         if (!notCachedConfiguration.isEmpty()) {
-            LOG.debug("Adding values to the cache");
+            LOG.debug("Adding extra variables to the cached module config");
             newConfiguredVariables(module, notCachedConfiguration);
         }
         return updatedVarsConfiguration;
@@ -143,17 +143,15 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
      */
     @Override
     public void newConfiguredVariables(HealthItemPK module, Map<String, ConfiguredVariableItem> notCachedConfiguration) {
-        final String modulePK = key(modules.getModule(module));
-        LOG.debug("Update configuration for '{}'", modulePK);
-
+        // send request to store updates
         sharedQueue.offer(new UpdateConfigurationEvent(module, notCachedConfiguration));
 
-        final Map<String, ConfiguredVariableItem> cachedConfiguration = sharedCache.computeIfAbsent(modulePK, s -> new LinkedHashMap<>());
+        final String moduleKey = key(modules.getModule(module));
+        LOG.debug("Update configuration for '{}'", moduleKey);
+        final Map<String, ConfiguredVariableItem> cachedConfiguration = sharedCache.computeIfAbsent(moduleKey, s -> new LinkedHashMap<>());
         cachedConfiguration.putAll(notCachedConfiguration);
-//        LOG.debug("Storing to configurations storage");
-//        storage.storeChangedConfiguration(module, notCachedConfiguration);
         LOG.debug("Refresh cache");
-        sharedCache.put(modulePK, cachedConfiguration);
+        sharedCache.put(moduleKey, cachedConfiguration);
     }
 
     /**
@@ -165,13 +163,12 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
      */
     @Override
     public Map<String, ConfiguredVariableItem> changeConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
-        final String modulePK = key(modules.getModule(module));
-
+        // send request to replace configuration
         sharedQueue.offer(new ChangeConfigurationEvent(module, configuration));
 
-        LOG.debug("Replace configuration for '{}'", modulePK);
-//        final Map<String, ConfiguredVariableItem> current = storage.replaceConfiguration(module, configuration);
-        sharedCache.put(modulePK, configuration);
+        final String moduleKey = key(modules.getModule(module));
+        LOG.debug("Replace configuration for '{}'", moduleKey);
+        sharedCache.put(moduleKey, configuration);
         return configuration;
     }
 
@@ -207,7 +204,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
      * @param moduleId module-id as string
      * @param path path to value in configuration map
      * @param value new value of parameter
-     * @return stored configuratio parameter or null if wrong parameters
+     * @return stored configuration parameter or null if wrong parameters
      */
     @Override
     public ConfiguredVariableItem updateConfigurationItemByModule(String moduleId, String path, String value) {
@@ -222,18 +219,11 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         }else {
             item.set(value);
         }
-        configuration.put(path, item);
+        if (item.isValid()) {
+            configuration.put(path, item);
+        }
         return changeConfiguration(modules.getModule(moduleId), configuration).get(path);
     }
-
-    public Map<String, Map<String, ConfiguredVariableItem>> getSharedCache() {
-        return sharedCache;
-    }
-
-    public void setSharedCache(Map<String, Map<String, ConfiguredVariableItem>> sharedCache) {
-        this.sharedCache = sharedCache;
-    }
-
 
     /**
      * The handle to restart monitored service
@@ -241,6 +231,8 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
     @Override
     public void restart() {
         LOG.info("Restarting...");
+        shutdown();
+        initialize();
     }
 
     /**
@@ -260,7 +252,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
      */
     @Override
     public boolean isActive() {
-        return sharedCache != null;
+        return active;
     }
 
     /**
@@ -321,6 +313,10 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         return "Service to support modules configurations";
     }
 
+    public Map<String, Map<String, ConfiguredVariableItem>> getSharedCache() {
+        return sharedCache;
+    }
+
     @Override
     public String toString() {
         return "-ModuleConfigurationService-";
@@ -336,7 +332,9 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         try {
             while (active) {
                 final StoreEvent event = sharedQueue.poll(100, TimeUnit.MILLISECONDS);
-                event.storeData(this);
+                if (event != null) {
+                    event.storeData(this);
+                }
             }
         } catch (InterruptedException e) {
             LOG.error("Distributed Queue's polling was interrupted", e);
@@ -365,7 +363,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
 
         @Override
         public void storeData(ModuleConfigurationServiceImpl service) {
-            LOG.debug("Storing to configurations storage");
+            LOG.debug("Storing to configurations storage (version leaved the same)");
             service.storage.storeChangedConfiguration(module, configuration);
         }
     }
@@ -378,7 +376,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         @Override
         public void storeData(ModuleConfigurationServiceImpl service) {
             final String modulePK = key(module);
-            LOG.debug("Replace configuration for '{}'", modulePK);
+            LOG.debug("Replace configuration for '{}' (increment version)", modulePK);
             service.sharedCache.put(modulePK, service.storage.replaceConfiguration(module, configuration));
         }
     }

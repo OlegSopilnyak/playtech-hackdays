@@ -5,12 +5,11 @@
 
     <bean id="sharedCacheMap" class="java.util.LinkedHashMap" scope="singleton"/>
 
-    <bean id="service" class="com.mobenga.health.monitor.impl.ModuleConfigurationServiceImpl">
-        <property name="sharedCache" ref="sharedCacheMap" />
+    <bean id="service" class="com.mobenga.health.monitor.impl.ModuleConfigurationServiceImpl" init-method="initialize" destroy-method="shutdown">
     </bean>
 
     <bean id="serviceRunner" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
-        <constructor-arg value="3"/>
+        <constructor-arg value="5"/>
     </bean>
 
     <bean id="modules" class="com.mobenga.health.monitor.impl.HealthModuleServiceImpl" init-method="initialize" destroy-method="shutdown">
