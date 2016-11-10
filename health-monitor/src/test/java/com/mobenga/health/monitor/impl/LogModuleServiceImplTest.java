@@ -2,6 +2,7 @@ package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.*;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
 import org.junit.Ignore;
@@ -19,6 +20,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
+import static sun.audio.AudioDevice.device;
 
 /**
  * Tests for log module-output service
@@ -83,7 +85,6 @@ public class LogModuleServiceImplTest {
     }
 
     @Test
-    @Ignore
     public void deviceOut() throws Exception {
         final String system = "mockSys-1",
                 application = "mockApp-1",
@@ -95,12 +96,13 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
+        pk = new ModuleWrapper(pk);
 
         ModuleOutput.Device device = service.create(pk);
         assertNotNull(device);
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+        when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         device.out("Hello world");
         device.out("Hello world");
@@ -108,7 +110,7 @@ public class LogModuleServiceImplTest {
         device.out("Hello world");
         Thread.sleep(1000);
 
-        verify(storage, times(4)).createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE));
+        verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
         verify(output, times(4)).setId(any());
         verify(output, times(4)).setActionId(anyString());
         verify(output, times(4)).setPayload(eq("Hello world"));
@@ -117,7 +119,6 @@ public class LogModuleServiceImplTest {
     }
 
     @Test
-    @Ignore
     public void deviceActionOutSuccess() throws Exception {
         final String system = "mockSys-2",
                 application = "mockApp-2",
@@ -129,13 +130,14 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
+        pk = new ModuleWrapper(pk);
 
         reset(storage, actionStorage);
         ModuleOutput.Device device = service.create(pk);
         assertNotNull(device);
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+        when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         MonitoredActionStub action = new MonitoredActionStub();
         action.setId("AAA");
@@ -156,7 +158,7 @@ public class LogModuleServiceImplTest {
         verify(output, times(4)).setPayload(eq("Hello world"));
         verify(storage, times(4)).saveModuleOutput(eq(output));
 
-        verify(actionStorage, times(3)).saveActionState(any(HealthItemPK.class), any(MonitoredActionStub.class));
+        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.SUCCESS, action.getState());
         reset(storage, actionStorage);
@@ -208,7 +210,6 @@ public class LogModuleServiceImplTest {
         reset(storage, actionStorage);
     }
     @Test
-    @Ignore
     public void deviceActionOutIgnored() throws Exception {
         final String system = "mockSys-x",
                 application = "mockApp-x",
@@ -220,6 +221,7 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
+        pk = new ModuleWrapper(pk);
 
         reset(storage, actionStorage);
         ModuleOutput.Device device = service.create(pk);
@@ -228,7 +230,7 @@ public class LogModuleServiceImplTest {
         service.setIgnoreModules(key(pk));
 
         LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+        when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         MonitoredActionStub action = new MonitoredActionStub();
         action.setId("AAA");
@@ -243,13 +245,13 @@ public class LogModuleServiceImplTest {
         Thread.sleep(1000);
 
 
-        verify(storage, times(0)).createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE));
+        verify(storage, times(0)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
         verify(output, times(0)).setId(any());
         verify(output, times(0)).setActionId(eq("AAA"));
         verify(output, times(0)).setPayload(eq("Hello world"));
         verify(storage, times(0)).saveModuleOutput(eq(output));
 
-        verify(actionStorage, times(3)).saveActionState(any(HealthItemPK.class), any(MonitoredActionStub.class));
+        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.FAIL, action.getState());
         reset(storage, actionStorage);

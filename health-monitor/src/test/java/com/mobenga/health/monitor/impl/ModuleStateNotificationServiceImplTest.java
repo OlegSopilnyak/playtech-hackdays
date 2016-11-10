@@ -65,7 +65,6 @@ public class ModuleStateNotificationServiceImplTest {
     }
 
     @Test
-//    @Ignore
     public void testRegister() throws Exception {
 
         final Object semaphore = new Object();
@@ -82,7 +81,6 @@ public class ModuleStateNotificationServiceImplTest {
     }
 
     @Test
-//    @Ignore
     public void testUnRegister() throws Exception {
         final Object semaphore = new Object();
         final Answer signal = new signal(semaphore);
