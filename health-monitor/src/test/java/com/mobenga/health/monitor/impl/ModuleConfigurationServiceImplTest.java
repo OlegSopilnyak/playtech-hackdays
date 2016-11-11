@@ -1,7 +1,6 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.storage.ConfigurationStorage;
 import org.junit.Before;
@@ -10,15 +9,12 @@ import org.junit.runner.RunWith;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static com.mobenga.health.HealthUtils.key;
-import static com.sun.org.apache.xalan.internal.lib.ExsltDatetime.time;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 

@@ -20,6 +20,8 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Realization of module state notifier
@@ -35,7 +37,8 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     private static final Logger LOG = LoggerFactory.getLogger(ModuleStateNotificationServiceImpl.class);
 
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
-    private final Set<MonitoredService> monitored = Collections.synchronizedSet(new LinkedHashSet());
+    private Set<MonitoredService> monitored = Collections.synchronizedSet(new LinkedHashSet());
+    private Lock monitoredLock = new ReentrantLock();
 
     private final AtomicBoolean healthMonitorRun = new AtomicBoolean(false);
     private volatile boolean active = false;
@@ -71,7 +74,12 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      */
     @Override
     public void register(MonitoredService module) {
-        monitored.add(module);
+        monitoredLock.lock();
+        try {
+            monitored.add(module);
+        } finally {
+            monitoredLock.unlock();
+        }
         storage.saveHeartBeat(module);
         LOG.debug("Adding module {} for watching.", module);
     }
@@ -83,8 +91,15 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      */
     @Override
     public void unRegister(MonitoredService module) {
-        monitored.remove(module);
-        LOG.debug("Removing module {} for watching", module);
+        monitoredLock.lock();
+        try {
+            final Set<MonitoredService> changed = Collections.synchronizedSet(new LinkedHashSet(monitored));
+            changed.remove(module);
+            monitored = changed;
+            LOG.debug("Removing module {} for watching", module);
+        } finally {
+            monitoredLock.unlock();
+        }
     }
 
     /**
@@ -234,13 +249,13 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
         if (!isActive()) return;
         final MonitoredAction moduleAction = actionsService.createMonitoredAction();
         moduleAction.setStart(timer.now());
-        moduleAction.setDescription("Processing heart-beat for '"+module+"' module");
+        moduleAction.setDescription("Processing heart-beat for '" + module + "' module");
         final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
         moduleLog.associate(moduleAction);
         moduleLog.actionBegin();
         // service is active for the moment, process module's heart-beat
         try {
-            moduleLog.out("Saving heart-beat of module ",module.toString());
+            moduleLog.out("Saving heart-beat of module ", module.toString());
             storage.saveHeartBeat(module);
             moduleLog.out("Getting config updates for module ", module.toString());
             final Map<String, ConfiguredVariableItem> updated =
@@ -298,8 +313,11 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     }
 
     private void heartBeat(final ModuleOutput.Device moduleLog) {
-        synchronized (monitored) {
-            monitored.forEach(module -> {moduleLog.out("Processing ",module.toString());checkHealth(module);});
+        monitoredLock.lock();
+        try{
+        monitored.forEach(module -> {moduleLog.out("Processing ", module.toString()); checkHealth(module);});
+        }finally {
+            monitoredLock.unlock();
         }
     }
 

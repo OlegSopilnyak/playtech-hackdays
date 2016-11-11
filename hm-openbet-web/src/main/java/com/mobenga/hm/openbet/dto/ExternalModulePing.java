@@ -2,11 +2,8 @@ package com.mobenga.hm.openbet.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.mobenga.health.model.HealthItemPK;
-import com.mobenga.health.model.ModuleOutput;
 import com.mobenga.health.model.transport.ModuleWrapper;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 /**

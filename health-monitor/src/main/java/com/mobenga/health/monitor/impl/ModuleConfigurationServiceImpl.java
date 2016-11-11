@@ -1,6 +1,5 @@
 package com.mobenga.health.monitor.impl;
 
-import com.hazelcast.map.impl.mapstore.writebehind.StoreEvent;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
@@ -113,9 +112,15 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         }
         final String moduleKey = key(modules.getModule(module));
         LOG.debug("Getting real configuration for '{}'", moduleKey);
-        final Map<String, ConfiguredVariableItem> cachedConfiguration = sharedCache.computeIfAbsent(moduleKey, (mk) -> new LinkedHashMap<>());
-        final Map<String, ConfiguredVariableItem> notCachedConfiguration = new LinkedHashMap<>();
-        final Map<String, ConfiguredVariableItem> updatedVarsConfiguration = new LinkedHashMap<>();
+
+        final Map<String, ConfiguredVariableItem>
+                cachedConfiguration = sharedCache.computeIfAbsent(moduleKey, (mk) -> new LinkedHashMap<>())
+                // variables which not exists in the cache
+                , notCachedConfiguration = new LinkedHashMap<>()
+                // variables which value is different with cached variable (returns cached value)
+                , updatedVarsConfiguration = new LinkedHashMap<>()
+                ;
+        // process received module's configuration
         currentConfiguration.entrySet().forEach((entry) -> {
             final String itemPath = entry.getKey();
             final ConfiguredVariableItem currentVarItem = entry.getValue();
@@ -128,6 +133,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
                 updatedVarsConfiguration.put(itemPath, cachedVarItem);
             }
         });
+        // store not cached variables
         if (!notCachedConfiguration.isEmpty()) {
             LOG.debug("Adding extra variables to the cached module config");
             newConfiguredVariables(module, notCachedConfiguration);
@@ -146,11 +152,15 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         // send request to store updates
         sharedQueue.offer(new UpdateConfigurationEvent(module, notCachedConfiguration));
 
+        // updating the cache
         final String moduleKey = key(modules.getModule(module));
         LOG.debug("Update configuration for '{}'", moduleKey);
-        final Map<String, ConfiguredVariableItem> cachedConfiguration = sharedCache.computeIfAbsent(moduleKey, s -> new LinkedHashMap<>());
+        final Map<String, ConfiguredVariableItem> cachedConfiguration =
+                sharedCache.computeIfAbsent(moduleKey, s -> new LinkedHashMap<>())
+                ;
         cachedConfiguration.putAll(notCachedConfiguration);
         LOG.debug("Refresh cache");
+        // put updated configuration back to the cache
         sharedCache.put(moduleKey, cachedConfiguration);
     }
 
@@ -363,7 +373,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
 
         @Override
         public void storeData(ModuleConfigurationServiceImpl service) {
-            LOG.debug("Storing to configurations storage (version leaved the same)");
+            LOG.debug("Storing to configurations storage (version stayed the same)");
             service.storage.storeChangedConfiguration(module, configuration);
         }
     }

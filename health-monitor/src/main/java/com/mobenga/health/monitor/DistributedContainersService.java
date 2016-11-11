@@ -1,6 +1,5 @@
 package com.mobenga.health.monitor;
 
-import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 

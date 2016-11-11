@@ -1,8 +1,6 @@
 package com.mobenga.hm.openbet.configuration.test;
 
 import com.mobenga.health.configuration.FactoryConfiguration;
-import com.mobenga.health.monitor.DistributedContainersService;
-import com.mobenga.health.monitor.impl.DistributedContainersServiceTrivialImpl;
 import com.mobenga.hm.openbet.configuration.ApplicationConfiguration;
 import com.mobenga.hm.openbet.controller.ApplicationController;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
@@ -26,9 +24,4 @@ public class RestControllerTestConfiguration {
     public ExternalModuleSupportService moduleSupport(){
         return mock(ExternalModuleSupportService.class);
     }
-    @Bean
-    public DistributedContainersService makeDistributed(){
-        return new DistributedContainersServiceTrivialImpl();
-    }
-
 }

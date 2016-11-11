@@ -19,7 +19,7 @@ public class ApplicationWebInitializer  implements WebApplicationInitializer {
     public void onStartup(ServletContext servletContext) throws ServletException {
     
         AnnotationConfigWebApplicationContext ctx = new AnnotationConfigWebApplicationContext();  
-        ctx.register(ApplicationConfiguration.class, WebMvcConfiguration.class); 
+        ctx.register(ApplicationConfiguration.class, WebMvcConfiguration.class);
           
         ctx.setServletContext(servletContext);    
           
@@ -27,23 +27,4 @@ public class ApplicationWebInitializer  implements WebApplicationInitializer {
         servlet.addMapping("/*");
         servlet.setLoadOnStartup(1);  
     }
-
-//    private static final String CONFIG_LOCATION = "com.mobenga.hm.openbet.configuration";
-//    private static final String MAPPING_URL = "/*";
-//
-//    @Override
-//    public void onStartup(ServletContext servletContext) throws ServletException {
-//        WebApplicationContext context = getContext();
-//        servletContext.addListener(new ContextLoaderListener(context));
-//        ServletRegistration.Dynamic dispatcher = servletContext.addServlet("DispatcherServlet", new DispatcherServlet(context));
-//        dispatcher.setLoadOnStartup(1);
-//        dispatcher.addMapping(MAPPING_URL);
-//    }
-//
-//    private AnnotationConfigWebApplicationContext getContext() {
-//        AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
-//        context.setConfigLocation(CONFIG_LOCATION);
-//        return context;
-//    }
-//
 }

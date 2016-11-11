@@ -3,7 +3,6 @@ package com.mobenga.health.storage;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 
-import java.util.List;
 import java.util.Map;
 
 /**

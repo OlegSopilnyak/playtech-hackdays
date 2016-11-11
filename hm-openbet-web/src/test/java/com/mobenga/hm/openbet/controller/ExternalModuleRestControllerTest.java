@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.factory.TimeService;
-import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.hm.openbet.configuration.test.RestControllerTestConfiguration;
 import com.mobenga.hm.openbet.dto.*;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
@@ -35,9 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.mobenga.health.HealthUtils.key;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

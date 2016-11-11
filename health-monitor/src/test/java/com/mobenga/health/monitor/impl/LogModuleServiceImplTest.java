@@ -5,7 +5,6 @@ import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,6 @@ import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
-import static sun.audio.AudioDevice.device;
 
 /**
  * Tests for log module-output service

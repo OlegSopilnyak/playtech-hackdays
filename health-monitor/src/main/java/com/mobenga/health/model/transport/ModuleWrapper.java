@@ -2,9 +2,6 @@ package com.mobenga.health.model.transport;
 
 import com.mobenga.health.model.HealthItemPK;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 import java.util.Objects;
 
 /**

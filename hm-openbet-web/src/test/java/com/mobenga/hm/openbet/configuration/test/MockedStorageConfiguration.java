@@ -9,15 +9,14 @@ import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.impl.DistributedContainersServiceTrivialImpl;
 import com.mobenga.health.storage.*;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 
 import java.util.Date;
 import java.util.StringTokenizer;
 
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

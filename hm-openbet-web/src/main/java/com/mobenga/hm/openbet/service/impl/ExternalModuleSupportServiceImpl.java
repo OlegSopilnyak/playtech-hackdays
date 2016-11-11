@@ -2,10 +2,7 @@ package com.mobenga.hm.openbet.service.impl;
 
 import com.mobenga.health.model.*;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
-import com.mobenga.health.monitor.ModuleConfigurationService;
-import com.mobenga.health.monitor.ModuleStateNotificationService;
-import com.mobenga.health.monitor.MonitoredService;
-import com.mobenga.health.storage.HealthModuleStorage;
+import com.mobenga.health.monitor.*;
 import com.mobenga.health.storage.HeartBeatStorage;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
@@ -18,11 +15,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
@@ -40,6 +42,13 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     public static final String HB_PARAM1_KEY = PARAMS_PACKAGE + "." + PARAM1.getName();
     public static final String HB_PARAM2_KEY = PARAMS_PACKAGE + "." + PARAM2.getName();
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
+    private BlockingQueue<ExternalModulePing> sharedQueue;
+
+    @Autowired
+    @Qualifier("serviceRunner")
+    private ExecutorService executor;
+    private final AtomicBoolean serviceRuns = new AtomicBoolean(false);
+    private volatile boolean active;
 
     public ExternalModuleSupportServiceImpl() {
         config.put(HB_PARAM1_KEY, PARAM1);
@@ -47,16 +56,19 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     }
 
     @Autowired
-    private ModuleConfigurationService configurationService;
+    private HealthModuleService modules;
 
     @Autowired
-    private HealthModuleStorage healthModuleStorage;
+    private ModuleConfigurationService configurationService;
 
     @Autowired
     private ModuleStateNotificationService notifier;
 
     @Autowired
     private HeartBeatStorage hbStorage;
+
+    @Autowired
+    private DistributedContainersService distributed;
 
     @Autowired
     private ModuleOutputStorage outputStorage;
@@ -66,12 +78,25 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Autowired
     private MonitoredActionStorage actionStorage;
 
-    @Autowired
-    @Qualifier("logService")
-    private ModuleOutput.DeviceFactory deviceFactory;
+    @Value("${configuration.shared.external.queue.name:'external-modules-queue'}")
+    private String sharedQueueName;
 
     public void initialize(){
+        if (active) return;
+        sharedQueue = distributed.queue(sharedQueueName);
         notifier.register(this);
+        active = false;
+        executor.submit(()->postponedStorePing());
+        while(!serviceRuns.get());
+        LOG.info("Service started.");
+    }
+
+    public void shutdown(){
+        if (!active) return;
+        notifier.unRegister(this);
+        active = false;
+        while(serviceRuns.get());
+        LOG.info("Service stopped.");
     }
     /**
      * Respond to module's ping
@@ -81,49 +106,20 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public List<ModuleConfigurationItem> pong(ExternalModulePing ping) {
-        LOG.debug("Received ping from '{}'", ping.getHost());
-        final HealthItemPK pk = ping.getModule();
-        final String modulePK = key(pk);
-        final ModuleOutput.Device logger = deviceFactory.create(pk);
-        // process heart-beat
-        LOG.debug("Processing state of module '{}'", ping.getState());
-        hbStorage.saveModuleState(pk, "Active".equalsIgnoreCase(ping.getState()));
-        // process output
-        LOG.debug("Processing '{}' messages of raw log.", ping.getOutput().size());
-        ping.getOutput().forEach(o->{
-            LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
-            msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
-            msg.setModulePK(modulePK);
-            msg.setPayload(o.getPayload());
-            outputStorage.saveModuleOutput(msg);
-        });
-        // process output with actions
-        LOG.debug("Processing '{}' actions of action log.", ping.getActions().size());
-        ping.getActions().forEach(a->{
-            MonitoredAction action = actionStorage.createMonitoredAction();
-            action.setDescription(a.getDescription());
-            action.setStart(dt.asDate(a.getStartTime()));
-            action.setFinish(dt.asDate(a.getFinishTime()));
-            action.setDuration(a.getDuration());
-            actionStorage.saveActionState(pk, action);
-            String actionId = action.getId();
-            LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getName());
-            a.getOutput().forEach(o->{
-                LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
-                msg.setActionId(actionId);
-                msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
-                msg.setModulePK(modulePK);
-                msg.setPayload(o.getPayload());
-                outputStorage.saveModuleOutput(msg);
-            });
-        });
+        // postpone work with storages
+        sharedQueue.offer(ping);
         // processing configuration section
+        final HealthItemPK pk = modules.getModule(ping.getModule());
+
         LOG.debug("Processing module configuration items:'{}'", ping.getConfiguration().size());
-        Map<String,ConfiguredVariableItem> moduleConfig = new HashMap<>();
-        ping.getConfiguration().forEach( (i) -> {moduleConfig.put(i.getPath(), transform(i, ping));});
-        Map<String,ConfiguredVariableItem> updated = configurationService.getUpdatedVariables(pk,moduleConfig);
-        List<ModuleConfigurationItem> response = new ArrayList<>();
+
+        final Map<String,ConfiguredVariableItem> moduleConfig = new HashMap<>();
+        ping.getConfiguration().forEach( cvi -> {moduleConfig.put(cvi.getPath(), transform(cvi, ping));});
+        final Map<String,ConfiguredVariableItem> updated = configurationService.getUpdatedVariables(pk, moduleConfig);
+        final List<ModuleConfigurationItem> response = new ArrayList<>();
+
         LOG.debug("Return '{}' updated configuration's items.", updated.size());
+
         updated.entrySet().forEach(e -> {
             response.add(new ModuleConfigurationItem(e.getKey(), e.getValue().getType().name(), e.getValue().getValue()));
         });
@@ -202,7 +198,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public boolean isActive() {
-        return true;
+        return active;
     }
 
     /**
@@ -210,7 +206,8 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public void restart() {
-
+        shutdown();
+        initialize();
     }
 
     /**
@@ -275,9 +272,63 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
 
     @Override
     public String toString() {
-        return "-ExternalModuleSupportService - ";
+        return "-ExternalModuleSupportService-";
     }
     // private methods
+    private void postponedStorePing(){
+        serviceRuns.getAndSet(active = true);
+        try {
+            while (active) {
+                final ExternalModulePing ping = sharedQueue.poll(100, TimeUnit.MILLISECONDS);
+                if (ping != null) {
+                    storePing(ping);
+                }
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Work with queue was interrupted ", e);
+        }catch (Throwable e){
+            LOG.error("Work with queue was interrupted ", e);
+        } finally {
+            serviceRuns.getAndSet(active = false);
+        }
+    }
+    private void storePing(ExternalModulePing ping){
+        LOG.debug("Processing ping from '{}'", ping.getHost());
+        final HealthItemPK pk = modules.getModule(ping.getModule());
+        final String moduleKey = key(pk);
+        // process heart-beat
+        LOG.debug("Processing state of module '{}'", ping.getState());
+        hbStorage.saveModuleState(pk, "Active".equalsIgnoreCase(ping.getState()));
+        // process output
+        LOG.debug("Processing '{}' messages of raw log.", ping.getOutput().size());
+        ping.getOutput().forEach(o->{
+            LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+            msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
+            msg.setModulePK(moduleKey);
+            msg.setPayload(o.getPayload());
+            outputStorage.saveModuleOutput(msg);
+        });
+        // process output with actions
+        LOG.debug("Processing '{}' actions of action log.", ping.getActions().size());
+        ping.getActions().forEach(a->{
+            MonitoredAction action = actionStorage.createMonitoredAction();
+            action.setDescription(a.getDescription());
+            action.setStart(dt.asDate(a.getStartTime()));
+            action.setFinish(dt.asDate(a.getFinishTime()));
+            action.setDuration(a.getDuration());
+            actionStorage.saveActionState(pk, action);
+            String actionId = action.getId();
+            LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getName());
+            a.getOutput().forEach(o->{
+                LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+                msg.setActionId(actionId);
+                msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
+                msg.setModulePK(moduleKey);
+                msg.setPayload(o.getPayload());
+                outputStorage.saveModuleOutput(msg);
+            });
+        });
+    }
     private ConfiguredVariableEntity transform(ModuleConfigurationItem item, ExternalModulePing ping){
         ConfiguredVariableEntity entity = new ConfiguredVariableEntity();
         entity.setValue(item.getValue());

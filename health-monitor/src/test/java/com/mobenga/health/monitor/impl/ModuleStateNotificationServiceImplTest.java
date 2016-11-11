@@ -1,13 +1,13 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.HeartBeatStorage;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.invocation.InvocationOnMock;
@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static junit.framework.Assert.assertFalse;
@@ -51,6 +53,7 @@ public class ModuleStateNotificationServiceImplTest {
     @Qualifier("serviceRunner")
     private ExecutorService executor;
 
+    private final ModuleWrapper module = new ModuleWrapper();
     private MonitoredService state = mockState();
 
     @Before
@@ -68,42 +71,81 @@ public class ModuleStateNotificationServiceImplTest {
     public void testRegister() throws Exception {
 
         final Object semaphore = new Object();
-        final Answer signal = new signal(semaphore);
-        doAnswer(signal).when(storage).saveHeartBeat(state);
+        Map<String, ConfiguredVariableItem> updatedConfiguration = new HashMap<>();
+        updatedConfiguration.put("1.1.1.1.1.none", new LocalConfiguredVariableItem("none","Testing variable","Hello"));
+
+        when(configuration.getUpdatedVariables(eq(state.getModulePK()), any(Map.class))).then(new Answer<Map>() {
+            @Override
+            public Map answer(InvocationOnMock invocationOnMock) throws Throwable {
+                synchronized (semaphore){
+                    semaphore.notify();
+                }
+                return updatedConfiguration;
+            }
+        });
+
 
         service.register(state);
 
         synchronized (semaphore){
-            semaphore.wait(100);
+            semaphore.wait(300);
         }
         verify(storage, atLeastOnce()).saveHeartBeat(eq(state));
         verify(configuration, atLeastOnce()).getUpdatedVariables(eq(state.getModulePK()),any());
+        verify(state, atLeastOnce()).configurationChanged(eq(updatedConfiguration));
     }
 
     @Test
     public void testUnRegister() throws Exception {
         final Object semaphore = new Object();
-        final Answer signal = new signal(semaphore);
 
-        doAnswer(signal).when(storage).saveHeartBeat(state);
+        Map<String, ConfiguredVariableItem> updatedConfiguration = new HashMap<>();
+        updatedConfiguration.put("1.1.1.1.1.none", new LocalConfiguredVariableItem("none","Testing variable","Hello"));
 
+        when(configuration.getUpdatedVariables(eq(state.getModulePK()), any(Map.class))).then(new Answer<Map>() {
+            @Override
+            public Map answer(InvocationOnMock invocationOnMock) throws Throwable {
+                synchronized (semaphore){
+                    semaphore.notify();
+                }
+                return updatedConfiguration;
+            }
+        });
+
+        // register the mock-state
         service.register(state);
 
         synchronized (semaphore){
-            semaphore.wait(1000);
+            semaphore.wait(300);
         }
         verify(storage, atLeastOnce()).saveHeartBeat(eq(state));
-        verify(configuration, atLeastOnce()).getUpdatedVariables(any(HealthItemPK.class),any());
-        reset(storage, configuration);
+        verify(configuration, atLeastOnce()).getUpdatedVariables(eq(state.getModulePK()),any());
+        verify(state, atLeastOnce()).configurationChanged(eq(updatedConfiguration));
+        // unregister mock-state
+        service.unRegister(state);
+
+        // reset all mocks
+        reset(storage, configuration, state);
+        when(state.getModulePK()).thenReturn(module);
+        when(configuration.getUpdatedVariables(eq(state.getModulePK()), any(Map.class))).then(new Answer<Map>() {
+            @Override
+            public Map answer(InvocationOnMock invocationOnMock) throws Throwable {
+                synchronized (semaphore){
+                    semaphore.notify();
+                }
+                return updatedConfiguration;
+            }
+        });
+
         // unregister
         service.unRegister(state);
 
-        doAnswer(signal).when(storage).saveHeartBeat(state);
         synchronized (semaphore){
-            semaphore.wait(1000);
+            semaphore.wait(300);
         }
         verify(storage, never()).saveHeartBeat(eq(state));
         verify(configuration, never()).getUpdatedVariables(eq(state.getModulePK()),any());
+        verify(state, never()).configurationChanged(eq(updatedConfiguration));
     }
 
     @Test
@@ -146,7 +188,6 @@ public class ModuleStateNotificationServiceImplTest {
     @NotNull
     private MonitoredService mockState() {
         final MonitoredService state = mock(MonitoredService.class);
-        final ModuleWrapper module = new ModuleWrapper();
         module.setDescription("descr");
         module.setSystemId("sys-id");
         module.setApplicationId("app-id");

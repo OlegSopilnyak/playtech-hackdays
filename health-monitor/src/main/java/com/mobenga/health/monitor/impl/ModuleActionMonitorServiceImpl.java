@@ -1,7 +1,5 @@
 package com.mobenga.health.monitor.impl;
 
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IQueue;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.MonitoredAction;
