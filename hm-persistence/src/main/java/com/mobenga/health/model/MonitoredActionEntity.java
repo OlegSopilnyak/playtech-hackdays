@@ -124,8 +124,8 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
                 if (finish == null) {
                     throw new EntityInvalidState("finish", "The date of finish is null");
                 }
-                if (duration <= 0) {
-                    throw new EntityInvalidState("duration", "The date of finish is null");
+                if (duration < 0) {
+                    throw new EntityInvalidState("duration", "The duration is negative");
                 }
                 break;
 

@@ -1,9 +1,11 @@
 package com.mobenga.health.model;
 
+import java.io.Serializable;
+
 /**
  * Mark for persistence
  */
-public interface StringEntity {
+public interface StringEntity extends Serializable {
     /**
      * To store new value of id
      *

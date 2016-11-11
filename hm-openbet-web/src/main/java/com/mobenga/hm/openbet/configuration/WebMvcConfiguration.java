@@ -1,6 +1,7 @@
 package com.mobenga.hm.openbet.configuration;
 
 import com.mobenga.health.configuration.DistributedConfiguration;
+import com.mobenga.health.configuration.PersistenceConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -17,7 +18,7 @@ import org.springframework.web.servlet.view.JstlView;
  */
 @EnableWebMvc
 @Configuration
-@Import(DistributedConfiguration.class)
+@Import({DistributedConfiguration.class, PersistenceConfiguration.class})
 public class WebMvcConfiguration  extends WebMvcConfigurerAdapter {
 
     @Bean

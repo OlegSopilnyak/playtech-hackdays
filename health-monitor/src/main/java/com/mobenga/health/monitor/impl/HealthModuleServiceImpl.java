@@ -214,7 +214,9 @@ public class HealthModuleServiceImpl implements HealthModuleService, MonitoredSe
         try {
             while (active) {
                 final ModuleWrapper module = storeQueue.poll(100, TimeUnit.MILLISECONDS);
-                storage.save(module);
+                if (module != null) {
+                    storage.save(module);
+                }
             }
         } catch (InterruptedException e) {
             LOG.error("Poll was interrupted ", e);
