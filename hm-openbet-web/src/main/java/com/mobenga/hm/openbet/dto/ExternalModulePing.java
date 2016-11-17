@@ -20,7 +20,7 @@ public class ExternalModulePing {
     private List<ModuleConfigurationItem> configuration;
     // the output of module from last ping (without actions)
     private List<ModuleOutputMessage> output;
-    // the ouput of module from last ping (with related actions
+    // the output of module from last ping (with related actions
     private List<ModuleAction> actions;
 
     @JsonDeserialize(as = ModuleWrapper.class)
