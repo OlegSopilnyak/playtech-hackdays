@@ -65,28 +65,33 @@ function MonitoredService(module) {
  * @returns {{module: {systemId: *, applicationId: *, versionId: *, description: *}, host: string, state: string, configuration: Array, output: Array, actions: Array}}
  */
 MonitoredService.prototype.snapshot = function () {
+    var self = this;
+
+    //  prepare snapshot
     var snapshot = {
         module:{
-            systemId : this.module.systemId(),
-            applicationId: this.module.applicationId(),
-            versionId: this.module.version(),
-            description: this.module.description()
+            systemId : self.module.systemId(),
+            applicationId: self.module.applicationId(),
+            versionId: self.module.version(),
+            description: self.module.description()
         },
         host: "localhost",
-        state: this.active() ? "active" : "passive",
+        state: self.active() ? "active" : "passive",
         configuration: [],
         output: [],
         actions: []
     };
+
     // iterate the configuration
     for(var key in this.configuration){
         var configurationItem = {
             path: key,
             type: "STRING",
-            value: this.configuration[key]
+            value: self.configuration[key]
         };
         snapshot.configuration.push(configurationItem);
     }
+
     // iterate raw output
     this.rawOutput.forEach(function (item, i, arr) {
         var moduleOutputMessage = {
@@ -97,10 +102,11 @@ MonitoredService.prototype.snapshot = function () {
         snapshot.output.push(moduleOutputMessage);
     });
     // clear raw output array
-    this.rawOutput = [];
+    self.rawOutput = [];
+
+    var notDoneActions = [];
 
     // iterate actions output
-    var notDoneActionsCounter = 0;
     this.actions.forEach(function (item, i, arr) {
         if (item.isDone()){
             var action = {
@@ -125,13 +131,13 @@ MonitoredService.prototype.snapshot = function () {
             // remove item from the array
             delete arr[i];
         }else {
-            notDoneActionsCounter++;
+            notDoneActions.push(item);
         }
     });
+    // redefine ids for not finished actions
+    notDoneActions.forEach(function (action, i, arr) {action.id = i;});
     // clear actions array
-    if (notDoneActionsCounter == 0){
-        this.actions = [];
-    }
+    self.actions = notDoneActions;
     return snapshot;
 };
 /**
@@ -139,12 +145,14 @@ MonitoredService.prototype.snapshot = function () {
  * @returns {module with appropriate redefined functions}
  */
 MonitoredService.prototype.healthPK = function () {
-    return this.module;
+    var self = this;
+    return self.module;
 };
 /**
  * To restart the service
  */
 MonitoredService.prototype.restart = function () {
+
 };
 /**
  * To check is module or not
@@ -156,13 +164,14 @@ MonitoredService.prototype.active = function () {
 /**
  * Module is notified about module's configuration changes
  *
- * @param updatedConfiguration updated module's configuration received from server
+ * @param updatedConfigurationItemsArray updated module's configuration received from server
  */
-MonitoredService.prototype.configurationChanged = function(updatedConfiguration){
-    for(var path in updatedConfiguration){
-        this.configuration[path] = updatedConfiguration[path];
-    }
-    this._applyConfigurationChanges();
+MonitoredService.prototype.configurationChanged = function(updatedConfigurationItemsArray){
+    var self = this;
+    updatedConfigurationItemsArray.forEach(function (item, i, arr) {
+        self.configuration[item.path] = item.value;
+    });
+    self._applyConfigurationChanges();
 };
 /**
  * To apply module's configuration changes. should be redefined in module with configuration
@@ -182,12 +191,13 @@ MonitoredService.prototype._applyConfigurationChanges = function () {
  * @private
  */
 MonitoredService.prototype._storeRawOutput = function(messageType, whenOccurred, payload){
+    var self = this;
     var output = {
         messageType: messageType,
         whenOccurred: whenOccurred,
         payload: payload
     };
-    this.rawOutput.push( output );
+    self.rawOutput.push( output );
 };
 /**
  * To create the action and save it in module's database
@@ -199,6 +209,7 @@ MonitoredService.prototype._storeRawOutput = function(messageType, whenOccurred,
  * @private
  */
 MonitoredService.prototype._createAction = function(name, description){
+    var self = this;
     var action = {
         id: this.actions.length,
         name: name,
@@ -212,7 +223,7 @@ MonitoredService.prototype._createAction = function(name, description){
             return this.state === "SUCCESS" || this.state === "FAIL";
         }
     };
-    this.actions.push(action);
+    self.actions.push(action);
     return action;
 };
 /**
@@ -224,6 +235,7 @@ MonitoredService.prototype._createAction = function(name, description){
 MonitoredService.prototype.createOutputDevice = function (outputType) {
     var associatedAction = null;
     var outputType = outputType;
+    var self = this;
     /**
      * Associate the action with module's output device (logger)
      *
@@ -231,7 +243,7 @@ MonitoredService.prototype.createOutputDevice = function (outputType) {
      * @param description action's description
      */
     var associateAction = function (name, description) {
-        associatedAction = this._createAction(name, description);
+        associatedAction = self._createAction(name, description);
     }
 
     /**
@@ -279,7 +291,7 @@ MonitoredService.prototype.createOutputDevice = function (outputType) {
             };
             associatedAction.output.push(output);
         }else {
-            this._storeRawOutput(outputType, new Date(), payload);
+            self._storeRawOutput(outputType, new Date(), payload);
         }
     }
     return {
@@ -287,6 +299,6 @@ MonitoredService.prototype.createOutputDevice = function (outputType) {
             actionBegin: actionBegin,
             actionSuccess: actionSuccess,
             actionFail: actionFail,
-            log: out
+            print: out
     };
 };
