@@ -1,9 +1,11 @@
 package com.mobenga.hm.openbet.dto;
 
+import java.io.Serializable;
+
 /**
  * The output message from module
  */
-public class ModuleOutputMessage {
+public class ModuleOutputMessage implements Serializable{
     // the type of output message
     String messageType;
     // date-time when action related to message was occurred

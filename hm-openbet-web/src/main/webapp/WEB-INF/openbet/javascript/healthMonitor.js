@@ -28,7 +28,9 @@ ModuleNotDefined.prototype.constructor = ModuleNotDefined;
  * @constructor
  */
 function Module(){
-
+    this.moduleKey = function () {
+        return [this.systemId(), this.applicationId(), this.version()].join("|");
+    };
 };
 Module.prototype.systemId = function(){
     throw new ModuleNotDefined("Not redefined method systemId");
@@ -73,8 +75,12 @@ MonitoredService.prototype.snapshot = function () {
             systemId : self.module.systemId(),
             applicationId: self.module.applicationId(),
             versionId: self.module.version(),
-            description: self.module.description()
-        },
+            description: self.module.description(),
+            key:  function () {
+                return [this.systemId, this.applicationId, this.versionId].join("|");
+            }
+
+},
         host: "localhost",
         state: self.active() ? "active" : "passive",
         configuration: [],
@@ -87,7 +93,8 @@ MonitoredService.prototype.snapshot = function () {
         var configurationItem = {
             path: key,
             type: "STRING",
-            value: self.configuration[key]
+            value: self.configuration[key],
+            description: "Duration between modules scan."
         };
         snapshot.configuration.push(configurationItem);
     }

@@ -3,12 +3,13 @@ package com.mobenga.hm.openbet.dto;
 import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.model.OpenBetOperation;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 
 /**
  * Transport class for monitored operation
  */
-public class MonitorOperation {
+public class MonitorOperation implements Serializable{
     private final static SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     private String time;
     private String type;

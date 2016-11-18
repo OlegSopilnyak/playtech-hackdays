@@ -2,12 +2,13 @@ package com.mobenga.hm.openbet.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Transport class for search criteria
  */
-public class MonitorCriteria {
+public class MonitorCriteria implements Serializable{
     private String operationType;
     private String fromDate;
     private String toDate;

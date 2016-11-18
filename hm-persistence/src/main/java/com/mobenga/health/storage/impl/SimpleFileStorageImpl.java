@@ -325,6 +325,8 @@ public class SimpleFileStorageImpl implements
                 final ConfiguredVariableEntity entity = root.copy();
                 entity.setId(idGenerator.generate());
                 entity.setPackageKey(getPackage(mapKey));
+                // restore strategy of variable
+                e.getValue().setType(e.getValue().getType());
                 entity.apply(e.getValue());
                 try {
                     entity.validate();

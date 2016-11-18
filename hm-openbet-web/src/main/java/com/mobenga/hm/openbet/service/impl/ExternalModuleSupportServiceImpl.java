@@ -3,6 +3,7 @@ package com.mobenga.hm.openbet.service.impl;
 import com.mobenga.health.model.*;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.*;
+import com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl;
 import com.mobenga.health.storage.HeartBeatStorage;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
@@ -71,12 +72,15 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     private DistributedContainersService distributed;
 
     @Autowired
+    private ModuleMonitoringService actionService;
+
+    @Autowired
     private ModuleOutputStorage outputStorage;
     @Autowired
     private DateTimeConverter dt;
 
-    @Autowired
-    private MonitoredActionStorage actionStorage;
+//    @Autowired
+//    private MonitoredActionStorage actionStorage;
 
     @Value("${configuration.shared.external.queue.name:'external-modules-queue'}")
     private String sharedQueueName;
@@ -121,7 +125,9 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         LOG.debug("Return '{}' updated configuration's items.", updated.size());
 
         updated.entrySet().forEach(e -> {
-            response.add(new ModuleConfigurationItem(e.getKey(), e.getValue().getType().name(), e.getValue().getValue()));
+            ModuleConfigurationItem dtoItem = new ModuleConfigurationItem(e.getKey(), e.getValue().getType().name(), e.getValue().getValue());
+            dtoItem.setDescription(e.getValue().getDescription());
+            response.add(dtoItem);
         });
         return response;
     }
@@ -311,12 +317,13 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         // process output with actions
         LOG.debug("Processing '{}' actions of action log.", ping.getActions().size());
         ping.getActions().forEach(a->{
-            MonitoredAction action = actionStorage.createMonitoredAction();
+            MonitoredAction action = actionService.createMonitoredAction();
             action.setDescription(a.getDescription());
             action.setStart(dt.asDate(a.getStartTime()));
             action.setFinish(dt.asDate(a.getFinishTime()));
             action.setDuration(a.getDuration());
-            actionStorage.saveActionState(pk, action);
+            action.setState(MonitoredAction.State.valueOf(a.getState()));
+            actionService.actionMonitoring(pk, action);
             String actionId = action.getId();
             LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getName());
             a.getOutput().forEach(o->{
@@ -330,11 +337,12 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         });
     }
     private ConfiguredVariableEntity transform(ModuleConfigurationItem item, ExternalModulePing ping){
-        ConfiguredVariableEntity entity = new ConfiguredVariableEntity();
+        final ConfiguredVariableEntity entity = new ConfiguredVariableEntity();
+        final String [] path = item.getPath().split("\\.");
         entity.setValue(item.getValue());
-        entity.setName(item.getPath());
+        entity.setName(path[path.length-1]);
         entity.setType(ConfiguredVariableItem.Type.STRING);
-        entity.setDescription("external module propery");
+        entity.setDescription(item.getDescription());
         entity.setModuleKey(key(ping.getModule()));
         entity.setPackageKey(getPackage(item.getPath()));
         entity.setVersion(0);

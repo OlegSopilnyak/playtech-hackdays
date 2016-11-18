@@ -1,11 +1,12 @@
 package com.mobenga.hm.openbet.dto;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Transport object for module actions joint
  */
-public class ModuleAction {
+public class ModuleAction  implements Serializable{
     private String name;
     private String description;
     private String state;

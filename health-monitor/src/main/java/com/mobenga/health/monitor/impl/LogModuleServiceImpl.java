@@ -310,7 +310,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         protected void save(final LogModuleServiceImpl service) {
             final String moduleKey = key(module);
             if (service.moduleIsIgnored(moduleKey)){
-                LOG.warn("The module '{}' is ignored for save.", moduleKey);
+//                LOG.warn("The module '{}' is ignored for save.", moduleKey);
                 return;
             }
             final LogMessage message = (LogMessage) service.storage.createModuleOutput(module, LogMessage.OUTPUT_TYPE);
@@ -335,6 +335,11 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         }
         @Override
         protected void save(final LogModuleServiceImpl service) {
+            final String moduleKey = key(module);
+            if (service.moduleIsIgnored(moduleKey)){
+//                LOG.warn("The module '{}' is ignored for save.", moduleKey);
+                return;
+            }
             service.actionStorage.saveActionState(module, action);
         }
     }

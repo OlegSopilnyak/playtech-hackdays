@@ -4,12 +4,13 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleWrapper;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * DTO for batch configuration update
  */
-public class ConfigurationUpdate {
+public class ConfigurationUpdate implements Serializable{
     // the source of update request
     private String host;
     // module as wrapper

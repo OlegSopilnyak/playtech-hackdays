@@ -4,12 +4,13 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleWrapper;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * DTO. Ping from external module
  */
-public class ExternalModulePing {
+public class ExternalModulePing implements Serializable {
     // the wrapper of real module
     private ModuleWrapper module;
     // the host where module works

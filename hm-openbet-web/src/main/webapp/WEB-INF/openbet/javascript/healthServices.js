@@ -50,6 +50,7 @@ HealthScannerModule.prototype.description = function () {return this.descr;};
  */
 function HealthScannerService() {
     MonitoredService.call(this, new HealthScannerModule());
+    var self = this;
     var DELAY_PATH = "health.monitor.service.external.heartbeat.delay";
     var delay = 2000;
     this.configuration[DELAY_PATH] = "2000";
@@ -104,16 +105,20 @@ function HealthScannerService() {
      * @param snapshot snapshot of module state
      * @returns {Array} changed configurations
      */
-    function exchange(snapshot) {
-        var json = JSON.stringify(snapshot, null, 2);
-        json = json.replace('\\"', '"');
+    function ping(snapshot, onSuccess, onFail, logger) {
+        var json = JSON.stringify(snapshot);
+        var updatedConfiguration = [];
+        logger.associateAction("ping","Pinging remote server");
+        logger.actionBegin();
+        logger.print("Send ping request for ", snapshot.module.key());
         console.log("Sending: "+json);
-        var configurationItem = {
-            path: DELAY_PATH,
-            type: "STRING",
-            value: "1300s"
-        };
-        return [configurationItem];
+        $.ajax({
+            url: 'module/ping',
+            data: json,
+            contentType: "application/json",
+            dataType: 'json',
+            type: 'POST'
+        }).then(onSuccess, onFail);
     }
     /**
      * To start scan
@@ -140,8 +145,30 @@ function HealthScannerService() {
                     return firstTime || timerId != null;
                 })
                 .forEach(function (module, i, arr) {
-                    logger.actionBegin();
                     var moduleDescription = module.healthPK().description();
+                    var processSuccessPong = function (data) {
+                        if (data.length > 0) {
+
+                            console.log("updating module " + moduleDescription);
+                            logger.print("updating module ", moduleDescription);
+                            module.configurationChanged(data);
+                        }
+                        console.log("Check is module works well active:" + module.active());
+                        logger.print("Check is module works well active:", module.active());
+                        if (!module.active()) {
+                            console.log("Module restarting....");
+                            logger.print("Module restarting....");
+                            module.restart();
+                        }
+                        logger.print("Module ", moduleDescription, " verified well.");
+                        logger.actionSuccess();
+                    };
+                    var processFail = function (req, status, err) {
+                        console.log("For module "+moduleDescription+" Received error "+err);
+                        logger.print("For module ",moduleDescription," Received error ",err);
+                        logger.actionFail();
+                    }
+                    logger.actionBegin();
                     try {
 
                         console.log("grabbing module's snapshot... ");
@@ -152,24 +179,8 @@ function HealthScannerService() {
                         console.log("grabed module's snapshot... ");
                         logger.print("grabed module's snapshot... ");
 
-                        var updatedConfiguration = exchange(snapshot);
+                        ping(snapshot, processSuccessPong, processFail, logger);
                         snapshot = null;
-
-                        if (updatedConfiguration.length > 0) {
-
-                            console.log("updating module " + moduleDescription);
-                            logger.print("updating module ", moduleDescription);
-                            module.configurationChanged(updatedConfiguration);
-                        }
-                        console.log("Check is module works well active:" + module.active());
-                        logger.print("Check is module works well active:", module.active());
-                        if (!module.active()) {
-                            console.log("Module restarting....");
-                            logger.print("Module restarting....");
-                            module.restart();
-                        }
-                        logger.print("Module ", module.healthPK().description(), " verified well.");
-                        logger.actionSuccess();
                     }catch (err){
                         console.log("Check of ["+moduleDescription+"] interrupted", err)
                         logger.print("Check interrupted", err);
