@@ -3,7 +3,6 @@ package com.mobenga.hm.openbet.service.impl;
 import com.mobenga.health.model.*;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.*;
-import com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl;
 import com.mobenga.health.storage.HeartBeatStorage;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
@@ -72,7 +71,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     private DistributedContainersService distributed;
 
     @Autowired
-    private ModuleMonitoringService actionService;
+    private MonitoredActionStorage actionStorage;
 
     @Autowired
     private ModuleOutputStorage outputStorage;
@@ -317,14 +316,14 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         // process output with actions
         LOG.debug("Processing '{}' actions of action log.", ping.getActions().size());
         ping.getActions().forEach(a->{
-            MonitoredAction action = actionService.createMonitoredAction();
+            final MonitoredAction action = actionStorage.createMonitoredAction();
             action.setDescription(a.getDescription());
             action.setStart(dt.asDate(a.getStartTime()));
             action.setFinish(dt.asDate(a.getFinishTime()));
             action.setDuration(a.getDuration());
             action.setState(MonitoredAction.State.valueOf(a.getState()));
-            actionService.actionMonitoring(pk, action);
-            String actionId = action.getId();
+            actionStorage.saveActionState(pk, action);
+            final String actionId = action.getId();
             LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getName());
             a.getOutput().forEach(o->{
                 LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);

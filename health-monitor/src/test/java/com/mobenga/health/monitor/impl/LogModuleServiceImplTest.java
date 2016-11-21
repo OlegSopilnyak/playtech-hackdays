@@ -249,7 +249,7 @@ public class LogModuleServiceImplTest {
         verify(output, times(0)).setPayload(eq("Hello world"));
         verify(storage, times(0)).saveModuleOutput(eq(output));
 
-        verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
+        verify(actionStorage, times(0)).saveActionState(eq(pk), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.FAIL, action.getState());
         reset(storage, actionStorage);
