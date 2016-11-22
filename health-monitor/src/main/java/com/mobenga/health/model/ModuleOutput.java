@@ -47,7 +47,7 @@ public interface ModuleOutput {
     /**
      * To get the payload of message
      *
-     * @return
+     * @return payload of module's output
      */
     String getPayload();
 
@@ -74,7 +74,7 @@ public interface ModuleOutput {
         /**
          * To create the Device for module's output
          *
-         * @param module
+         * @param module module-owner of output
          * @return the instance
          */
         Device create(HealthItemPK module);
@@ -85,6 +85,14 @@ public interface ModuleOutput {
          * @return the value
          */
         String getType();
+
+        /**
+         * To check is module ignored for saving
+         *
+         * @param module module to check
+         * @return true if ignored
+         */
+        boolean isModuleIgnored(HealthItemPK module);
     }
 
     /**
@@ -98,11 +106,25 @@ public interface ModuleOutput {
         void out(Object... arguments);
 
         /**
-         * Associate monitored action with module's ouput
+         * Associate monitored action with module's output
          *
          * @param action
          */
         void associate(MonitoredAction action);
+
+        /**
+         * To create and associate action
+         *
+         * @param actionDescription description of action
+         */
+        void associate(String actionDescription);
+
+        /**
+         * To get associated action
+         *
+         * @return instance or null if no association
+         */
+        MonitoredAction getAssociated();
 
         /**
          * To start progress stage of associated action

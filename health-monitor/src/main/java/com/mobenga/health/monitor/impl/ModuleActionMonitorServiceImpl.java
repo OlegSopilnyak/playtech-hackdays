@@ -121,23 +121,6 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
         }
     }
 
-    private void serveDistributedQueue(){
-        serviceRuns.getAndSet(active = true);
-        try {
-            while (active) {
-                final StoreActionWrapper wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
-                if (wrappedAction != null){
-                    LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
-                    storage.saveActionState(wrappedAction.module, wrappedAction.action);
-                }
-            }
-        }catch (Exception e){
-            LOG.error("Error detected during serve distributed queue", e);
-        }finally {
-            serviceRuns.getAndSet(active = false);
-        }
-    }
-
     /**
      * The handle to restart monitored service
      */
@@ -263,6 +246,23 @@ public class ModuleActionMonitorServiceImpl implements ModuleMonitoringService, 
         }
         return false;
     }
+    private void serveDistributedQueue(){
+        serviceRuns.getAndSet(active = true);
+        try {
+            while (active) {
+                final StoreActionWrapper wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
+                if (wrappedAction != null){
+                    LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
+                    storage.saveActionState(wrappedAction.module, wrappedAction.action);
+                }
+            }
+        }catch (Exception e){
+            LOG.error("Error detected during serve distributed queue", e);
+        }finally {
+            serviceRuns.getAndSet(active = false);
+        }
+    }
+
     // private classes
     private static class StoreActionWrapper implements Serializable {
         final ModuleWrapper module;

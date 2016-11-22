@@ -205,7 +205,9 @@ public class SimpleFileStorageImpl implements
         if (StringUtils.isEmpty(actionEntity.getId())) {
             actionEntity.setId(idGenerator.generate());
             actionEntity.setHealthPK(getOrCreateModuleEntity(pk).getId());
-            actionEntity.setHost(hostName);
+            if (StringUtils.isEmpty(actionEntity.getHost())) {
+                actionEntity.setHost(hostName);
+            }
         }
         actionEntity.validate();
         LOG.debug("Saving '{}'", actionEntity);

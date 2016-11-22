@@ -95,9 +95,9 @@ public class ExternalModuleSupportServiceImplTest {
         update.setModule(pk);
         final List<ModuleConfigurationItem> updatedConfig = new ArrayList<>();
         update.setUpdated(updatedConfig);
-        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.a", "INTEGER", "100"));
-        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.b", "STRING", "100a"));
-        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.c", "INTEGER", "300"));
+        updatedConfig.add(configurationItem("1.2.3.4.5.a", "INTEGER", "100"));
+        updatedConfig.add(configurationItem("1.2.3.4.5.b", "STRING", "100a"));
+        updatedConfig.add(configurationItem("1.2.3.4.5.c", "INTEGER", "300"));
         service.changeConfiguration(update);
         Thread.sleep(300);
         assertEquals(3, configService.getConfigurationGroup(pk,"1.2.3.4").size());
@@ -130,7 +130,6 @@ public class ExternalModuleSupportServiceImplTest {
             action.setState("SUCCESS");
             action.setDescription("Some activity in external module.");
             action.setDuration(10);
-            action.setName("ImportantAction");
             action.setStartTime(nowTime());
             action.setFinishTime(nowTime());
             List<ModuleOutputMessage> aOutput = new ArrayList<>();
@@ -150,6 +149,7 @@ public class ExternalModuleSupportServiceImplTest {
             item.setPath("1.2.3.4.5.b");
             item.setType("STRING");
             item.setValue("abcd");
+            item.setDescription("For tests only.");
             configuration.add(item);
         }
         {
@@ -157,6 +157,7 @@ public class ExternalModuleSupportServiceImplTest {
             item.setPath("1.2.3.4.5.d");
             item.setType("STRING");
             item.setValue("bcde");
+            item.setDescription("For tests only.");
             configuration.add(item);
         }
 
@@ -238,9 +239,9 @@ public class ExternalModuleSupportServiceImplTest {
         update.setModule(pk);
         List<ModuleConfigurationItem> updatedConfig = new ArrayList<>();
         update.setUpdated(updatedConfig);
-        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.a", "INTEGER", "100"));
-        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.b", "STRING", "100a"));
-        updatedConfig.add(new ModuleConfigurationItem("1.2.3.4.5.c", "INTEGER", "300"));
+        updatedConfig.add(configurationItem("1.2.3.4.5.a", "INTEGER", "100"));
+        updatedConfig.add(configurationItem("1.2.3.4.5.b", "STRING", "100a"));
+        updatedConfig.add(configurationItem("1.2.3.4.5.c", "INTEGER", "300"));
 
         List<ModuleConfigurationItem> config = service.changeConfiguration(update);
         assertEquals(3, config.size());
@@ -253,6 +254,11 @@ public class ExternalModuleSupportServiceImplTest {
     //    private methods
     private String nowTime(){
         return dtConverter.asString(timer.correctTime());
+    }
+    private ModuleConfigurationItem configurationItem(String path, String type, String value){
+        ModuleConfigurationItem item  = new ModuleConfigurationItem(path, type, value);
+        item.setDescription("For tests puposes only.");
+        return item;
     }
 
 }

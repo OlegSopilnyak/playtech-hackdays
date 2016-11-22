@@ -209,17 +209,15 @@ MonitoredService.prototype._storeRawOutput = function(messageType, whenOccurred,
 /**
  * To create the action and save it in module's database
  *
- * @param name the name of action
  * @param description the description of action
  * @returns {{id: Number, name: *, description: *, state: string, duration: number, startTime: null, finishTime: null, output: Array}}
  *
  * @private
  */
-MonitoredService.prototype._createAction = function(name, description){
+MonitoredService.prototype._createAction = function(description){
     var self = this;
     var action = {
         id: this.actions.length,
-        name: name,
         description: description,
         state: "INIT",
         duration: 0,
@@ -249,8 +247,8 @@ MonitoredService.prototype.createOutputDevice = function (outputType) {
      * @param name the name of action to associate
      * @param description action's description
      */
-    var associateAction = function (name, description) {
-        associatedAction = self._createAction(name, description);
+    var associateAction = function (description) {
+        associatedAction = self._createAction(description);
     }
 
     /**

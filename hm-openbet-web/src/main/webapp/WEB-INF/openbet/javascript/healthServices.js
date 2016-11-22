@@ -109,7 +109,7 @@ console.log("Starting modules scanner...");
 
                     // logging begin
                     var moduleDescription = module.healthPK().description();
-                    logger.associateAction("checkModule", "Checking the module "+ moduleDescription);
+                    logger.associateAction("Checking the module "+ moduleDescription);
 console.log("Processing module : "+ moduleDescription);
                     logger.print("Processing module : ",moduleDescription);
                     // logging end
@@ -233,7 +233,7 @@ console.log("Service-scanner stopped.");
      */
     this._configurationChanged = function(){
         var logger = this.createOutputDevice("log");
-        logger.associateAction("configurationChanged", "Received notification about module's configuration changes.");
+        logger.associateAction("Received notification about module's configuration changes.");
         logger.actionBegin();
         // processing the "delay" attribute
         checkDelayChangeConfiguration(logger);

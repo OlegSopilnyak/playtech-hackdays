@@ -247,11 +247,8 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      */
     protected void checkHealth(ModuleHealth module) {
         if (!isActive()) return;
-        final MonitoredAction moduleAction = actionsService.createMonitoredAction();
-        moduleAction.setStart(timer.now());
-        moduleAction.setDescription("Processing heart-beat for '" + module + "' module");
         final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
-        moduleLog.associate(moduleAction);
+        moduleLog.associate("Processing heart-beat for '" + module + "' module");
         moduleLog.actionBegin();
         // service is active for the moment, process module's heart-beat
         try {
@@ -280,11 +277,8 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
 
     // private methods
     private void processingHeartBeats() {
-        final MonitoredAction mainAction = actionsService.createMonitoredAction();
-        mainAction.setStart(timer.now());
-        mainAction.setDescription("Processing heart-beats of all registered modules");
         final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
-        moduleLog.associate(mainAction);
+        moduleLog.associate("Processing heart-beats of all registered modules");
         LOG.debug("Service starts.");
         moduleLog.out("Service starts.");
         moduleLog.actionBegin();

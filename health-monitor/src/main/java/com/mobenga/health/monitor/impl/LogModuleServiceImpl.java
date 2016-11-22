@@ -124,6 +124,17 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         return LogMessage.OUTPUT_TYPE;
     }
 
+    /**
+     * To check is module ignored for saving
+     *
+     * @param module module to check
+     * @return true if ignored
+     */
+    @Override
+    public boolean isModuleIgnored(HealthItemPK module) {
+        return moduleIsIgnored(key(module));
+    }
+
     public String getIgnoreModules() {
         return ignoreModules;
     }
@@ -370,10 +381,36 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
          */
         @Override
         public void associate(MonitoredAction action) {
-            this.action = action;
+            if ((this.action = action) != null) {
+                action.setState(MonitoredAction.State.INIT);
+                action.setStart(timeService.now());
+                distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
+            }
+        }
+
+        /**
+         * To create and associate action
+         *
+         * @param actionDescription description of action
+         */
+        @Override
+        public void associate(String actionDescription) {
+            final MonitoredAction action = actionStorage.createMonitoredAction();
+            action.setDescription(actionDescription);
             action.setState(MonitoredAction.State.INIT);
             action.setStart(timeService.now());
-            distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
+            actionStorage.saveActionState(module, action);
+            this.action = action;
+        }
+
+        /**
+         * To get associated action
+         *
+         * @return instance or null if no association
+         */
+        @Override
+        public MonitoredAction getAssociated() {
+            return action;
         }
 
         /**
@@ -382,6 +419,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         @Override
         public void actionBegin() {
             if (action != null){
+                action.setStart(timeService.now());
                 action.setState(MonitoredAction.State.PROGRESS);
                 distributedQueue().offer(new ActionEvent(module, action.copy()));
             }

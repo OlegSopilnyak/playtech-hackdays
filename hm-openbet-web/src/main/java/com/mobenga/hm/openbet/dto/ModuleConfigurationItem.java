@@ -3,9 +3,11 @@ package com.mobenga.hm.openbet.dto;
 import java.io.Serializable;
 
 /**
- * Module configuration item
+ * Module configuration item DTO
  */
 public class ModuleConfigurationItem implements Serializable{
+    // null-item to send back
+    public static final ModuleConfigurationItem NULL = new ModuleConfigurationItem("NONE","NONE","NONE", "NULL Item");
     // dot separated name of configuration parameter
     private String path;
     // the type of parameter
@@ -22,6 +24,11 @@ public class ModuleConfigurationItem implements Serializable{
         this.path = path;
         this.type = type;
         this.value = value;
+    }
+
+    private ModuleConfigurationItem(String path, String type, String value, String description) {
+        this(path, type, value);
+        this.description = description;
     }
 
     public String getPath() {

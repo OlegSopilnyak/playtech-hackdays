@@ -7,21 +7,12 @@ import java.util.List;
  * Transport object for module actions joint
  */
 public class ModuleAction  implements Serializable{
-    private String name;
     private String description;
     private String state;
     private long duration;
     private String startTime;
     private String finishTime;
     private List<ModuleOutputMessage> output;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 
     public String getDescription() {
         return description;

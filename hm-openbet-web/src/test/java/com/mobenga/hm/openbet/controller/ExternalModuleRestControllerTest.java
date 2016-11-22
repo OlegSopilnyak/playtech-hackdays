@@ -118,7 +118,6 @@ public class ExternalModuleRestControllerTest {
             action.setState("SUCCESS");
             action.setDescription("Some activity in external module.");
             action.setDuration(10);
-            action.setName("ImportantAction");
             action.setStartTime(nowTime());
             action.setFinishTime(nowTime());
             List<ModuleOutputMessage> aOutput = new ArrayList<>();

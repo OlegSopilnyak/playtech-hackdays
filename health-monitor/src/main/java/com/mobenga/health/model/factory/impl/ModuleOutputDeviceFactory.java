@@ -38,4 +38,16 @@ public class ModuleOutputDeviceFactory {
         LOG.debug("Registering devices factory '{}'", factory);
         farm.put(factory.getType(), factory);
     }
+
+    /**
+     * To test is ignored type of module's output for saving
+     *
+     * @param module module to check
+     * @param type type of output
+     * @return true if ignored
+     */
+    public static boolean isModuleIgnored(HealthItemPK module, String type){
+        final ModuleOutput.DeviceFactory factory = farm.get(type);
+        return factory == null ? true : factory.isModuleIgnored(module);
+    }
 }

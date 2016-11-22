@@ -225,7 +225,7 @@ public class ModuleConfigurationServiceImpl implements ModuleConfigurationServic
         ConfiguredVariableItem item;
         if ((item = configuration.get(path)) == null){
             String parts[] = path.split("\\.");
-            item = new LocalConfiguredVariableItem(parts[parts.length-1], "Updated by operator", value );
+            item = new LocalConfiguredVariableItem(parts[parts.length-1], "Ad hoc updated by operator", value );
         }else {
             item.set(value);
         }

@@ -9,10 +9,10 @@ import java.util.Date;
 import java.util.StringTokenizer;
 
 /**
- * Entity-bean to store in Elasticsearch index
+ * Entity-bean to store in storage
  */
 public final class MonitoredActionEntity extends MonitoredAction implements ValidatingEntity, Cloneable, StringEntity {
-    private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     // the PK of entity
     private String id;
 

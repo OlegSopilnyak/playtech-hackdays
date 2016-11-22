@@ -1,6 +1,7 @@
 package com.mobenga.hm.openbet.service.impl;
 
 import com.mobenga.health.model.*;
+import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
 import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.monitor.*;
 import com.mobenga.health.storage.HeartBeatStorage;
@@ -11,6 +12,7 @@ import com.mobenga.hm.openbet.dto.ExternalModulePing;
 import com.mobenga.hm.openbet.dto.ModuleConfigurationItem;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,7 +126,8 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         LOG.debug("Return '{}' updated configuration's items.", updated.size());
 
         updated.entrySet().forEach(e -> {
-            ModuleConfigurationItem dtoItem = new ModuleConfigurationItem(e.getKey(), e.getValue().getType().name(), e.getValue().getValue());
+            final ModuleConfigurationItem dtoItem =
+                    transform(e.getKey(), e.getValue().getType().name(), e.getValue().getValue());
             dtoItem.setDescription(e.getValue().getDescription());
             response.add(dtoItem);
         });
@@ -139,18 +142,12 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      * @param value item's new value
      * @return changed item
      */
+    @NotNull
     @Override
     public ModuleConfigurationItem changeConfigurationItem(String module, String path, String value) {
         LOG.debug("Request to change for '{}' path '{}' to value :'{}'", module, path, value);
         final ConfiguredVariableItem item = configurationService.updateConfigurationItemByModule(module, path, value);
-        if (item == null) {
-            return null;
-        }
-        final ModuleConfigurationItem dtoItem = new ModuleConfigurationItem();
-        dtoItem.setPath(path);
-        dtoItem.setType(item.getType().name());
-        dtoItem.setValue(item.getValue());
-        return dtoItem;
+        return item == null ? ModuleConfigurationItem.NULL : transform(path, item.getType().name(), item.getValue());
     }
 
     /**
@@ -162,11 +159,12 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Override
     public List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update) {
         LOG.debug("Request batch change configuration from '{}' for '{}'", update.getHost(), update.getModule());
-        HealthItemPK module = update.getModule();
-        Map<String, ConfiguredVariableItem> updated, updating = new HashMap<>();
+        final HealthItemPK module = update.getModule();
+        final Map<String, ConfiguredVariableItem> updated, updating = new HashMap<>();
         update.getUpdated().forEach(item -> {
-            String pack[] = item.getPath().split("\\.");
-            LocalConfiguredVariableItem i = new LocalConfiguredVariableItem(pack[pack.length-1], "Updated item", item.getValue());
+            final String pack[] = item.getPath().split("\\.");
+            final LocalConfiguredVariableItem i =
+                    new LocalConfiguredVariableItem(pack[pack.length-1], item.getDescription(), item.getValue());
             i.setType(ConfiguredVariableItem.Type.valueOf(item.getType()));
             if (i.isValid()) {
                 updating.put(item.getPath(), i);
@@ -174,16 +172,14 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
                 LOG.error("Invalid item '{}' received.", item);
             }
         });
+
         updated = configurationService.changeConfiguration(module, updating);
         LOG.debug("New configuration size is '{}'", updated.size());
-        return
-                updated.entrySet().stream().map(e -> {
-                    final ModuleConfigurationItem item = new ModuleConfigurationItem();
-                    item.setPath(e.getKey());
-                    item.setType(e.getValue().getType().name());
-                    item.setValue(e.getValue().getValue());
-                    return item;
-                }).collect(Collectors.toList());
+        // making result
+        return updated.entrySet()
+                .stream()
+                .map((e) -> transform(e.getKey(), e.getValue().getType().name(), e.getValue().getValue()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -242,7 +238,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      */
     @Override
     public String getVersionId() {
-        return "0.2";
+        return "0.3";
     }
 
     /**
@@ -279,7 +275,9 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     public String toString() {
         return "-ExternalModuleSupportService-";
     }
+
     // private methods
+    // other side of ping's store queue
     private void postponedStorePing(){
         serviceRuns.getAndSet(active = true);
         try {
@@ -297,17 +295,28 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
             serviceRuns.getAndSet(active = false);
         }
     }
+    // store output from ping
     private void storePing(ExternalModulePing ping){
         LOG.debug("Processing ping from '{}'", ping.getHost());
         final HealthItemPK pk = modules.getModule(ping.getModule());
-        final String moduleKey = key(pk);
+
         // process heart-beat
         LOG.debug("Processing state of module '{}'", ping.getState());
         hbStorage.saveModuleState(pk, "Active".equalsIgnoreCase(ping.getState()));
+
+        // check prohibition of output storage
+        if (ModuleOutputDeviceFactory.isModuleIgnored(pk, LogMessage.OUTPUT_TYPE)) {
+            LOG.debug("Module '{}' is ignored to save for module-output-factory '{}'", pk, LogMessage.OUTPUT_TYPE);
+            // module ignored by logger
+            return;
+        }
+
         // process output
+        final String moduleKey = key(pk);
         LOG.debug("Processing '{}' messages of raw log.", ping.getOutput().size());
         ping.getOutput().forEach(o->{
-            LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+            // output for module is not is not ignored
+            final LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
             msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
             msg.setModulePK(moduleKey);
             msg.setPayload(o.getPayload());
@@ -316,7 +325,9 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         // process output with actions
         LOG.debug("Processing '{}' actions of action log.", ping.getActions().size());
         ping.getActions().forEach(a->{
+            // output for module is not is not ignored
             final MonitoredAction action = actionStorage.createMonitoredAction();
+            action.setHost(ping.getHost());
             action.setDescription(a.getDescription());
             action.setStart(dt.asDate(a.getStartTime()));
             action.setFinish(dt.asDate(a.getFinishTime()));
@@ -324,7 +335,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
             action.setState(MonitoredAction.State.valueOf(a.getState()));
             actionStorage.saveActionState(pk, action);
             final String actionId = action.getId();
-            LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getName());
+            LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getDescription());
             a.getOutput().forEach(o->{
                 LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
                 msg.setActionId(actionId);
@@ -335,7 +346,9 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
             });
         });
     }
-    private ConfiguredVariableEntity transform(ModuleConfigurationItem item, ExternalModulePing ping){
+    // transform configuration item from DTO to Entity
+    @NotNull
+    private static ConfiguredVariableEntity transform(ModuleConfigurationItem item, ExternalModulePing ping){
         final ConfiguredVariableEntity entity = new ConfiguredVariableEntity();
         final String [] path = item.getPath().split("\\.");
         entity.setValue(item.getValue());
@@ -347,6 +360,13 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         entity.setVersion(0);
         return entity;
     }
+    // transform to DTO
+    @NotNull
+    private static ModuleConfigurationItem transform(final String key, final String type, final String value) {
+        return new ModuleConfigurationItem(key, type, value);
+    }
+
+    // get package from canonical configuration variable's path
     private static String getPackage(String mapKey) {
         final String[] pack = mapKey.split("\\.");
         final StringBuilder builder = new StringBuilder(pack[0]);

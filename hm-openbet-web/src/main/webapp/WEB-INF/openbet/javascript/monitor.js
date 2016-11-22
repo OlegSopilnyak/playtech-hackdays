@@ -71,7 +71,7 @@ function OperationsCounterService(){
 console.log("Starting the service-counter");
         function processOperationsCounting(){
             var logger = self.createOutputDevice("log");
-            logger.associateAction("getOperationsCount", "Count operations suitable for criteria.");
+            logger.associateAction("Count operations suitable by criteria.");
             logger.actionBegin();
             self.exchange(logger);
             if (firstTime || timerId != null) {
@@ -238,7 +238,7 @@ OperationsCounterService.prototype._applyConfigurationChanges = function () {thi
 
     function retrieveCount(){
         var logger = counterService.createOutputDevice("log");
-        logger.associateAction("getOperationsCount", "Count operations suitable for criteria.");
+        logger.associateAction("Count operations suitable by criteria.");
         logger.actionBegin();
         counterService.exchange(logger);
     }
