@@ -1,6 +1,5 @@
 package com.mobenga.health.storage.stub;
 
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.LogMessage;
 import com.mobenga.health.model.ModuleOutput;
 import com.mobenga.health.storage.ModuleOutputStorage;
@@ -11,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Collections;
 
 import static org.mockito.Mockito.mock;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * The stub for ModuleOutputStorage
@@ -24,13 +24,13 @@ public class ModuleOutputStorageStub implements ModuleOutputStorage {
      * @return a new instance of output
      */
     @Override
-    public ModuleOutput createModuleOutput(HealthItemPK module, String type) {
+    public ModuleOutput createModuleOutput(ModulePK module, String type) {
         if (LogMessage.OUTPUT_TYPE.equals(type))  return mock(LogMessage.class);
         return null;
     }
 
     /**
-     * To save chaged module's output
+     * To save changed module's output
      *
      * @param message output to save
      */

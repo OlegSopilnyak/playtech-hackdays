@@ -3,7 +3,6 @@ package com.mobenga.health.monitor.impl;
 import com.mobenga.health.model.*;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.model.transport.ModuleHealthItem;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleMonitoringService;
@@ -16,10 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -28,20 +25,17 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @see ModuleStateNotificationService
  */
-public class ModuleStateNotificationServiceImpl implements ModuleStateNotificationService, MonitoredService {
-    public static final String PARAMS_PACKAGE = "health.monitor.service.heartbeat";
-    private static final ConfiguredVariableItem HB_DELAY =
-            new LocalConfiguredVariableItem("delay", "The delay between heart beats", HeartBeat.DELAY);
-    public static final String HB_DELAY_PARAM_KEY = PARAMS_PACKAGE + "." + HB_DELAY.getName();
+public class ModuleStateNotificationServiceImpl extends AbstractRunningService implements ModuleStateNotificationService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ModuleStateNotificationServiceImpl.class);
 
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
-    private Set<MonitoredService> monitored = Collections.synchronizedSet(new LinkedHashSet());
-    private Lock monitoredLock = new ReentrantLock();
 
-    private final AtomicBoolean healthMonitorRun = new AtomicBoolean(false);
-    private volatile boolean active = false;
+    private final Set<MonitoredService> monitored = new LinkedHashSet();
+
+    private final Lock monitoredLock = new ReentrantLock();
+
+    private final Object healthMonitor = new Object();
 
     private int heartbeatDelay = HB_DELAY.get(Integer.class);
 
@@ -62,9 +56,16 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     @Qualifier("serviceRunner")
     private ExecutorService executor;
 
+    private ModuleOutput.Device mainLoopLog;
+
     public ModuleStateNotificationServiceImpl() {
         // prepare the configuration
-        config.put(HB_DELAY_PARAM_KEY, HB_DELAY);
+        config.put(HB_DELAY_FULL_NAME, HB_DELAY);
+    }
+
+    @Override
+    protected Logger getLogger() {
+        return LOG;
     }
 
     /**
@@ -74,6 +75,7 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      */
     @Override
     public void register(MonitoredService module) {
+        Objects.requireNonNull(module, "Module for register is null");
         monitoredLock.lock();
         try {
             monitored.add(module);
@@ -87,15 +89,18 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     /**
      * To un-register module
      *
-     * @param module module to watch
+     * @param module module to stop watching
      */
     @Override
     public void unRegister(MonitoredService module) {
+        Objects.requireNonNull(module, "Module to un-register is null");
         monitoredLock.lock();
         try {
-            final Set<MonitoredService> changed = Collections.synchronizedSet(new LinkedHashSet(monitored));
-            changed.remove(module);
-            monitored = changed;
+            for (Iterator<MonitoredService> i = monitored.iterator(); i.hasNext();) {
+                if (module.equals(i.next())) {
+                    i.remove();
+                }
+            }
             LOG.debug("Removing module {} for watching", module);
         } finally {
             monitoredLock.unlock();
@@ -118,13 +123,8 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      * @return value of PK (not null)
      */
     @Override
-    public HealthItemPK getModulePK() {
+    public ModulePK getModulePK() {
         return this;
-    }
-
-    @Override
-    public boolean isActive() {
-        return active && healthMonitorRun.get();
     }
 
     public long getHeartbeatDelay() {
@@ -132,29 +132,37 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     }
 
     public void setHeartbeatDelay(int heartbeatDelay) {
-        final ConfiguredVariableItem delay = config.get(HB_DELAY_PARAM_KEY);
-        delay.set(Integer.valueOf(this.heartbeatDelay = heartbeatDelay));
-        config.put(HB_DELAY_PARAM_KEY, delay);
+        config.get(HB_DELAY_FULL_NAME).set(this.heartbeatDelay = heartbeatDelay);
     }
 
-    public void startService() throws UnknownHostException {
-        if (isActive()) return;
-        LOG.info("Starting service.");
+    public void startService() {
+        super.start();
+    }
 
-        healthMonitorRun.getAndSet(false);
-        executor.submit(() -> processingHeartBeats());
-        while (!healthMonitorRun.get()) ;
+    @Override
+    protected void beforeStart() {
+        mainLoopLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
+        mainLoopLog.associate("Processing heart-beats of all registered modules");
+        mainLoopLog.out("Service starts.");
+        mainLoopLog.actionBegin();
+    }
+
+    @Override
+    protected void afterStart() {
         register(this);
+        mainLoopLog.actionEnd();
     }
 
     public void stopService() {
+        super.shutdown();
+    }
 
-        LOG.info("Shutting down service.");
-        active = false;
-        synchronized (healthMonitorRun) {
-            healthMonitorRun.notify();
-        }
-        while (healthMonitorRun.get()) ;
+    @Override
+    protected void beforeStop() {
+    }
+
+    @Override
+    protected void afterStop() {
         unRegister(this);
     }
 
@@ -175,51 +183,10 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      */
     @Override
     public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
-        try {
-            setHeartbeatDelay(changed.get(HB_DELAY_PARAM_KEY).get(Integer.class));
-        } catch (NullPointerException e) {
-        }
+        LOG.debug("External configuration changes are received '{}'", changed);
+        // updating heart-beat-delay parameter
+        updateParameter(changed, HB_DELAY_FULL_NAME, i -> setHeartbeatDelay(i.get(Integer.class)));
         config.putAll(changed);
-    }
-
-    /**
-     * to get the value of item's system
-     *
-     * @return the value
-     */
-    @Override
-    public String getSystemId() {
-        return "healthMonitor";
-    }
-
-    /**
-     * to get the value of item's application
-     *
-     * @return the value
-     */
-    @Override
-    public String getApplicationId() {
-        return "serviceStateScanner";
-    }
-
-    /**
-     * to get the value of item's application version
-     *
-     * @return the value
-     */
-    @Override
-    public String getVersionId() {
-        return "0.1";
-    }
-
-    /**
-     * to get description of module
-     *
-     * @return the value
-     */
-    @Override
-    public String getDescription() {
-        return "The service to notify about changes state of registered modules";
     }
 
     /**
@@ -227,12 +194,9 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
      */
     @Override
     public void restart() {
+        LOG.info("Restarting...");
         stopService();
-        try {
-            startService();
-        } catch (UnknownHostException e) {
-
-        }
+        startService();
     }
 
     @Override
@@ -243,10 +207,12 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
     /**
      * To check the state of the module
      *
-     * @param module
+     * @param module the module to check health and configuration changes
      */
     protected void checkHealth(ModuleHealth module) {
-        if (!isActive()) return;
+        if (!isActive()) {
+            return;
+        }
         final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
         moduleLog.associate("Processing heart-beat for '" + module + "' module");
         moduleLog.actionBegin();
@@ -255,8 +221,8 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
             moduleLog.out("Saving heart-beat of module ", module.toString());
             storage.saveHeartBeat(module);
             moduleLog.out("Getting config updates for module ", module.toString());
-            final Map<String, ConfiguredVariableItem> updated =
-                    configurationService.getUpdatedVariables(module.getModulePK(), module.getConfiguration());
+            final Map<String, ConfiguredVariableItem> updated
+                    = configurationService.getUpdatedVariables(module.getModulePK(), module.getConfiguration());
             if (!updated.isEmpty()) {
                 moduleLog.out("Updating module configuration.");
                 module.configurationChanged(updated);
@@ -268,6 +234,27 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
         }
     }
 
+    @Override
+    protected void serviceLoopIteration() {
+        if (isActive()) {
+            heartBeat(mainLoopLog);
+        }
+        synchronized (healthMonitor) {
+            if (isActive()) {
+                try {
+                    healthMonitor.wait(heartbeatDelay);
+                } catch (InterruptedException ex) {
+                    LOG.warn("Delay between modules scan was interrupted", ex);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void serviceLoopException(Throwable t) {
+        mainLoopLog.actionFail();
+    }
+
     /**
      * For tests purposes
      */
@@ -277,40 +264,44 @@ public class ModuleStateNotificationServiceImpl implements ModuleStateNotificati
 
     // private methods
     private void processingHeartBeats() {
-        final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
-        moduleLog.associate("Processing heart-beats of all registered modules");
-        LOG.debug("Service starts.");
-        moduleLog.out("Service starts.");
-        moduleLog.actionBegin();
-        healthMonitorRun.getAndSet(active = true);
-        try {
-            while (healthMonitorRun.get() && isActive()) {
-                if (isActive()) {
-                    heartBeat(moduleLog);
-                }
-                synchronized (healthMonitorRun) {
-                    if (isActive()) healthMonitorRun.wait(heartbeatDelay);
-                }
-            }
-            moduleLog.actionEnd();
-        } catch (InterruptedException e) {
-            moduleLog.actionFail();
-            LOG.warn("Loop interrupted.", e);
-            e.printStackTrace();
-        } catch (Throwable t) {
-            LOG.error("Unhandled error.", t);
-            moduleLog.actionFail();
-        } finally {
-            healthMonitorRun.getAndSet(active = false);
-            LOG.debug("Service shutdown.");
-        }
+//        final ModuleOutput.Device moduleLog = ModuleOutputDeviceFactory.getDevice(this, LogMessage.OUTPUT_TYPE);
+//        moduleLog.associate("Processing heart-beats of all registered modules");
+//        LOG.debug("Service starts.");
+//        moduleLog.out("Service starts.");
+//        moduleLog.actionBegin();
+//        healthMonitor.getAndSet(active = true);
+//        try {
+//            while (healthMonitor.get() && isActive()) {
+//                if (isActive()) {
+//                    heartBeat(moduleLog);
+//                }
+//                synchronized (healthMonitor) {
+//                    if (isActive()) {
+//                        healthMonitor.wait(heartbeatDelay);
+//                    }
+//                }
+//            }
+//            moduleLog.actionEnd();
+//        } catch (InterruptedException e) {
+//            moduleLog.actionFail();
+//            LOG.warn("Loop interrupted.", e);
+//        } catch (Throwable t) {
+//            LOG.error("Unhandled error.", t);
+//            moduleLog.actionFail();
+//        } finally {
+//            healthMonitor.getAndSet(active = false);
+//            LOG.debug("Service shutdown.");
+//        }
     }
 
     private void heartBeat(final ModuleOutput.Device moduleLog) {
         monitoredLock.lock();
-        try{
-        monitored.forEach(module -> {moduleLog.out("Processing ", module.toString()); checkHealth(module);});
-        }finally {
+        try {
+            monitored.forEach(module -> {
+                moduleLog.out("Processing ", module.toString());
+                checkHealth(module);
+            });
+        } finally {
             monitoredLock.unlock();
         }
     }

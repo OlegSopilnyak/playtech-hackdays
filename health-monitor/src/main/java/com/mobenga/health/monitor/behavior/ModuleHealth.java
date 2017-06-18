@@ -1,6 +1,6 @@
 package com.mobenga.health.monitor.behavior;
 
-import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * Behavior interface
@@ -11,7 +11,7 @@ public interface ModuleHealth extends Configurable {
      *
      * @return value of PK (not null)
      */
-    HealthItemPK getModulePK();
+    ModulePK getModulePK();
     /**
      * Describe the state of module
      *

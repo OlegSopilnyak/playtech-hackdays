@@ -1,9 +1,9 @@
 package com.mobenga.health.storage;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
 
 import java.util.Map;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * The storage to work with configuration stuff
@@ -15,7 +15,7 @@ public interface ConfigurationStorage {
      * @param configuration new configuration
      * @return lastVersion of configuration
      */
-    Map<String, ConfiguredVariableItem> replaceConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration);
+    Map<String, ConfiguredVariableItem> replaceConfiguration(ModulePK module, Map<String, ConfiguredVariableItem> configuration);
     
     /**
      * To store the changed configuration to database
@@ -23,7 +23,7 @@ public interface ConfigurationStorage {
      * @param application the consumer of configuration
      * @param configuration configured variables
      */
-    void storeChangedConfiguration(HealthItemPK application, Map<String, ConfiguredVariableItem> configuration);
+    void storeChangedConfiguration(ModulePK application, Map<String, ConfiguredVariableItem> configuration);
 
     /**
      * To get configuration for particular application
@@ -62,5 +62,5 @@ public interface ConfigurationStorage {
      * @param module module instance
      * @return actual version of configuration
      */
-    int getConfigurationVersion(HealthItemPK module);
+    int getConfigurationVersion(ModulePK module);
 }

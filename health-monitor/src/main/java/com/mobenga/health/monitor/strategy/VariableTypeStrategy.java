@@ -15,7 +15,8 @@ public interface VariableTypeStrategy {
     /**
      * Properly convert string value to required
      *
-     * @param type reqired type
+     * @param <T> type of result convert variable to
+     * @param type required type
      * @param stringValue the value as string
      * @return the value casted to required type
      */
@@ -24,7 +25,7 @@ public interface VariableTypeStrategy {
     /**
      * Convert string value to appropriate type
      *
-     * @param stringValue
+     * @param stringValue the value of item as string
      * @return the value in appropriate type
      */
     Object toValue(String stringValue);

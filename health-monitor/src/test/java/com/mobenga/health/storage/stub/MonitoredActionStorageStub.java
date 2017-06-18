@@ -1,9 +1,9 @@
 package com.mobenga.health.storage.stub;
 
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.monitor.impl.MonitoredActionStub;
 import com.mobenga.health.storage.MonitoredActionStorage;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * The stub for MonitoredActionStorage
@@ -16,7 +16,7 @@ public class MonitoredActionStorageStub implements MonitoredActionStorage {
      * @param action action to save
      */
     @Override
-    public void saveActionState(HealthItemPK pk, MonitoredAction action) {
+    public void saveActionState(ModulePK pk, MonitoredAction action) {
 
     }
 

@@ -15,18 +15,18 @@
             >
         <property name="ignoreModules" value="healthMonitor|serviceStateScanner|0.1"/>
     </bean>
-    <bean id="healthModuleService" depends-on="moduleStateNotifier"
+<!--    <bean id="healthModuleService" depends-on="moduleStateNotifier"
           class="com.mobenga.health.monitor.impl.HealthModuleServiceImpl"
           init-method="initialize" destroy-method="shutdown"
             >
-    </bean>
+    </bean>-->
 
-    <bean id="moduleConfigurationService" depends-on="moduleStateNotifier"
+<!--    <bean id="moduleConfigurationService" depends-on="moduleStateNotifier"
           class="com.mobenga.health.monitor.impl.ModuleConfigurationServiceImpl"
           init-method="initialize" destroy-method="shutdown"
             >
     </bean>
-
+-->
     <bean id="moduleActionMonitoring" depends-on="moduleStateNotifier"
           class="com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl"
           init-method="initialize" destroy-method="shutdown"

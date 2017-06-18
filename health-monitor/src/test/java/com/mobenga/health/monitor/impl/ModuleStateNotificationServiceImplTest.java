@@ -54,7 +54,7 @@ public class ModuleStateNotificationServiceImplTest {
     private ExecutorService executor;
 
     private final ModuleWrapper module = new ModuleWrapper();
-    private MonitoredService state = mockState();
+    private final MonitoredService state = mockState();
 
     @Before
     public void beforeTestService() throws Exception {

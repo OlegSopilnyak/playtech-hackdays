@@ -1,12 +1,12 @@
 package com.mobenga.health.model.factory.impl;
 
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.ModuleOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * The factory of outputs (devices to output information from module)
@@ -23,7 +23,7 @@ public class ModuleOutputDeviceFactory {
      * @param type requested type of output
      * @return the instance or null if not supported
      */
-    public static ModuleOutput.Device getDevice(HealthItemPK module, String type){
+    public static ModuleOutput.Device getDevice(ModulePK module, String type){
         LOG.debug("Creating output device type '{}'  for module '{}'", type, module);
         final ModuleOutput.DeviceFactory factory = farm.get(type);
         return factory == null ? null : factory.create(module);
@@ -46,7 +46,7 @@ public class ModuleOutputDeviceFactory {
      * @param type type of output
      * @return true if ignored
      */
-    public static boolean isModuleIgnored(HealthItemPK module, String type){
+    public static boolean isModuleIgnored(ModulePK module, String type){
         final ModuleOutput.DeviceFactory factory = farm.get(type);
         return factory == null ? true : factory.isModuleIgnored(module);
     }

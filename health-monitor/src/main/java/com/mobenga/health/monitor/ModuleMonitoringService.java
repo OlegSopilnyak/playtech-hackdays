@@ -1,12 +1,64 @@
 package com.mobenga.health.monitor;
 
-import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.ModulePK;
+import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 
 /**
  * The service to monitor actions of the module
  */
-public interface ModuleMonitoringService {
+public interface ModuleMonitoringService extends MonitoredService{
+    String PARAMS_PACKAGE = "health.monitor.service.monitored.actions";
+
+    // ignore-modules configurable parameter
+    String IGNORE_MODULES_NAME = "ignoreModules";
+    ConfiguredVariableItem IGRNORE_MODULES = 
+            new LocalConfiguredVariableItem(IGNORE_MODULES_NAME, "The set of modules to ignore save actions for.", "none");
+    String IGNORE_MODULES_FULL_NAME = PARAMS_PACKAGE + "." + IGNORE_MODULES_NAME;
+
+    // Declare main parameters of the module
+    /**
+     * to get the value of item's system
+     *
+     * @return the value
+     */
+    @Override
+    default public String getSystemId() {
+        return "healthMonitor";
+    }
+
+    /**
+     * to get the value of item's application
+     *
+     * @return the value
+     */
+    @Override
+    default public String getApplicationId() {
+        return "monitoredActionsService";
+    }
+
+    /**
+     * to get the value of item's application version
+     *
+     * @return the value
+     */
+    @Override
+    default public String getVersionId() {
+        return "0.1";
+    }
+
+    /**
+     * to get description of module
+     *
+     * @return the value
+     */
+    @Override
+    default public String getDescription() {
+        return "The service to monitor actions of the module";
+    }
+
+    
     /**
      * To create the instance of MonitoredAction.class
      *
@@ -20,5 +72,5 @@ public interface ModuleMonitoringService {
      * @param application the owner of action
      * @param action monitored action bean
      */
-    void actionMonitoring(HealthItemPK application, MonitoredAction action);
+    void actionMonitoring(ModulePK application, MonitoredAction action);
 }

@@ -1,7 +1,7 @@
 package com.mobenga.health.storage;
 
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * The storage to work with monitored actions stuff
@@ -14,7 +14,7 @@ public interface MonitoredActionStorage {
      * @param pk PK of module
      * @param action action to save
      */
-    void saveActionState(HealthItemPK pk, MonitoredAction action);
+    void saveActionState(ModulePK pk, MonitoredAction action);
 
 
     /**

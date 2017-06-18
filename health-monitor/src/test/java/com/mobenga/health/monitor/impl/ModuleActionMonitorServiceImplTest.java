@@ -1,51 +1,60 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.storage.MonitoredActionStorage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.*;
+import com.mobenga.health.model.ModulePK;
+import com.mobenga.health.monitor.DistributedContainersService;
+import com.mobenga.health.monitor.ModuleStateNotificationService;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.runners.MockitoJUnitRunner;
 
 /**
  * Testing behavior of ModuleActionMonitorServiceImp
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {
-        "classpath:com/mobenga/health/monitor/impl/test-module-action-monitor.xml",
-        "classpath:com/mobenga/health/monitor/factory/impl/test-basic-monitor-services.xml"
-})
+@RunWith(MockitoJUnitRunner.class)
 public class ModuleActionMonitorServiceImplTest {
 
-    @Autowired
-    private ModuleActionMonitorServiceImpl service;
 
-    @Autowired
+    @Mock
     private MonitoredActionStorage storage;
+    @Mock
+    private DistributedContainersService distributed;
+    @Mock
+    private ModuleStateNotificationService notifier;
+    @Spy
+    private final ExecutorService executor = Executors.newFixedThreadPool(1);
 
 
-    @Autowired
-    private MonitoredAction action;
+    private final MonitoredAction action = new MonitoredActionStub();
+    @Mock
+    private ModulePK module;
 
-    @Autowired
-    private HealthItemPK module;
+    @InjectMocks
+    private final ModuleActionMonitorServiceImpl service = new ModuleActionMonitorServiceImpl();
 
     @Before
     public void prepareService(){
+        when(distributed.queue(anyString())).thenReturn(new ArrayBlockingQueue(10));
         when(storage.createMonitoredAction()).thenReturn(action);
         service.initialize();
     }
     @After
     public void unPrepareService(){
+        reset(storage);
         service.shutdown();
     }
 
@@ -58,9 +67,9 @@ public class ModuleActionMonitorServiceImplTest {
 
     @Test
     public void testActionMonitoring() throws Exception {
-        service.actionMonitoring(module ,action);
+        service.actionMonitoring(module, action);
         Thread.sleep(1000);
-        verify(storage, atLeastOnce()).saveActionState(any(HealthItemPK.class), eq(action));
+        verify(storage, atLeastOnce()).saveActionState(any(ModulePK.class), eq(action));
 
     }
 }

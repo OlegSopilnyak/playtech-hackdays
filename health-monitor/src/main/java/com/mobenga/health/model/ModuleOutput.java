@@ -77,7 +77,7 @@ public interface ModuleOutput {
          * @param module module-owner of output
          * @return the instance
          */
-        Device create(HealthItemPK module);
+        Device create(ModulePK module);
 
         /**
          * returns supported type of ModuleOutput
@@ -92,7 +92,7 @@ public interface ModuleOutput {
          * @param module module to check
          * @return true if ignored
          */
-        boolean isModuleIgnored(HealthItemPK module);
+        boolean isModuleIgnored(ModulePK module);
     }
 
     /**
@@ -108,7 +108,7 @@ public interface ModuleOutput {
         /**
          * Associate monitored action with module's output
          *
-         * @param action
+         * @param action action associated with output
          */
         void associate(MonitoredAction action);
 

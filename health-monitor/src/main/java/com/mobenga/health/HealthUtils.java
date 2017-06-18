@@ -1,20 +1,20 @@
 package com.mobenga.health;
 
-import com.mobenga.health.model.HealthItemPK;
 
 import javax.xml.bind.JAXB;
 import java.io.StringWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * Class-utility for health control and configuration services
  */
 public final class HealthUtils {
     private HealthUtils() {}
-    private static final SimpleDateFormat dateFormater = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
-    public static String key(HealthItemPK application) {
+    private static final SimpleDateFormat DATE_TIME_FORMATER = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
+    public static String key(ModulePK application) {
         return new StringBuilder()
                 .append(application.getSystemId())      .append("|")
                 .append(application.getApplicationId()) .append("|")
@@ -30,12 +30,12 @@ public final class HealthUtils {
 
     public static Date fromString(String date){
         try {
-            return dateFormater.parse(date);
+            return DATE_TIME_FORMATER.parse(date);
         } catch (ParseException e) {
             return null;
         }
     }
     public static String fromDate(Date date){
-        return dateFormater.format(date);
+        return DATE_TIME_FORMATER.format(date);
     }
 }

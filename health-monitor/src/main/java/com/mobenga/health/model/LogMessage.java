@@ -79,7 +79,7 @@ public abstract class LogMessage implements ModuleOutput, ValidatingEntity{
     /**
      * To get the payload of message
      *
-     * @return
+     * @return the payload of message
      */
     @Override
     public String getPayload() {

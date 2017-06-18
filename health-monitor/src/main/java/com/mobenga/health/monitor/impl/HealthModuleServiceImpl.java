@@ -1,46 +1,43 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.HealthModuleService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
-import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.HealthModuleStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * Realization of modules service
  */
-public class HealthModuleServiceImpl implements HealthModuleService, MonitoredService {
+public class HealthModuleServiceImpl extends AbstractRunningService implements HealthModuleService {
+
     private static final Logger LOG = LoggerFactory.getLogger(HealthModuleServiceImpl.class);
+
+    // names of distributed containers
     @Value("${configuration.shared.modules.map.name:'modules'}")
     private String moduleCacheName;
     @Value("${configuration.shared.modules.queue.name:'modules-store'}")
     private String moduleQueueName;
-    // the distributed cache of modules
+
+    // distributed cached vontainers of module
     private Map<String, ModuleWrapper> modulesCache;
     private BlockingQueue<ModuleWrapper> storeQueue;
 
-    @Autowired
-    @Qualifier("serviceRunner")
-    private ExecutorService executor;
     @Autowired
     private ModuleStateNotificationService notifier;
 
@@ -50,33 +47,45 @@ public class HealthModuleServiceImpl implements HealthModuleService, MonitoredSe
     // service of distributed objects
     @Autowired
     private DistributedContainersService distributed;
-    private final AtomicBoolean serviceWorks = new AtomicBoolean(false);
-    private volatile boolean active = false;
 
-    public void initialize(){
-        if (active) return;
-        LOG.info("Starting service.");
+    @Override
+    protected Logger getLogger() {
+        return LOG;
+    }
+
+    public void initialize() {
+        super.start();
+    }
+
+    @Override
+    protected void beforeStart() {
         modulesCache = distributed.map(moduleCacheName);
-        if (modulesCache.isEmpty()){
+        if (modulesCache.isEmpty()) {
             LOG.info("It seems like it first run.");
-            storage.modulesList().forEach(m-> modulesCache.put(key(m), new ModuleWrapper(m)));
+            storage.modulesList().forEach(m -> modulesCache.put(key(m), new ModuleWrapper(m)));
         }
         storeQueue = distributed.queue(moduleQueueName);
-        serviceWorks.getAndSet(false);
-        executor.submit(()->this.storeUpadtes());
-        while(!serviceWorks.get());
-        notifier.register(this);
-        LOG.info("Service started.");
     }
 
-    public void shutdown(){
-        if (!active) return;
-        LOG.info("Stopping service.");
-        active  = false;
-        while(serviceWorks.get());
-        notifier.unRegister(this);
-        LOG.info("Service stopped.");
+    @Override
+    protected void afterStart() {
+        notifier.register(this);
     }
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+    }
+
+    @Override
+    protected void beforeStop() {
+    }
+
+    @Override
+    protected void afterStop() {
+        notifier.unRegister(this);
+    }
+
     /**
      * To get cached module by real module
      *
@@ -84,25 +93,23 @@ public class HealthModuleServiceImpl implements HealthModuleService, MonitoredSe
      * @return the wrapper of module
      */
     @Override
-    public HealthItemPK getModule(HealthItemPK module) {
-        ModuleWrapper wModule = modulesCache.get(key(module));
-        if (wModule == null){
-            wModule = new ModuleWrapper(module);
-            storeQueue.offer(wModule);
-            modulesCache.put(key(module), wModule);
-        }
-        return wModule;
+    public ModulePK getModule(final ModulePK module) {
+        return modulesCache.computeIfAbsent(key(module), m -> {
+            final ModuleWrapper wrapper;
+            storeQueue.offer(wrapper = new ModuleWrapper(module));
+            return wrapper;
+        });
     }
 
     /**
-     * To gte cached module by module's key
+     * To get cached module by module's key
      *
-     * @param moduleKey module's key
+     * @param moduleId module's key
      * @return the wrapper of module
      */
     @Override
-    public HealthItemPK getModule(String moduleKey) {
-        return modulesCache.get(moduleKey);
+    public ModulePK getModule(String moduleId) {
+        return modulesCache.get(moduleId);
     }
 
     /**
@@ -111,27 +118,18 @@ public class HealthModuleServiceImpl implements HealthModuleService, MonitoredSe
      * @return list of wrappers of modules
      */
     @Override
-    public List<HealthItemPK> getModules() {
+    public List<ModulePK> getModules() {
         return modulesCache.values().stream().collect(Collectors.toList());
     }
+
     /**
      * To get the value of Module's PK
      *
      * @return value of PK (not null)
      */
     @Override
-    public HealthItemPK getModulePK() {
+    public ModulePK getModulePK() {
         return this;
-    }
-
-    /**
-     * Describe the state of module
-     *
-     * @return true if module active
-     */
-    @Override
-    public boolean isActive() {
-        return active;
     }
 
     /**
@@ -141,46 +139,6 @@ public class HealthModuleServiceImpl implements HealthModuleService, MonitoredSe
     public void restart() {
         shutdown();
         initialize();
-    }
-
-    /**
-     * to get the value of item's system
-     *
-     * @return the value
-     */
-    @Override
-    public String getSystemId() {
-        return "healthMonitor";
-    }
-
-    /**
-     * to get the value of item's application
-     *
-     * @return the value
-     */
-    @Override
-    public String getApplicationId() {
-        return "healthModulesManagement";
-    }
-
-    /**
-     * to get the value of item's application version
-     *
-     * @return the value
-     */
-    @Override
-    public String getVersionId() {
-        return "0.01";
-    }
-
-    /**
-     * to get description of module
-     *
-     * @return the value
-     */
-    @Override
-    public String getDescription() {
-        return "Module to make distributed access to modules set.";
     }
 
     /**
@@ -208,23 +166,17 @@ public class HealthModuleServiceImpl implements HealthModuleService, MonitoredSe
         return "-HealthModuleService-";
     }
 
-    // private methods
-    private void storeUpadtes(){
-        serviceWorks.getAndSet(active = true);
+    @Override
+    protected void serviceLoopIteration() {
         try {
-            while (active) {
-                final ModuleWrapper module = storeQueue.poll(100, TimeUnit.MILLISECONDS);
-                if (module != null) {
-                    storage.save(module);
-                }
+            final ModuleWrapper module = storeQueue.poll(100, TimeUnit.MILLISECONDS);
+            if (module != null) {
+                storage.save(module);
             }
         } catch (InterruptedException e) {
             LOG.error("Poll was interrupted ", e);
-        } catch (Throwable e) {
-            LOG.error("Unexpected ", e);
-        } finally {
-            serviceWorks.getAndSet(active = false);
         }
     }
 
+    // private methods
 }

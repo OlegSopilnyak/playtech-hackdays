@@ -15,33 +15,73 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.mobenga.health.HealthUtils.key;
+import com.mobenga.health.model.factory.TimeService;
+import com.mobenga.health.model.factory.UniqueIdGenerator;
+import com.mobenga.health.model.factory.impl.TimeServiceImpl;
+import com.mobenga.health.model.factory.impl.UniqueIdGeneratorImpl;
+import com.mobenga.health.monitor.DistributedContainersService;
+import com.mobenga.health.monitor.ModuleStateNotificationService;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.After;
 import static org.junit.Assert.*;
+import org.junit.Before;
+import org.mockito.InjectMocks;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import org.mockito.Mock;
 import static org.mockito.Mockito.*;
+import org.mockito.Spy;
+import org.mockito.runners.MockitoJUnitRunner;
 
 /**
  * Tests for log module-output service
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {
-        "classpath:com/mobenga/health/monitor/impl/test-module-log-service.xml",
-        "classpath:com/mobenga/health/monitor/factory/impl/test-basic-monitor-services.xml"
-
-})
+@RunWith(MockitoJUnitRunner.class)
 public class LogModuleServiceImplTest {
 
-    @Autowired
-    private LogModuleServiceImpl service;
-    @Autowired
+    @InjectMocks
+    private final LogModuleServiceImpl service = new LogModuleServiceImpl();
+    
+    @Spy
+    private final ExecutorService executor = Executors.newFixedThreadPool(20);
+    @Mock
+    private DistributedContainersService distributed;  
+    @Mock
+    private ModuleStateNotificationService notifier;
+    @Spy
+    private final TimeService timeService = new TimeServiceImpl();
+    @Spy
+    private final UniqueIdGenerator idGenerator = new UniqueIdGeneratorImpl();
+
+    
+    @Mock
     private ModuleOutputStorage storage;
-    @Autowired
+    @Mock
     private MonitoredActionStorage actionStorage;
 
+    @Before
+    public void setUp(){
+        when(distributed.map(anyString())).thenReturn(new HashMap());
+        when(distributed.queue(anyString())).thenReturn(new ArrayBlockingQueue(5));
+        service.startService();
+        
+    }
+    @After
+    public void tierDown(){
+        service.stopService();
+        reset(storage, actionStorage);
+    }
+    
     @Test
     public void startService() throws Exception {
-        if (service.isActive()) service.stopService();
+        if (service.isActive()) {
+            service.stopService();
+        }
+        
         service.startService();
+
         assertFalse(!service.isActive());
     }
 
@@ -54,7 +94,6 @@ public class LogModuleServiceImplTest {
             service.stopService();
         }
         assertFalse(service.isActive());
-        service.startService();
     }
 
     @Test
@@ -64,7 +103,7 @@ public class LogModuleServiceImplTest {
                 version = "mockVer",
                 description = "mockDescription1";
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -75,11 +114,15 @@ public class LogModuleServiceImplTest {
 
         assertNotNull(device);
 
-        LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+        final LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(any(ModulePK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         device.out("Hello world");
-        Thread.sleep(100);
+        Thread.sleep(600);
+        
+        verify(storage, times(1)).createModuleOutput(any(ModulePK.class), eq(LogMessage.OUTPUT_TYPE));
+        verify(output, times(1)).setId(anyString());
+        verify(output, times(1)).setPayload(anyString());
     }
 
     @Test
@@ -89,7 +132,7 @@ public class LogModuleServiceImplTest {
                 version = "mockVer-1",
                 description = "mockDescription1";
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -113,7 +156,6 @@ public class LogModuleServiceImplTest {
         verify(output, times(4)).setActionId(anyString());
         verify(output, times(4)).setPayload(eq("Hello world"));
         verify(storage, times(4)).saveModuleOutput(eq(output));
-        reset(storage);
     }
 
     @Test
@@ -123,19 +165,18 @@ public class LogModuleServiceImplTest {
                 version = "mockVer-2",
                 description = "mockDescription-2";
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
         pk = new ModuleWrapper(pk);
 
-        reset(storage, actionStorage);
         ModuleOutput.Device device = service.create(pk);
         assertNotNull(device);
 
-        LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+        final LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(any(ModulePK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         MonitoredActionStub action = new MonitoredActionStub();
         action.setId("AAA");
@@ -148,9 +189,9 @@ public class LogModuleServiceImplTest {
         device.out("Hello world");
         device.actionEnd();
 
-        Thread.sleep(1000);
+        Thread.sleep(600);
 
-        verify(storage, times(4)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
+        verify(storage, times(4)).createModuleOutput(any(ModulePK.class), eq(LogMessage.OUTPUT_TYPE));
         verify(output, times(4)).setId(any());
         verify(output, times(4)).setActionId(eq("AAA"));
         verify(output, times(4)).setPayload(eq("Hello world"));
@@ -159,7 +200,6 @@ public class LogModuleServiceImplTest {
         verify(actionStorage, times(3)).saveActionState(eq(pk), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.SUCCESS, action.getState());
-        reset(storage, actionStorage);
     }
 
     @Test
@@ -169,43 +209,43 @@ public class LogModuleServiceImplTest {
                 version = "mockVer-3",
                 description = "mockDescription-3";
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
 
-        reset(storage, actionStorage);
         ModuleOutput.Device device = service.create(pk);
         assertNotNull(device);
 
-        LogMessage output = mock(LogMessage.class);
-        when(storage.createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
+        final LogMessage output = mock(LogMessage.class);
+        when(storage.createModuleOutput(any(ModulePK.class), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
 
         MonitoredActionStub action = new MonitoredActionStub();
         action.setId("AAA");
 
         device.associate(action);
         device.actionBegin();
+
         device.out("Hello world");
         device.out("Hello world");
         device.out("Hello world");
         device.out("Hello world");
+
         device.actionFail();
 
 
-        Thread.sleep(1000);
+        Thread.sleep(600);
 
-        verify(storage, times(4)).createModuleOutput(any(HealthItemPK.class), eq(LogMessage.OUTPUT_TYPE));
+        verify(storage, times(4)).createModuleOutput(any(ModulePK.class), eq(LogMessage.OUTPUT_TYPE));
         verify(output, times(4)).setId(any());
         verify(output, times(4)).setActionId(eq("AAA"));
         verify(output, times(4)).setPayload(eq("Hello world"));
         verify(storage, times(4)).saveModuleOutput(eq(output));
 
-        verify(actionStorage, times(3)).saveActionState(any(HealthItemPK.class), any(MonitoredActionStub.class));
+        verify(actionStorage, times(3)).saveActionState(any(ModulePK.class), any(MonitoredAction.class));
 
         assertEquals(MonitoredAction.State.FAIL, action.getState());
-        reset(storage, actionStorage);
     }
     @Test
     public void deviceActionOutIgnored() throws Exception {
@@ -214,14 +254,13 @@ public class LogModuleServiceImplTest {
                 version = "mockVer-x",
                 description = "mockDescription1";
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
         pk = new ModuleWrapper(pk);
 
-        reset(storage, actionStorage);
         ModuleOutput.Device device = service.create(pk);
         assertNotNull(device);
 
@@ -240,7 +279,7 @@ public class LogModuleServiceImplTest {
         device.out("Hello world");
         device.out("Hello world");
         device.actionFail();
-        Thread.sleep(1000);
+        Thread.sleep(600);
 
 
         verify(storage, times(0)).createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE));
@@ -252,7 +291,6 @@ public class LogModuleServiceImplTest {
         verify(actionStorage, times(0)).saveActionState(eq(pk), any(MonitoredActionStub.class));
 
         assertEquals(MonitoredAction.State.FAIL, action.getState());
-        reset(storage, actionStorage);
     }
 
 
@@ -289,21 +327,25 @@ public class LogModuleServiceImplTest {
 
     @Test
     public void configurationChanged() throws Exception {
-        final String VarKey = LogModuleServiceImpl.PARAMS_PACKAGE+"."+LogModuleServiceImpl.IGNORE_MODULES;
-        final LocalConfiguredVariableItem item = new LocalConfiguredVariableItem(LogModuleServiceImpl.IGNORE_MODULES, "test", "VarKey");
+        final String VarKey = LogModuleServiceImpl.IGNORE_MODULES_FULL_NAME;
+        final LocalConfiguredVariableItem item = new LocalConfiguredVariableItem(LogModuleServiceImpl.IGNORE_MODULES_NAME, "test", "VarKey");
         Map<String, ConfiguredVariableItem> changed = new HashMap<>();
         changed.put(VarKey, item);
         assertNotEquals("VarKey", service.getConfiguration().get(VarKey).get(String.class));
+        
         service.configurationChanged(changed);
+        
         assertEquals("VarKey", service.getConfiguration().get(VarKey).get(String.class));
         assertEquals("VarKey", service.getIgnoreModules());
+        
         service.setIgnoreModules("VarKey2");
+        
         assertEquals("VarKey2", service.getConfiguration().get(VarKey).get(String.class));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void configurationChangedBad() throws Exception {
-        final String VarKey = LogModuleServiceImpl.PARAMS_PACKAGE+"."+LogModuleServiceImpl.IGNORE_MODULES;
+        final String VarKey = LogModuleServiceImpl.IGNORE_MODULES_FULL_NAME;
         assertNotEquals("VarKey", service.getConfiguration().get(VarKey).get(Number.class));
         fail("Here the IllegalArgumentException exception must be thown.");
     }

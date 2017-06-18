@@ -13,6 +13,7 @@ import java.util.Objects;
 public abstract class ConfiguredVariableItem implements Serializable {
     // the name of storage item (table/index-type/etc)
     public static final String STORAGE_NAME = "configuration-variable";
+    private static final long serialVersionUID = 8838075550610081499L;
 
     protected transient VariableTypeStrategy strategy = null;
 
@@ -59,6 +60,7 @@ public abstract class ConfiguredVariableItem implements Serializable {
     /**
      * To change the value of variable
      *
+     * @param <T> type of value
      * @param value new value
      */
     public <T> void set(T value) {
@@ -69,6 +71,7 @@ public abstract class ConfiguredVariableItem implements Serializable {
     /**
      * To get the value of particular type
      *
+     * @param <T> possible type of value
      * @param resultType the type of result (class)
      * @return the value by type
      */

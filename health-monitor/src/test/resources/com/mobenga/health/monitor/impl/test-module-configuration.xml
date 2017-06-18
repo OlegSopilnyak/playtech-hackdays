@@ -29,6 +29,6 @@
         <constructor-arg value="com.hazelcast.core.HazelcastInstance" />
     </bean>
     <bean id="module" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.mobenga.health.model.HealthItemPK" />
+        <constructor-arg value="com.mobenga.health.model.ModulePK" />
     </bean>
 </beans>

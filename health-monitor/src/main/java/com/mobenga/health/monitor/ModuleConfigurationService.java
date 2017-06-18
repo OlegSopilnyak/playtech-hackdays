@@ -1,15 +1,53 @@
 package com.mobenga.health.monitor;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
 
 import java.util.List;
 import java.util.Map;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * Service to support modules configurations
  */
-public interface ModuleConfigurationService {
+public interface ModuleConfigurationService extends MonitoredService {
+    /**
+     * to get the value of item's system
+     *
+     * @return the value
+     */
+    @Override
+    default public String getSystemId() {
+        return "healthMonitor";
+    } 
+    /**
+     * to get the value of item's application
+     *
+     * @return the value
+     */
+    @Override
+    default public String getApplicationId() {
+        return "modulesConfigurationService";
+    }
+    
+    /**
+     * to get the value of item's application version
+     *
+     * @return the value
+     */
+    @Override
+    default public String getVersionId() {
+        return "0.01";
+    }
+
+    /**
+     * to get description of module
+     *
+     * @return the value
+     */
+    @Override
+    default public String getDescription() {
+        return "Service to support modules configurations";
+    }
     /**
      * To get the configuration of application
      *
@@ -17,7 +55,7 @@ public interface ModuleConfigurationService {
      * @param groupName the dot-delimited name of group (empty is root)
      * @return map of full-qualified configured variables
      */
-    Map<String, ConfiguredVariableItem> getConfigurationGroup(HealthItemPK application, String groupName);
+    Map<String, ConfiguredVariableItem> getConfigurationGroup(ModulePK application, String groupName);
 
     /**
      * To get updated configured variables
@@ -26,7 +64,7 @@ public interface ModuleConfigurationService {
      * @param configuration current state of configuration
      * @return updated variables (emptyMap if none)
      */
-    Map<String, ConfiguredVariableItem> getUpdatedVariables(HealthItemPK application, Map<String, ConfiguredVariableItem> configuration);
+    Map<String, ConfiguredVariableItem> getUpdatedVariables(ModulePK application, Map<String, ConfiguredVariableItem> configuration);
 
     /**
      * To update configured variables
@@ -34,7 +72,7 @@ public interface ModuleConfigurationService {
      * @param application the consumer of configuration
      * @param configuration new variables
      */
-    void newConfiguredVariables(HealthItemPK application, Map<String, ConfiguredVariableItem> configuration);
+    void newConfiguredVariables(ModulePK application, Map<String, ConfiguredVariableItem> configuration);
     
     /**
      * To change/replace the configuration of module
@@ -43,7 +81,7 @@ public interface ModuleConfigurationService {
      * @param configuration new configuration map
      * @return saved configuration
      */
-    Map<String, ConfiguredVariableItem> changeConfiguration(HealthItemPK application, Map<String, ConfiguredVariableItem> configuration);
+    Map<String, ConfiguredVariableItem> changeConfiguration(ModulePK application, Map<String, ConfiguredVariableItem> configuration);
 
     /**
      * To get the list of configurable groups
@@ -63,10 +101,10 @@ public interface ModuleConfigurationService {
     /**
      * To get item by module-id and name
      *
-     * @param module
-     * @param name
-     * @param value
-     * @return
+     * @param module the modulePK
+     * @param name the name of item
+     * @param value new value of item
+     * @return updated variable item
      */
     ConfiguredVariableItem updateConfigurationItemByModule(String module, String name, String value);
 }

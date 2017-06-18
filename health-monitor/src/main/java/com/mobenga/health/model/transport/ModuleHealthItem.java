@@ -1,11 +1,11 @@
 package com.mobenga.health.model.transport;
 
-import com.mobenga.health.model.HealthItemPK;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * Transport object for module's health
  */
-public class ModuleHealthItem implements HealthItemPK{
+public class ModuleHealthItem implements ModulePK{
     // the ID of the system
     private String systemId;
     // the ID of the application
@@ -24,7 +24,7 @@ public class ModuleHealthItem implements HealthItemPK{
     public ModuleHealthItem() {
     }
 
-    public ModuleHealthItem(HealthItemPK module, boolean active) {
+    public ModuleHealthItem(ModulePK module, boolean active) {
         systemId = module.getSystemId();
         applicationId = module.getApplicationId();
         versionId = module.getVersionId();
@@ -71,7 +71,7 @@ public class ModuleHealthItem implements HealthItemPK{
         this.active = active;
     }
 
-    public boolean sameAs(HealthItemPK module){
+    public boolean sameAs(ModulePK module){
         return systemId.equals(module.getSystemId()) &&
                 applicationId.equals(module.getApplicationId()) &&
                 versionId.equals(module.getVersionId())

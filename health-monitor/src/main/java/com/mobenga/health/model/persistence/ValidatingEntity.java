@@ -14,11 +14,14 @@ public interface ValidatingEntity {
      * Class runtime-exception for validating
      */
     class EntityInvalidState extends RuntimeException {
+
+        private static final long serialVersionUID = 5355930705991254841L;
         private final String attributeName;
         /**
          * Constructs a new runtime exception with {@code null} as its
          * detail message.  The cause is not initialized, and may subsequently be
          * initialized by a call to {@link #initCause}.
+         * @param attributeName the name of wrong attribute
          */
         public EntityInvalidState(String attributeName) {
             this.attributeName = attributeName;
@@ -29,6 +32,7 @@ public interface ValidatingEntity {
          * The cause is not initialized, and may subsequently be initialized by a
          * call to {@link #initCause}.
          *
+         * @param attributeName the name of wrong attribute
          * @param message the detail message. The detail message is saved for
          *                later retrieval by the {@link #getMessage()} method.
          */

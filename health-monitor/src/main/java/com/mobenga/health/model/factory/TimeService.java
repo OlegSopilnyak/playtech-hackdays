@@ -17,7 +17,7 @@ public interface TimeService {
     /**
      * To get calendar
      *
-     * @return
+     * @return current calendar
      */
     Calendar correctTime();
 }

@@ -30,15 +30,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.mobenga.health.HealthUtils.key;
+import com.mobenga.health.monitor.ModuleLoggerDeviceFactory;
 
 /**
  * The service handles module's output type "log"
  */
-public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, MonitoredService, ApplicationListener<ContextRefreshedEvent> {
+public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, ApplicationListener<ContextRefreshedEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(LogModuleServiceImpl.class);
-    public static final String PARAMS_PACKAGE = "health.monitor.service.module.output.log";
-    public static final String IGNORE_MODULES = "ignoreModules";
 
+    private volatile MonitoredAction actionTemplate = null;
+            
     @Autowired
     @Qualifier("serviceRunner")
     private ExecutorService executor;
@@ -65,15 +66,12 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     @Value("${configuration.shared.output.log.queue.name:'log-output-storage-queue'}")
     private String sharedQueueName;
     private BlockingQueue<Event> distributedStorageQueue;
-    private BlockingQueue<Event> offlineQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Event> offlineQueue = new LinkedBlockingQueue<>();
 
-    private String ignoreModules;
+    private String ignoreModules = IGNORE_MODULES.get(String.class);
 
     public LogModuleServiceImpl() {
-        final LocalConfiguredVariableItem im =
-                new LocalConfiguredVariableItem(IGNORE_MODULES, "The set of modules to ignore logging for.", "none");
-        config.put(PARAMS_PACKAGE+"."+IGNORE_MODULES, im);
-        ignoreModules = im.get(String.class);
+        config.put(IGNORE_MODULES_FULL_NAME, IGNORE_MODULES);
         // register the device
         ModuleOutputDeviceFactory.registerDeviceFactory(this);
     }
@@ -106,12 +104,12 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     /**
      * To create the Device for module's output
      *
-     * @param module
+     * @param module module-source of output
      * @return the instance
      */
     @Override
-    public ModuleOutput.Device create(HealthItemPK module) {
-        return new LogDevice(module);
+    public ModuleOutput.Device create(ModulePK module) {
+        return new ModuleLogger(module);
     }
 
     /**
@@ -131,7 +129,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
      * @return true if ignored
      */
     @Override
-    public boolean isModuleIgnored(HealthItemPK module) {
+    public boolean isModuleIgnored(ModulePK module) {
         return moduleIsIgnored(key(module));
     }
 
@@ -140,7 +138,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     }
 
     public void setIgnoreModules(String ignoreModules) {
-        config.get(PARAMS_PACKAGE+"."+IGNORE_MODULES).set(this.ignoreModules = ignoreModules);
+        config.get(IGNORE_MODULES_FULL_NAME).set(this.ignoreModules = ignoreModules);
     }
 
     /**
@@ -149,7 +147,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
      * @return value of PK (not null)
      */
     @Override
-    public HealthItemPK getModulePK() {
+    public ModulePK getModulePK() {
         return this;
     }
 
@@ -173,46 +171,6 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     }
 
     /**
-     * to get the value of item's system
-     *
-     * @return the value
-     */
-    @Override
-    public String getSystemId() {
-        return "healthMonitor";
-    }
-
-    /**
-     * to get the value of item's application
-     *
-     * @return the value
-     */
-    @Override
-    public String getApplicationId() {
-        return "modulesOuputService";
-    }
-
-    /**
-     * to get the value of item's application version
-     *
-     * @return the value
-     */
-    @Override
-    public String getVersionId() {
-        return "0.01";
-    }
-
-    /**
-     * to get description of module
-     *
-     * @return the value
-     */
-    @Override
-    public String getDescription() {
-        return "Module for log-messages";
-    }
-
-    /**
      * To get current configuration of module
      *
      * @return the map
@@ -233,7 +191,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         if (changed.isEmpty()){
             return;
         }
-        final ConfiguredVariableItem item = changed.get(PARAMS_PACKAGE+"."+IGNORE_MODULES);
+        final ConfiguredVariableItem item = changed.get(IGNORE_MODULES_FULL_NAME);
         if (item != null){
             setIgnoreModules(item.get(String.class));
         }
@@ -242,7 +200,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
 
     @Override
     public String toString() {
-        return "-LogModuleService-";
+        return "-LoggerModuleService-";
     }
 
     // private methods
@@ -293,10 +251,12 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
 
     // inner classes
     private static abstract class Event implements Serializable {
+
+        private static final long serialVersionUID = 6538641586708962438L;
         // event's parameters
         protected final ModuleWrapper module;
 
-        public Event(HealthItemPK module) {this.module = new ModuleWrapper(module);}
+        public Event(ModulePK module) {this.module = new ModuleWrapper(module);}
         // to save the event like Bean Managed Persistence
 
         /**
@@ -307,11 +267,13 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
     }
     // output event
     private static class OutputEvent extends Event {
+
+        private static final long serialVersionUID = 212382839050306882L;
         // event's parameters
         private final String actionId;
         private final Object [] arguments;
 
-        public OutputEvent(HealthItemPK module, String actionId, Object[] arguments) {
+        public OutputEvent(ModulePK module, String actionId, Object[] arguments) {
             super(module);
             this.actionId = actionId;
             this.arguments = arguments;
@@ -321,7 +283,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         protected void save(final LogModuleServiceImpl service) {
             final String moduleKey = key(module);
             if (service.moduleIsIgnored(moduleKey)){
-//                LOG.warn("The module '{}' is ignored for save.", moduleKey);
+                LOG.warn("The module '{}' is ignored for save.", moduleKey);
                 return;
             }
             final LogMessage message = (LogMessage) service.storage.createModuleOutput(module, LogMessage.OUTPUT_TYPE);
@@ -336,11 +298,13 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
             }
         }
     }
-    // monitored action changes event
+    // monitored newAction changes event
     private static class ActionEvent extends Event {
+
+        private static final long serialVersionUID = 4277689698575052493L;
         private final MonitoredAction action;
 
-        public ActionEvent(HealthItemPK module, MonitoredAction action) {
+        public ActionEvent(ModulePK module, MonitoredAction action) {
             super(module);
             this.action = action;
         }
@@ -355,11 +319,59 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         }
     }
 
-    private class LogDevice implements ModuleOutput.Device {
-        private final HealthItemPK module;
+    private class ModuleLogger extends AbstractLogger{
+
+        public ModuleLogger(ModulePK module) {
+            super(module);
+        }
+
+        @Override
+        protected void asyncOutput(ModulePK module, MonitoredAction action, Object... arguments) {
+            LOG.debug("Output from module '{}'", module);
+            distributedQueue().offer(new OutputEvent(module, action == null ? null : action.getId(), arguments));
+        }
+
+        @Override
+        protected MonitoredAction createMonitoredAction() {
+            if (actionTemplate != null) {
+                return actionTemplate.copy();
+            }
+            synchronized (ModuleLogger.class) {
+                if (actionTemplate == null) {
+                    actionTemplate = actionStorage.createMonitoredAction();
+                }
+            }
+            return actionTemplate.copy();
+        }
+
+        @Override
+        protected void asyncInitMonitoredAction(ModulePK module, MonitoredAction action) {
+            action.setState(MonitoredAction.State.INIT);
+            action.setStart(timeService.now());
+            distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
+        }
+
+        @Override
+        protected void asyncUpdateMonitoredAction(ModulePK module, MonitoredAction action, MonitoredAction.State state) {
+            action.setState(state);
+            switch (state) {
+                case PROGRESS:
+                    action.setStart(timeService.now());
+                    break;
+                case SUCCESS:
+                case FAIL:
+                    action.setFinish(timeService.now());
+                    action.setDuration(action.getFinish().getTime() - action.getStart().getTime());
+                    break;
+            }
+            distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
+        }
+    }
+    private class LogDeviceOld implements ModuleOutput.Device {
+        private final ModulePK module;
         private MonitoredAction action;
 
-        public LogDevice(HealthItemPK module) {
+        public LogDeviceOld(ModulePK module) {
             this.module = module;
         }
 
@@ -375,36 +387,36 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         }
 
         /**
-         * Associate monitored action with module's ouput
+         * Associate monitored newAction with module's output
          *
-         * @param action
+         * @param newAction
          */
         @Override
-        public void associate(MonitoredAction action) {
-            if ((this.action = action) != null) {
-                action.setState(MonitoredAction.State.INIT);
-                action.setStart(timeService.now());
-                distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
+        public void associate(MonitoredAction newAction) {
+            if ((this.action = newAction) != null) {
+                newAction.setState(MonitoredAction.State.INIT);
+                newAction.setStart(timeService.now());
+                distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), newAction.copy()));
             }
         }
 
         /**
-         * To create and associate action
+         * To create and associate newAction
          *
-         * @param actionDescription description of action
+         * @param actionDescription description of newAction
          */
         @Override
         public void associate(String actionDescription) {
-            final MonitoredAction action = actionStorage.createMonitoredAction();
-            action.setDescription(actionDescription);
-            action.setState(MonitoredAction.State.INIT);
-            action.setStart(timeService.now());
-            actionStorage.saveActionState(module, action);
-            this.action = action;
+            final MonitoredAction newAction = actionStorage.createMonitoredAction();
+            newAction.setDescription(actionDescription);
+            newAction.setState(MonitoredAction.State.INIT);
+            newAction.setStart(timeService.now());
+            actionStorage.saveActionState(module, newAction);
+            this.action = newAction;
         }
 
         /**
-         * To get associated action
+         * To get associated newAction
          *
          * @return instance or null if no association
          */
@@ -414,7 +426,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         }
 
         /**
-         * To start progress stage of associated action
+         * To start progress stage of associated newAction
          */
         @Override
         public void actionBegin() {
@@ -426,7 +438,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         }
 
         /**
-         * To finish associated action successfully
+         * To finish associated newAction successfully
          */
         @Override
         public void actionEnd() {
@@ -439,7 +451,7 @@ public class LogModuleServiceImpl implements ModuleOutput.DeviceFactory, Monitor
         }
 
         /**
-         * To finish associated action with errors
+         * To finish associated newAction with errors
          */
         @Override
         public void actionFail() {

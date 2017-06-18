@@ -1,9 +1,9 @@
 package com.mobenga.health.storage;
 
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.ModuleOutput;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * The service to manage module's output stuff
@@ -15,7 +15,7 @@ public interface ModuleOutputStorage {
      * @param type the type of output
      * @return a new instance of output
      */
-    ModuleOutput createModuleOutput(HealthItemPK module, String type);
+    ModuleOutput createModuleOutput(ModulePK module, String type);
 
     /**
      * To save chaged module's output
