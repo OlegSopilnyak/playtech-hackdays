@@ -166,16 +166,11 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
     }
 
     @Override
-    protected void serviceLoopIteration() {
-        try {
-            final StoreActionWrapper wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
-            if (wrappedAction != null) {
-                LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
-                storage.saveActionState(wrappedAction.module, wrappedAction.action);
-            }
-        } catch (InterruptedException ex) {
-            LOG.error("Distributed queue threw", ex);
-            super.active = false;
+    protected void serviceLoopIteration() throws InterruptedException {
+        final StoreActionWrapper wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
+        if (wrappedAction != null) {
+            LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
+            storage.saveActionState(wrappedAction.module, wrappedAction.action);
         }
     }
 

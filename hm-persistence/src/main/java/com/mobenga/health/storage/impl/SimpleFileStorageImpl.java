@@ -39,7 +39,7 @@ public class SimpleFileStorageImpl implements
         ModuleOutputStorage
 {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleFileStorageImpl.class);
-    public static final String DATA_FILE_MODULES = HealthItemPK.STORAGE_NAME + ".properties";
+    public static final String DATA_FILE_MODULES = ModulePK.STORAGE_NAME + ".properties";
     public static final String DATA_FILE_CONFIG = ConfiguredVariableItem.STORAGE_NAME;
     public static final String DATA_FILE_HEARTBEAT = HeartBeat.STORAGE_NAME;
     public static final String DATA_FILE_ACTIONS = MonitoredAction.STORAGE_NAME;
@@ -96,7 +96,7 @@ public class SimpleFileStorageImpl implements
      * @return the instance
      */
 //    @Override
-    public HealthItemPK getModulePK(HealthItemPK application) {
+    public ModulePK getModulePK(ModulePK application) {
         return getOrCreateModuleEntity(application);
     }
 
@@ -105,15 +105,15 @@ public class SimpleFileStorageImpl implements
      * @return
      */
 //    @Override
-    public HealthItemPK getModulePK(String applicationId) {
+    public ModulePK getModulePK(String applicationId) {
         String moduleString = modules.getProperty(applicationId);
         if (moduleString == null){
-            HealthItemPK module = new StructureModuleEntity(applicationId);
+            ModulePK module = new StructureModuleEntity(applicationId);
             modules.setProperty(applicationId, module.toString());
             storeModules();
             return module;
         }
-        return (HealthItemPK) moduleTemplate.fromString(moduleString);
+        return (ModulePK) moduleTemplate.fromString(moduleString);
     }
 
     /**
@@ -143,7 +143,7 @@ public class SimpleFileStorageImpl implements
     }
 
     @Override
-    public void saveModuleState(HealthItemPK module, boolean isActive){
+    public void saveModuleState(ModulePK module, boolean isActive){
         final Date nowDateTime = timer.now();
         LOG.debug("Saving module heart-beat time '{}'", nowDateTime);
         Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
@@ -163,7 +163,7 @@ public class SimpleFileStorageImpl implements
         }
     }
 
-    void removeModuleHB(HealthItemPK pk){
+    void removeModuleHB(ModulePK pk){
         Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
         final String key = key(pk) + "."+hostName;
         repository.remove(key);
@@ -195,7 +195,7 @@ public class SimpleFileStorageImpl implements
      * @param action action to save
      */
     @Override
-    public void saveActionState(HealthItemPK pk, MonitoredAction action) {
+    public void saveActionState(ModulePK pk, MonitoredAction action) {
         if (!(action instanceof MonitoredActionEntity)) {
             LOG.error("Action instance is not entity '{}'", action);
             return;
@@ -259,7 +259,7 @@ public class SimpleFileStorageImpl implements
      * @param configuration new configuration
      */
     @Override
-    public Map<String, ConfiguredVariableItem> replaceConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
+    public Map<String, ConfiguredVariableItem> replaceConfiguration(ModulePK module, Map<String, ConfiguredVariableItem> configuration) {
         LOG.debug("Storing whole configuration for '{}'", module);
         final String moduleKey = key(getModulePK(module));
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
@@ -292,7 +292,7 @@ public class SimpleFileStorageImpl implements
         return changedItems.stream().collect(Collectors.toMap( i -> i.getMapKey(), i -> i ));
     }
 
-    void removeModuleConfiguration(HealthItemPK module){
+    void removeModuleConfiguration(ModulePK module){
         final String moduleId = key(module);
         final Map<String, StringEntity> repository = restoreConfigurationRepository();
         for(Iterator<Map.Entry<String, StringEntity>> i = repository.entrySet().iterator();i.hasNext();){
@@ -312,7 +312,7 @@ public class SimpleFileStorageImpl implements
      * @param configuration configured variables
      */
     @Override
-    public void storeChangedConfiguration(HealthItemPK module, Map<String, ConfiguredVariableItem> configuration) {
+    public void storeChangedConfiguration(ModulePK module, Map<String, ConfiguredVariableItem> configuration) {
         LOG.debug("Storing changed configuration for '{}'", module);
         final String applicationKey = key(getModulePK(module));
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
@@ -424,7 +424,7 @@ public class SimpleFileStorageImpl implements
      * @return actual version of configuration
      */
     @Override
-    public int getConfigurationVersion(HealthItemPK module) {
+    public int getConfigurationVersion(ModulePK module) {
         return getConfigurationVersion(key(module));
     }
 
@@ -436,7 +436,7 @@ public class SimpleFileStorageImpl implements
      * @return a new instance of output
      */
     @Override
-    public ModuleOutput createModuleOutput(HealthItemPK module, String type) {
+    public ModuleOutput createModuleOutput(ModulePK module, String type) {
         final ModuleOutput template = moduleOutputMap.get(type);
         return template == null ? null : template.copy().setModulePK(key(module));
     }
@@ -561,7 +561,7 @@ public class SimpleFileStorageImpl implements
         return builder.toString();
     }
 
-    void removeModule(HealthItemPK module){
+    void removeModule(ModulePK module){
         LOG.debug("Removing module {}.", module);
         reStoreModules();
         modules.remove(key(module));
@@ -569,7 +569,7 @@ public class SimpleFileStorageImpl implements
     }
 
     @Nullable
-    private StructureModuleEntity getOrCreateModuleEntity(HealthItemPK module) {
+    private StructureModuleEntity getOrCreateModuleEntity(ModulePK module) {
         LOG.debug("Finding entity for '{}'", module);
         try {
             reStoreModules();
@@ -696,7 +696,7 @@ public class SimpleFileStorageImpl implements
      * @param module information of module to save
      */
     @Override
-    public void save(HealthItemPK module) {
+    public void save(ModulePK module) {
         LOG.debug("Removing module {}.", module);
         reStoreModules();
         final String moduleId = key(module);
@@ -712,7 +712,7 @@ public class SimpleFileStorageImpl implements
      * @return
      */
     @Override
-    public List<HealthItemPK> modulesList() {
+    public List<ModulePK> modulesList() {
         return modules.values().stream()
                 .map(s-> (StructureModuleEntity)moduleTemplate.fromString((String) s))
                 .collect(Collectors.toList());

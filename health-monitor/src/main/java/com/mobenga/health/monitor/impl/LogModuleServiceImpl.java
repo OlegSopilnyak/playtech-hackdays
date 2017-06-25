@@ -4,11 +4,9 @@ import com.mobenga.health.model.*;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.UniqueIdGenerator;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
 import com.mobenga.health.model.transport.ModuleWrapper;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
-import com.mobenga.health.monitor.MonitoredService;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
 import org.slf4j.Logger;
@@ -27,15 +25,15 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.mobenga.health.HealthUtils.key;
 import com.mobenga.health.monitor.ModuleLoggerDeviceFactory;
+import java.util.Objects;
 
 /**
  * The service handles module's output type "log"
  */
-public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, ApplicationListener<ContextRefreshedEvent> {
+public class LogModuleServiceImpl extends AbstractRunningService implements ModuleLoggerDeviceFactory, ApplicationListener<ContextRefreshedEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(LogModuleServiceImpl.class);
 
     private volatile MonitoredAction actionTemplate = null;
@@ -60,8 +58,6 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
 
     @Autowired
     private DistributedContainersService distributed;
-    private final AtomicBoolean serviceWorks = new AtomicBoolean(false);
-    private volatile boolean active = false;
 
     @Value("${configuration.shared.output.log.queue.name:'log-output-storage-queue'}")
     private String sharedQueueName;
@@ -76,31 +72,45 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
         ModuleOutputDeviceFactory.registerDeviceFactory(this);
     }
 
+    /** 
+     * for test purposes only
+     * @param notifier real notifier from notifier unit test
+     */
+    void setNotifier(ModuleStateNotificationService notifier) {
+        this.notifier = notifier;
+    }
+
+    @Override
+    protected Logger getLogger() {return LOG;}
+
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
         startService();
     }
 
-    public void startService(){
-        if (active) return;
+    public void startService(){super.start();}
+    
+    @Override
+    protected void beforeStart() {
         distributedStorageQueue = distributed.queue(sharedQueueName);
-        LOG.info("Starting service storage='{}'", storage);
-        executor.submit(()->processEvents());
-        while (!serviceWorks.get());
-        // register the module
+    }
+
+    @Override
+    protected void afterStart() {
+        offlineQueue.forEach( e -> distributedStorageQueue.offer(e));
+        offlineQueue.clear();
         notifier.register(this);
     }
 
-    public void stopService(){
-        if (!active) return;
-        LOG.info("Stopping service storage='{}'", storage);
-        active  = false;
-        while (serviceWorks.get());
-        LOG.info("Service stopped");
-        // un register the module
-        notifier.unRegister(this);
-    }
+
+    public void stopService(){super.shutdown();}
+    
+    @Override
+    protected void beforeStop() {}
+    @Override
+    protected void afterStop() {notifier.unRegister(this);}
+
     /**
      * To create the Device for module's output
      *
@@ -118,9 +128,7 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
      * @return the value
      */
     @Override
-    public String getType() {
-        return LogMessage.OUTPUT_TYPE;
-    }
+    public String getType() {return LogMessage.OUTPUT_TYPE;}
 
     /**
      * To check is module ignored for saving
@@ -152,21 +160,16 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
     }
 
     /**
-     * Describe the state of module
-     *
-     * @return true if module active
-     */
-    @Override
-    public boolean isActive() {
-        return serviceWorks.get();
-    }
-
-    /**
      * The handle to restart monitored service
      */
     @Override
     public void restart() {
         stopService();
+//        try {
+//            Thread.sleep(100);
+//        } catch (InterruptedException ex) {
+//            LOG.error("interrupted ...", ex);
+//        }
         startService();
     }
 
@@ -188,13 +191,10 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
     @Override
     public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
         LOG.debug("External configuration changes are received '{}'", changed);
-        if (changed.isEmpty()){
-            return;
-        }
-        final ConfiguredVariableItem item = changed.get(IGNORE_MODULES_FULL_NAME);
-        if (item != null){
-            setIgnoreModules(item.get(String.class));
-        }
+        // updating ignore-modules parameter
+        updateParameter(changed, IGNORE_MODULES_FULL_NAME, i -> setIgnoreModules(i.get(String.class)));
+
+        // save new items of configuration
         config.putAll(changed);
     }
 
@@ -208,26 +208,19 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
         return distributedStorageQueue == null ? offlineQueue : distributedStorageQueue;
     }
 
-    private void processEvents(){
-        offlineQueue.forEach( e -> distributedStorageQueue.offer(e));
-        offlineQueue.clear();
-        serviceWorks.getAndSet(active = true);
-        try{
-            while (active){
-                final Event event = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
-                if (event != null){
-                    event.save(this);
-                }
-            }
-        } catch (InterruptedException e) {
-            LOG.error("Events queue iterrupted", e);
-        } catch (Throwable t) {
-            LOG.error("Caught unexpected exception", t);
-        } finally {
-            serviceWorks.getAndSet(active = false);
-            LOG.info("Service stopped.");
+    @Override
+    protected void serviceLoopIteration() throws InterruptedException {
+        final Event event = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
+        if (!Objects.isNull(event)) {
+            event.save(this);
         }
     }
+
+    @Override
+    protected void serviceLoopException(Throwable t) {
+        LOG.error("Something went wrong",t);
+    }
+
     private boolean moduleIsIgnored(String moduleKey){
         // check the direct ignorance
         if (ignoreModules.contains(moduleKey)) {
@@ -257,8 +250,6 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
         protected final ModuleWrapper module;
 
         public Event(ModulePK module) {this.module = new ModuleWrapper(module);}
-        // to save the event like Bean Managed Persistence
-
         /**
          * To save the values of event
          * @param service log-service instance
@@ -279,6 +270,7 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
             this.arguments = arguments;
         }
 
+        // to save the event like Bean Managed Persistence
         @Override
         protected void save(final LogModuleServiceImpl service) {
             final String moduleKey = key(module);
@@ -308,11 +300,13 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
             super(module);
             this.action = action;
         }
+
+        // to save the event like Bean Managed Persistence
         @Override
         protected void save(final LogModuleServiceImpl service) {
             final String moduleKey = key(module);
             if (service.moduleIsIgnored(moduleKey)){
-//                LOG.warn("The module '{}' is ignored for save.", moduleKey);
+                LOG.debug("The module '{}' is ignored for save.", moduleKey);
                 return;
             }
             service.actionStorage.saveActionState(module, action);
@@ -328,7 +322,11 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
         @Override
         protected void asyncOutput(ModulePK module, MonitoredAction action, Object... arguments) {
             LOG.debug("Output from module '{}'", module);
-            distributedQueue().offer(new OutputEvent(module, action == null ? null : action.getId(), arguments));
+            try {
+                distributedQueue().put(new OutputEvent(module, action == null ? null : action.getId(), arguments));
+            } catch (InterruptedException ex) {
+                LOG.error("Cannot transfer arguments", ex);
+            }
         }
 
         @Override
@@ -348,7 +346,11 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
         protected void asyncInitMonitoredAction(ModulePK module, MonitoredAction action) {
             action.setState(MonitoredAction.State.INIT);
             action.setStart(timeService.now());
-            distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
+            try {
+                distributedQueue().put(new ActionEvent(new ModuleWrapper(module), action.copy()));
+            } catch (InterruptedException ex) {
+                LOG.error("Cannot transfer new action", ex);
+            }
         }
 
         @Override
@@ -364,102 +366,10 @@ public class LogModuleServiceImpl implements ModuleLoggerDeviceFactory, Applicat
                     action.setDuration(action.getFinish().getTime() - action.getStart().getTime());
                     break;
             }
-            distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), action.copy()));
-        }
-    }
-    private class LogDeviceOld implements ModuleOutput.Device {
-        private final ModulePK module;
-        private MonitoredAction action;
-
-        public LogDeviceOld(ModulePK module) {
-            this.module = module;
-        }
-
-        /**
-         * To create ModuleOutput instance and send it to appropriate storage
-         *
-         * @param arguments the arguments of output item for payload
-         */
-        @Override
-        public void out(Object... arguments) {
-            LOG.debug("Output from module '{}'", module);
-            distributedQueue().offer(new OutputEvent(module, action == null ? null : action.getId(), arguments));
-        }
-
-        /**
-         * Associate monitored newAction with module's output
-         *
-         * @param newAction
-         */
-        @Override
-        public void associate(MonitoredAction newAction) {
-            if ((this.action = newAction) != null) {
-                newAction.setState(MonitoredAction.State.INIT);
-                newAction.setStart(timeService.now());
-                distributedQueue().offer(new ActionEvent(new ModuleWrapper(module), newAction.copy()));
-            }
-        }
-
-        /**
-         * To create and associate newAction
-         *
-         * @param actionDescription description of newAction
-         */
-        @Override
-        public void associate(String actionDescription) {
-            final MonitoredAction newAction = actionStorage.createMonitoredAction();
-            newAction.setDescription(actionDescription);
-            newAction.setState(MonitoredAction.State.INIT);
-            newAction.setStart(timeService.now());
-            actionStorage.saveActionState(module, newAction);
-            this.action = newAction;
-        }
-
-        /**
-         * To get associated newAction
-         *
-         * @return instance or null if no association
-         */
-        @Override
-        public MonitoredAction getAssociated() {
-            return action;
-        }
-
-        /**
-         * To start progress stage of associated newAction
-         */
-        @Override
-        public void actionBegin() {
-            if (action != null){
-                action.setStart(timeService.now());
-                action.setState(MonitoredAction.State.PROGRESS);
-                distributedQueue().offer(new ActionEvent(module, action.copy()));
-            }
-        }
-
-        /**
-         * To finish associated newAction successfully
-         */
-        @Override
-        public void actionEnd() {
-            if (action != null) {
-                action.setState(MonitoredAction.State.SUCCESS);
-                action.setFinish(timeService.now());
-                action.setDuration(action.getFinish().getTime() - action.getStart().getTime());
-                distributedQueue().offer(new ActionEvent(module, action.copy()));
-            }
-        }
-
-        /**
-         * To finish associated newAction with errors
-         */
-        @Override
-        public void actionFail() {
-            if (action != null) {
-                action.setState(MonitoredAction.State.FAIL);
-                action.setFinish(timeService.now());
-                action.setDuration(action.getFinish().getTime() - action.getStart().getTime());
-                distributedQueue().offer(new ActionEvent(module, action.copy()));
+            try {
+                distributedQueue().put(new ActionEvent(new ModuleWrapper(module), action.copy()));
+            } catch (InterruptedException ex) {
+                LOG.error("Cannot transfer updates of action", ex);
             }
         }
     }

@@ -4,6 +4,7 @@ import com.mobenga.health.model.ConfiguredVariableItem;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -16,10 +17,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
  */
 public abstract class AbstractRunningService {
 
-    private CountDownLatch stateChangeKeeper;
     protected volatile boolean active = false;
+
     private final Lock stateChangeLock = new ReentrantLock();
-    
+    private final Phaser runtimePhaser = new Phaser(2);
+
     @Autowired
     @Qualifier("serviceRunner")
     private ExecutorService executor;
@@ -28,26 +30,25 @@ public abstract class AbstractRunningService {
      * To start the loop of service
      */
     public void start() {
+        if (active) {
+            getLogger().warn("Service started already.");
+            return;
+        }
         try {
             stateChangeLock.lock();
-            if (active) {
-                getLogger().warn("Service started already.");
-                return;
-            }
             getLogger().info("Starting service...");
 
             getLogger().debug("Execute pre-start method");
             beforeStart();
 
             getLogger().debug("Starting main service loop");
-            stateChangeKeeper = new CountDownLatch(1);
             executor.submit(() -> serviceLoop());
-            stateChangeKeeper.await();
+            int phase = runtimePhaser.arriveAndAwaitAdvance();
+            getLogger().debug("Starting service phase = {}...", phase);
 
             getLogger().debug("Execute post-start method");
             afterStart();
-        } catch (InterruptedException ex) {
-            getLogger().error("State change keeper threw", ex);
+
         } catch (Exception ex) {
             getLogger().error("Start sequence threw", ex);
         } finally {
@@ -59,28 +60,27 @@ public abstract class AbstractRunningService {
      * To shutdown the loop of service
      *
      */
-    public void shutdown(){
-        try{
+    public void shutdown() {
+        if (!active) {
+            getLogger().warn("Service stopped already.");
+            return;
+        }
+
+        try {
             stateChangeLock.lock();
-            if (!active) {
-                getLogger().warn("Service stopped already.");
-                return;
-            }
-            
             getLogger().debug("Execute pre-stop method");
             beforeStop();
 
-            getLogger().info("Stopping service...");
             active = false;
-            stateChangeKeeper.await();
-            
+            getLogger().info("Stopping service...");
+            int phase = runtimePhaser.arriveAndAwaitAdvance();
+            getLogger().debug("Stopped main-loop phase = {}...", phase);
+
             getLogger().debug("Execute post-stop method");
             afterStop();
-        } catch (InterruptedException ex) {
-            getLogger().error("State change keeper threw", ex);
         } catch (Exception ex) {
             getLogger().error("Stop sequence threw", ex);
-        }finally{
+        } finally {
             stateChangeLock.unlock();
         }
     }
@@ -105,33 +105,41 @@ public abstract class AbstractRunningService {
      * To do service related things before main loop starts
      */
     protected abstract void beforeStart();
+
     /**
      * To do service related things after main loop starts
      */
     protected abstract void afterStart();
+
     /**
      * To do service related actions before main loop stops
      */
     protected abstract void beforeStop();
+
     /**
      * To do service related actions after main loop stops
      */
     protected abstract void afterStop();
-    
+
     /**
-     * Execute iteration of service main loop
+     * Execute one iteration of service main loop
+     *
+     * @throws java.lang.InterruptedException if appropriate signal received
      */
-    protected abstract void serviceLoopIteration();
+    protected abstract void serviceLoopIteration() throws InterruptedException;
+
     /**
      * Execute action in exceptional situation
+     *
      * @param t exception
      */
-    protected void serviceLoopException(Throwable t){}
+    protected void serviceLoopException(Throwable t) {}
+
     /**
      * To update configured parameter in bean
-     * 
+     *
      * @param changes received new configuration
-     * @param fullName canonical (with path) name of item 
+     * @param fullName canonical (with path) name of item
      * @param ubdatByItem function to do for particular item
      */
     protected void updateParameter(
@@ -144,26 +152,28 @@ public abstract class AbstractRunningService {
         }
     }
 
-
     // private methods
     // Main loop method
     private void serviceLoop() {
         active = true;
-        stateChangeKeeper.countDown();
-        getLogger().info("Service main loop started.");
-        stateChangeKeeper = new CountDownLatch(1);
         try {
+            int phase = runtimePhaser.arriveAndAwaitAdvance();
+            getLogger().debug("Started service phase = {}...", phase);
             while (active) {
-                getLogger().debug("Execute iteration of main loop.");
-                serviceLoopIteration();
+                getLogger().debug("Working service phase = {}...", runtimePhaser.getPhase());
+                if (active) {
+                    getLogger().debug("Execute iteration of main loop.");
+                    serviceLoopIteration();
+                }
             }
-        }catch(Throwable t){
+        } catch (Throwable t) {
             getLogger().error("Cautch error", t);
             serviceLoopException(t);
         } finally {
             getLogger().info("Service main loop is finished.");
             active = false;
-            stateChangeKeeper.countDown();
+            int phase = runtimePhaser.arrive();
+            getLogger().debug("Finished service phase = {}...", phase);
         }
     }
 }

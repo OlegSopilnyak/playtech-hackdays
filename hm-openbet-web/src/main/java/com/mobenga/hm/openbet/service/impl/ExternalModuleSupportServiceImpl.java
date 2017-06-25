@@ -30,26 +30,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * External modules support realization
  */
 public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportService, MonitoredService {
     private static final Logger LOG = LoggerFactory.getLogger(ExternalModuleSupportServiceImpl.class);
-    public static final String PARAMS_PACKAGE = "health.monitor.module.external.service";
-    private static final ConfiguredVariableItem PARAM1 =
-            new LocalConfiguredVariableItem("parameter1", "Example of parameter number", 150);
-    private static final ConfiguredVariableItem PARAM2 =
-            new LocalConfiguredVariableItem("parameter2", "Example of parameter string", "Hello World");
-    public static final String HB_PARAM1_KEY = PARAMS_PACKAGE + "." + PARAM1.getName();
-    public static final String HB_PARAM2_KEY = PARAMS_PACKAGE + "." + PARAM2.getName();
-    private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
-    private BlockingQueue<ExternalModulePing> sharedQueue;
-
+    
     @Autowired
     @Qualifier("serviceRunner")
     private ExecutorService executor;
+    
+    private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
+    private BlockingQueue<ExternalModulePing> sharedQueue;
     private final AtomicBoolean serviceRuns = new AtomicBoolean(false);
+    private CountDownLatch  serviceKeeper;
     private volatile boolean active;
 
     public ExternalModuleSupportServiceImpl() {
@@ -77,6 +73,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
 
     @Autowired
     private ModuleOutputStorage outputStorage;
+    
     @Autowired
     private DateTimeConverter dt;
 
@@ -114,7 +111,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         // postpone work with storages
         sharedQueue.offer(ping);
         // processing configuration section
-        final HealthItemPK pk = modules.getModule(ping.getModule());
+        final ModulePK pk = modules.getModule(ping.getModule());
 
         LOG.debug("Processing module configuration items:'{}'", ping.getConfiguration().size());
 
@@ -188,7 +185,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
      * @return value of PK (not null)
      */
     @Override
-    public HealthItemPK getModulePK() {
+    public ModulePK getModulePK() {
         return this;
     }
 

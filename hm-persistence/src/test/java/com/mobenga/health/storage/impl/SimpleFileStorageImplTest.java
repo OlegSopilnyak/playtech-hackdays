@@ -58,13 +58,13 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescription"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
 
-        HealthItemPK stored = storage.getModulePK(pk);
+        ModulePK stored = storage.getModulePK(pk);
 
         assertFalse(stored == pk);
         assertEquals(system, stored.getSystemId());
@@ -83,14 +83,14 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescription1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
 
 
-        HealthItemPK stored = storage.getModulePK(key(pk));
+        ModulePK stored = storage.getModulePK(key(pk));
 
         assertFalse(stored == pk);
         assertEquals(system, stored.getSystemId());
@@ -109,7 +109,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionHB"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -156,7 +156,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionHB1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -190,7 +190,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionMA"
                         ;
 
-        final HealthItemPK pk = mock(HealthItemPK.class);
+        final ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -233,7 +233,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -273,7 +273,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -312,7 +312,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescription2"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -322,9 +322,9 @@ public class SimpleFileStorageImplTest {
 
         List<String> pks = storage.getApplicationsPKs();
         assertFalse( !pks.contains(keyPK));
-        HealthItemPK pk0 = pk;
+        ModulePK pk0 = pk;
 
-        pk = mock(HealthItemPK.class);
+        pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version+".01");
@@ -349,7 +349,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -387,7 +387,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-2"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -445,7 +445,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-3"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -476,7 +476,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-3"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -507,7 +507,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-mo1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -528,7 +528,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-mo1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -559,7 +559,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-mo1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -584,7 +584,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-mo1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -635,7 +635,7 @@ public class SimpleFileStorageImplTest {
                 description = "mockDescriptionConf-mo3"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -692,7 +692,7 @@ public class SimpleFileStorageImplTest {
                 version = "mockVerConf-mo3",
                 description = "mockDescriptionConf-mo3";
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);

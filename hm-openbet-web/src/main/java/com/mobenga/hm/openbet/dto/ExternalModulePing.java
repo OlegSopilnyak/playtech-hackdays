@@ -1,11 +1,11 @@
 package com.mobenga.hm.openbet.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleWrapper;
 
 import java.io.Serializable;
 import java.util.List;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * DTO. Ping from external module
@@ -29,7 +29,7 @@ public class ExternalModulePing implements Serializable {
         return module;
     }
 
-    public void setModule(HealthItemPK module) {
+    public void setModule(ModulePK module) {
         this.module = new ModuleWrapper(module);
     }
 

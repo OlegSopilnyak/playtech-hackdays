@@ -59,7 +59,7 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
                 ;
     }
 
-    public HealthItemPK getModule() {
+    public ModulePK getModule() {
         return module;
     }
 
@@ -76,7 +76,7 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
     public void setHealthPK(String pk){
         applyModulePK(pk);
     }
-    public void setHealthPK(HealthItemPK pk){
+    public void setHealthPK(ModulePK pk){
         applyModulePK(key(pk));
     }
 

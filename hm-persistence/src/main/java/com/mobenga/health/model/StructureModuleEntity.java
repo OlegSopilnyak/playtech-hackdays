@@ -9,7 +9,7 @@ import java.util.StringTokenizer;
 /**
  * The entity to keep information about module. The owner of monitored-action and heard-beats<BR/>
  */
-public class StructureModuleEntity implements HealthItemPK, ValidatingEntity, Cloneable, StringEntity  {
+public class StructureModuleEntity implements ModulePK, ValidatingEntity, Cloneable, StringEntity  {
     // the ID of module-descriptor
     private String id;
 
@@ -65,7 +65,7 @@ public class StructureModuleEntity implements HealthItemPK, ValidatingEntity, Cl
         return enity;
     }
 
-    public StructureModuleEntity(HealthItemPK module){
+    public StructureModuleEntity(ModulePK module){
         this.systemId = module.getSystemId();
         this.applicationId = module.getApplicationId();
         this.versionId = module.getVersionId();
@@ -159,8 +159,8 @@ public class StructureModuleEntity implements HealthItemPK, ValidatingEntity, Cl
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || !(o instanceof HealthItemPK)) return false;
-        HealthItemPK that = (HealthItemPK) o;
+        if (o == null || !(o instanceof ModulePK)) return false;
+        ModulePK that = (ModulePK) o;
         return Objects.equals(getSystemId(), that.getSystemId()) &&
                 Objects.equals(getApplicationId(), that.getApplicationId()) &&
                 Objects.equals(getVersionId(), that.getVersionId());

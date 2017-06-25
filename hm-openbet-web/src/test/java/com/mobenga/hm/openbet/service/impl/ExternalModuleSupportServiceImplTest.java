@@ -1,6 +1,5 @@
 package com.mobenga.hm.openbet.service.impl;
 
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.LogMessage;
 import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.model.factory.TimeService;
@@ -35,6 +34,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * Unit test for external module support service
@@ -75,7 +75,7 @@ public class ExternalModuleSupportServiceImplTest {
                 description = "mockDescription"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
@@ -190,12 +190,12 @@ public class ExternalModuleSupportServiceImplTest {
                 description = "mockDescription-1"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
-        when(configStorage.replaceConfiguration(any(HealthItemPK.class), any(Map.class))).then(new Answer<Map>() {
+        when(configStorage.replaceConfiguration(any(ModulePK.class), any(Map.class))).then(new Answer<Map>() {
             @Override
             public Map answer(InvocationOnMock invocationOnMock) throws Throwable {
                 return (Map) invocationOnMock.getArguments()[1];
@@ -221,13 +221,13 @@ public class ExternalModuleSupportServiceImplTest {
                 description = "mockDescription"
                         ;
 
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn(system);
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
         configService.newConfiguredVariables(pk, new HashMap<>());
-        when(configStorage.replaceConfiguration(any(HealthItemPK.class), any(Map.class))).then(new Answer<Map>() {
+        when(configStorage.replaceConfiguration(any(ModulePK.class), any(Map.class))).then(new Answer<Map>() {
             @Override
             public Map answer(InvocationOnMock invocationOnMock) throws Throwable {
                 return (Map) invocationOnMock.getArguments()[1];

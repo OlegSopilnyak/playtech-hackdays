@@ -1,11 +1,11 @@
 package com.mobenga.hm.openbet.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.transport.ModuleWrapper;
 
 import java.io.Serializable;
 import java.util.List;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * DTO for batch configuration update
@@ -27,11 +27,11 @@ public class ConfigurationUpdate implements Serializable{
     }
 
     @JsonDeserialize(as = ModuleWrapper.class)
-    public HealthItemPK getModule() {
+    public ModulePK getModule() {
         return module;
     }
 
-    public void setModule(HealthItemPK module) {
+    public void setModule(ModulePK module) {
         this.module = new ModuleWrapper(module);
     }
 

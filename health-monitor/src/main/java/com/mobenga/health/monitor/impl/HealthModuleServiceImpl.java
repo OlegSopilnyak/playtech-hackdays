@@ -34,10 +34,6 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     @Value("${configuration.shared.modules.queue.name:'modules-store'}")
     private String moduleQueueName;
 
-    // distributed cached vontainers of module
-    private Map<String, ModuleWrapper> modulesCache;
-    private BlockingQueue<ModuleWrapper> storeQueue;
-
     @Autowired
     private ModuleStateNotificationService notifier;
 
@@ -48,43 +44,28 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     @Autowired
     private DistributedContainersService distributed;
 
-    @Override
-    protected Logger getLogger() {
-        return LOG;
-    }
+    // distributed cached vontainers of module
+    private Map<String, ModuleWrapper> modulesCache;
+    private BlockingQueue<ModuleWrapper> storeQueue;
 
-    public void initialize() {
-        super.start();
-    }
-
+    /**
+     * To get the value of Module's PK
+     *
+     * @return value of PK (not null)
+     */
     @Override
-    protected void beforeStart() {
-        modulesCache = distributed.map(moduleCacheName);
-        if (modulesCache.isEmpty()) {
-            LOG.info("It seems like it first run.");
-            storage.modulesList().forEach(m -> modulesCache.put(key(m), new ModuleWrapper(m)));
-        }
-        storeQueue = distributed.queue(moduleQueueName);
-    }
-
+    public ModulePK getModulePK() {return this;}
+    /**
+     * Represent module as a string
+     * @return string
+     */
     @Override
-    protected void afterStart() {
-        notifier.register(this);
-    }
+    public String toString() {return "-HealthModuleService-";}
+    
+    public void initialize() {super.start();}
 
     @Override
-    public void shutdown() {
-        super.shutdown();
-    }
-
-    @Override
-    protected void beforeStop() {
-    }
-
-    @Override
-    protected void afterStop() {
-        notifier.unRegister(this);
-    }
+    public void shutdown() {super.shutdown();}
 
     /**
      * To get cached module by real module
@@ -94,7 +75,7 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
      */
     @Override
     public ModulePK getModule(final ModulePK module) {
-        return modulesCache.computeIfAbsent(key(module), m -> {
+        return modulesCache.computeIfAbsent(key(module), (String mk) -> {
             final ModuleWrapper wrapper;
             storeQueue.offer(wrapper = new ModuleWrapper(module));
             return wrapper;
@@ -122,24 +103,12 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
         return modulesCache.values().stream().collect(Collectors.toList());
     }
 
-    /**
-     * To get the value of Module's PK
-     *
-     * @return value of PK (not null)
-     */
-    @Override
-    public ModulePK getModulePK() {
-        return this;
-    }
 
     /**
      * The handle to restart monitored service
      */
     @Override
-    public void restart() {
-        shutdown();
-        initialize();
-    }
+    public void restart() {this.shutdown(); this.initialize();}
 
     /**
      * To get current configuration of module
@@ -161,10 +130,26 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
         LOG.debug("Received changes ", changed);
     }
 
+    // redefined protected methods
     @Override
-    public String toString() {
-        return "-HealthModuleService-";
+    protected void beforeStart() {
+        modulesCache = distributed.map(moduleCacheName);
+        if (modulesCache.isEmpty()) {
+            LOG.info("It seems like it first run.");
+            storage.modulesList().forEach(m -> modulesCache.put(key(m), new ModuleWrapper(m)));
+        }
+        storeQueue = distributed.queue(moduleQueueName);
     }
+    @Override
+    protected void afterStart() {notifier.register(this);}
+
+    @Override
+    protected void beforeStop() {}
+    @Override
+    protected void afterStop() {notifier.unRegister(this);}
+
+    @Override
+    protected Logger getLogger() {return LOG;}
 
     @Override
     protected void serviceLoopIteration() {

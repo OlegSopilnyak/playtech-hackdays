@@ -2,7 +2,6 @@ package com.mobenga.hm.openbet.configuration.test;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.LogMessage;
 import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.monitor.DistributedContainersService;
@@ -19,6 +18,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * The configuration of mocked storage
@@ -94,16 +94,16 @@ public class MockedStorageConfiguration {
     @Bean
     public HealthModuleStorage createModuleStorage(){
         HealthModuleStorage storage = mock(HealthModuleStorage.class);
-//        when(storage.getModulePK(any(HealthItemPK.class))).then(new Answer<HealthItemPK>() {
+//        when(storage.getModulePK(any(ModulePK.class))).then(new Answer<HealthItemPK>() {
 //            @Override
-//            public HealthItemPK answer(InvocationOnMock invocationOnMock) throws Throwable {
+//            public ModulePK answer(InvocationOnMock invocationOnMock) throws Throwable {
 //                Object[] args = invocationOnMock.getArguments();
-//                return new ModuleStub((HealthItemPK) args[0]);
+//                return new ModuleStub((ModulePK) args[0]);
 //            }
 //        });
 //        when(storage.getModulePK(anyString())).then(new Answer<HealthItemPK>() {
 //            @Override
-//            public HealthItemPK answer(InvocationOnMock invocationOnMock) throws Throwable {
+//            public ModulePK answer(InvocationOnMock invocationOnMock) throws Throwable {
 //                Object[] args = invocationOnMock.getArguments();
 //                return new ModuleStub((String) args[0]);
 //            }
@@ -111,12 +111,12 @@ public class MockedStorageConfiguration {
         return storage;
     }
     // private inner classes
-    private static class ModuleStub implements HealthItemPK{
+    private static class ModuleStub implements ModulePK{
         private String sysId        ;
         private String appId;
         private String verId;
 
-        public ModuleStub(HealthItemPK module) {
+        public ModuleStub(ModulePK module) {
             sysId = module.getSystemId();
             appId = module.getApplicationId();
             verId = module.getVersionId();

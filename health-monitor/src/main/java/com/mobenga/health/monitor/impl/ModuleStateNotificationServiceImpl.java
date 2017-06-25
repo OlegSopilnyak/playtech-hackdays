@@ -43,7 +43,6 @@ public class ModuleStateNotificationServiceImpl extends AbstractRunningService i
     private HeartBeatStorage storage;
 
     @Autowired
-    @Qualifier("moduleConfigurationService")
     private ModuleConfigurationService configurationService;
 
     @Autowired
@@ -150,7 +149,6 @@ public class ModuleStateNotificationServiceImpl extends AbstractRunningService i
     @Override
     protected void afterStart() {
         register(this);
-        mainLoopLog.actionEnd();
     }
 
     public void stopService() {
@@ -159,10 +157,17 @@ public class ModuleStateNotificationServiceImpl extends AbstractRunningService i
 
     @Override
     protected void beforeStop() {
+        mainLoopLog.actionEnd();
     }
 
     @Override
     protected void afterStop() {
+        unRegister(this);
+    }
+    
+    @Override
+    protected void serviceLoopException(Throwable t) {
+        mainLoopLog.actionFail();
         unRegister(this);
     }
 
@@ -235,25 +240,17 @@ public class ModuleStateNotificationServiceImpl extends AbstractRunningService i
     }
 
     @Override
-    protected void serviceLoopIteration() {
+    protected void serviceLoopIteration() throws InterruptedException {
         if (isActive()) {
             heartBeat(mainLoopLog);
         }
         synchronized (healthMonitor) {
             if (isActive()) {
-                try {
-                    healthMonitor.wait(heartbeatDelay);
-                } catch (InterruptedException ex) {
-                    LOG.warn("Delay between modules scan was interrupted", ex);
-                }
+                healthMonitor.wait(heartbeatDelay);
             }
         }
     }
 
-    @Override
-    protected void serviceLoopException(Throwable t) {
-        mainLoopLog.actionFail();
-    }
 
     /**
      * For tests purposes

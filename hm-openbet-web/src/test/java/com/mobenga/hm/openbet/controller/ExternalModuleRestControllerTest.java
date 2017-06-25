@@ -3,7 +3,6 @@ package com.mobenga.hm.openbet.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HealthItemPK;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.hm.openbet.configuration.test.RestControllerTestConfiguration;
 import com.mobenga.hm.openbet.dto.*;
@@ -40,6 +39,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.mobenga.health.model.ModulePK;
 
 /**
  * Test of external module support rest service
@@ -85,7 +85,7 @@ public class ExternalModuleRestControllerTest {
     }
 
     private ExternalModulePing createPing(){
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn("externalModule");
         when(pk.getApplicationId()).thenReturn("config");
         when(pk.getVersionId()).thenReturn("0.5");
@@ -219,7 +219,7 @@ public class ExternalModuleRestControllerTest {
 
     @Test
     public void testSimpleChange() throws Exception {
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn("monitor");
         when(pk.getApplicationId()).thenReturn("config");
         when(pk.getVersionId()).thenReturn("0.5");
@@ -256,7 +256,7 @@ public class ExternalModuleRestControllerTest {
     }
     @Test
     public void testBatchChange() throws Exception {
-        HealthItemPK pk = mock(HealthItemPK.class);
+        ModulePK pk = mock(ModulePK.class);
         when(pk.getSystemId()).thenReturn("monitor");
         when(pk.getApplicationId()).thenReturn("config");
         when(pk.getVersionId()).thenReturn("0.55");
