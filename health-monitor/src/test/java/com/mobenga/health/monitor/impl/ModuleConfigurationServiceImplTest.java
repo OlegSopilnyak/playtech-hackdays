@@ -2,7 +2,7 @@ package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.ModulePK;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.HealthModuleService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
@@ -49,7 +49,7 @@ public class ModuleConfigurationServiceImplTest {
     @Spy
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
 
-    private final ModuleWrapper module = new ModuleWrapper();
+    private final ModuleKeyDto module = new ModuleKeyDto();
 
     @Before
     public void initCache() throws Exception {

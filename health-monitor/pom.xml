@@ -11,11 +11,11 @@
 
     <artifactId>health-monitor-common</artifactId>
     <groupId>com.mobenga</groupId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.6-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>HealthMonitorCommonClasses</name>
-
+    <description>Core classes of health monitor and configuration systems</description>
 
     <dependencies>
         <dependency>
@@ -43,13 +43,15 @@
             <artifactId>spring-data-commons</artifactId>
         </dependency>
     </dependencies>
-    <build>
-        <plugins>
 
+
+    <build>
+        
+        <finalName>${project.artifactId}</finalName>
+        <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.5.1</version>
+                <version>${maven-compiler-plugin-version}</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -58,4 +60,22 @@
         </plugins>
 
     </build>
+    
+    <profiles>
+        <profile>
+            <id>test</id>
+            <activation>
+                <property>
+                    <name>environment</name>
+                    <value>dev</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                </plugins>
+            </build>
+            <dependencies>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>

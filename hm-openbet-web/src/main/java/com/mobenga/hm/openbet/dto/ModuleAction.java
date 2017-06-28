@@ -7,6 +7,8 @@ import java.util.List;
  * Transport object for module actions joint
  */
 public class ModuleAction  implements Serializable{
+
+    private static final long serialVersionUID = 788030296303559806L;
     private String description;
     private String state;
     private long duration;

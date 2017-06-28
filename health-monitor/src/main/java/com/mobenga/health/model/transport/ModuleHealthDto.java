@@ -1,18 +1,21 @@
 package com.mobenga.health.model.transport;
 
 import com.mobenga.health.model.ModulePK;
+import java.io.Serializable;
 
 /**
  * Transport object for module's health
  */
-public class ModuleHealthItem implements ModulePK{
+public class ModuleHealthDto implements ModulePK, Serializable{
+
+    private static final long serialVersionUID = -2049959624478697903L;
     // the ID of the system
     private String systemId;
-    // the ID of the application
+    // the ID of the module
     private String applicationId;
-    // the ID of application's version
+    // the ID of module's version
     private String versionId;
-    // The description of the application
+    // The description of the module
     private String description;
     // Flag is module active now
     private boolean active;
@@ -21,10 +24,10 @@ public class ModuleHealthItem implements ModulePK{
         return systemId;
     }
 
-    public ModuleHealthItem() {
+    public ModuleHealthDto() {
     }
 
-    public ModuleHealthItem(ModulePK module, boolean active) {
+    public ModuleHealthDto(ModulePK module, boolean active) {
         systemId = module.getSystemId();
         applicationId = module.getApplicationId();
         versionId = module.getVersionId();

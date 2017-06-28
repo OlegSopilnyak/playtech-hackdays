@@ -3,7 +3,7 @@ package com.mobenga.health.monitor.impl;
 import com.mobenga.health.model.*;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
-import com.mobenga.health.model.transport.ModuleHealthItem;
+import com.mobenga.health.model.transport.ModuleHealthDto;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleMonitoringService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
@@ -112,7 +112,7 @@ public class ModuleStateNotificationServiceImpl extends AbstractRunningService i
      * @return the list of module states
      */
     @Override
-    public List<ModuleHealthItem> getSystemHealth() {
+    public List<ModuleHealthDto> getSystemHealth() {
         return storage.getSystemHealth();
     }
 
@@ -167,7 +167,7 @@ public class ModuleStateNotificationServiceImpl extends AbstractRunningService i
     
     @Override
     protected void serviceLoopException(Throwable t) {
-        mainLoopLog.actionFail();
+        if (!Objects.isNull(mainLoopLog)) mainLoopLog.actionFail();
         unRegister(this);
     }
 

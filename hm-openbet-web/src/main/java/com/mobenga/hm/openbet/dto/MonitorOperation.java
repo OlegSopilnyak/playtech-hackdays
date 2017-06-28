@@ -10,7 +10,8 @@ import java.text.SimpleDateFormat;
  * Transport class for monitored operation
  */
 public class MonitorOperation implements Serializable{
-    private final static SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    private final static SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    private static final long serialVersionUID = 1845357065706019461L;
     private String time;
     private String type;
     private String customer;
@@ -25,7 +26,7 @@ public class MonitorOperation implements Serializable{
     }
 
     public MonitorOperation(OpenBetOperation operation, MonitoredAction monitoredAction) {
-        time = timeFormat.format(monitoredAction.getStart());
+        time = TIME_FORMAT.format(monitoredAction.getStart());
         type = operation.getType().name();
         customer = operation.getCustomerId();
         bet = operation.getReceipt();

@@ -10,6 +10,8 @@ import java.util.StringTokenizer;
  * The entity to keep information about module. The owner of monitored-action and heard-beats<BR/>
  */
 public class StructureModuleEntity implements ModulePK, ValidatingEntity, Cloneable, StringEntity  {
+
+    private static final long serialVersionUID = 1048253612582366971L;
     // the ID of module-descriptor
     private String id;
 

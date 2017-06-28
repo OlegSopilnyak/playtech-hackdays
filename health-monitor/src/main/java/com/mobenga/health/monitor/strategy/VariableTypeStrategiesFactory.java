@@ -12,13 +12,13 @@ import java.util.Map;
 /**
  * The factory of strategies
  */
-public class VariableTypeStrategies {
-    private static final Map<ConfiguredVariableItem.Type, VariableTypeStrategy> strategyMap = new HashMap<>();
+public class VariableTypeStrategiesFactory {
+    private static final Map<ConfiguredVariableItem.Type, VariableTypeStrategy> STRATEGIES_MAP = new HashMap<>();
     static {
-        strategyMap.put(ConfiguredVariableItem.Type.STRING, new StringVariableTypeStrategy());
-        strategyMap.put(ConfiguredVariableItem.Type.INTEGER, new IntegerVariableTypeStrategy());
-        strategyMap.put(ConfiguredVariableItem.Type.DOUBLE, new DoubleVariableTypeStrategy());
-        strategyMap.put(ConfiguredVariableItem.Type.TIME_STAMP, new TimeStampVariableTypeStrategy());
+        STRATEGIES_MAP.put(ConfiguredVariableItem.Type.STRING, new StringVariableTypeStrategy());
+        STRATEGIES_MAP.put(ConfiguredVariableItem.Type.INTEGER, new IntegerVariableTypeStrategy());
+        STRATEGIES_MAP.put(ConfiguredVariableItem.Type.DOUBLE, new DoubleVariableTypeStrategy());
+        STRATEGIES_MAP.put(ConfiguredVariableItem.Type.TIME_STAMP, new TimeStampVariableTypeStrategy());
     }
     /**
      * To get the instance of strategy by type
@@ -27,7 +27,7 @@ public class VariableTypeStrategies {
      * @return strategy or IllegalArgumentException if wrong type
      */
     public static VariableTypeStrategy get(ConfiguredVariableItem.Type type){
-        final VariableTypeStrategy strategy = strategyMap.get(type);
+        final VariableTypeStrategy strategy = STRATEGIES_MAP.get(type);
         if (strategy == null){
             throw new IllegalArgumentException("No strtegy for type:"+type);
         }

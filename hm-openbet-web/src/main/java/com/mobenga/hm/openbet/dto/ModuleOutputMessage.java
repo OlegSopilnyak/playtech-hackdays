@@ -6,6 +6,8 @@ import java.io.Serializable;
  * The output message from module
  */
 public class ModuleOutputMessage implements Serializable{
+
+    private static final long serialVersionUID = 198237012138537298L;
     // the type of output message
     String messageType;
     // date-time when action related to message was occurred

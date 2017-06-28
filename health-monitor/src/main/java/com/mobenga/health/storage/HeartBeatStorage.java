@@ -1,6 +1,6 @@
 package com.mobenga.health.storage;
 
-import com.mobenga.health.model.transport.ModuleHealthItem;
+import com.mobenga.health.model.transport.ModuleHealthDto;
 import com.mobenga.health.monitor.behavior.ModuleHealth;
 
 import java.util.List;
@@ -31,5 +31,5 @@ public interface HeartBeatStorage {
      *
      * @return list of states
      */
-    List<ModuleHealthItem> getSystemHealth();
+    List<ModuleHealthDto> getSystemHealth();
 }

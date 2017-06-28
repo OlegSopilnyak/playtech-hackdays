@@ -3,7 +3,7 @@ package com.mobenga.health.monitor;
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.model.ModulePK;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
 
 /**
  * The service to monitor actions of the module
@@ -14,7 +14,7 @@ public interface ModuleMonitoringService extends MonitoredService{
     // ignore-modules configurable parameter
     String IGNORE_MODULES_NAME = "ignoreModules";
     ConfiguredVariableItem IGRNORE_MODULES = 
-            new LocalConfiguredVariableItem(IGNORE_MODULES_NAME, "The set of modules to ignore save actions for.", "none");
+            new ConfiguredVariableItemDto(IGNORE_MODULES_NAME, "The set of modules to ignore save actions for.", "none");
     String IGNORE_MODULES_FULL_NAME = PARAMS_PACKAGE + "." + IGNORE_MODULES_NAME;
 
     // Declare main parameters of the module

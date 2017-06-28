@@ -6,8 +6,8 @@ import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.UniqueIdGenerator;
 import com.mobenga.health.model.factory.impl.TimeServiceImpl;
 import com.mobenga.health.model.factory.impl.UniqueIdGeneratorImpl;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleConfigurationService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
@@ -74,7 +74,7 @@ public class ModuleStateNotificationServiceImplTest {
     @Mock
     private ModuleConfigurationService configuration;
 
-    private final ModuleWrapper module = new ModuleWrapper();
+    private final ModuleKeyDto module = new ModuleKeyDto();
     private final MonitoredService state = mockState();
 
     public ModuleStateNotificationServiceImplTest() {
@@ -110,7 +110,7 @@ public class ModuleStateNotificationServiceImplTest {
 
         final Object semaphore = new Object();
         Map<String, ConfiguredVariableItem> updatedConfiguration = new HashMap<>();
-        updatedConfiguration.put("1.1.1.1.1.none", new LocalConfiguredVariableItem("none","Testing variable","Hello"));
+        updatedConfiguration.put("1.1.1.1.1.none", new ConfiguredVariableItemDto("none","Testing variable","Hello"));
 
         when(configuration.getUpdatedVariables(eq(state.getModulePK()), any(Map.class))).then(new Answer<Map>() {
             @Override
@@ -138,7 +138,7 @@ public class ModuleStateNotificationServiceImplTest {
         final Object semaphore = new Object();
 
         Map<String, ConfiguredVariableItem> updatedConfiguration = new HashMap<>();
-        updatedConfiguration.put("1.1.1.1.1.none", new LocalConfiguredVariableItem("none","Testing variable","Hello"));
+        updatedConfiguration.put("1.1.1.1.1.none", new ConfiguredVariableItemDto("none","Testing variable","Hello"));
 
         when(configuration.getUpdatedVariables(eq(state.getModulePK()), any(Map.class))).then(new Answer<Map>() {
             @Override

@@ -1,7 +1,7 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.HealthModuleService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
@@ -45,8 +45,8 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     private DistributedContainersService distributed;
 
     // distributed cached vontainers of module
-    private Map<String, ModuleWrapper> modulesCache;
-    private BlockingQueue<ModuleWrapper> storeQueue;
+    private Map<String, ModuleKeyDto> modulesCache;
+    private BlockingQueue<ModuleKeyDto> storeQueue;
 
     /**
      * To get the value of Module's PK
@@ -76,8 +76,8 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     @Override
     public ModulePK getModule(final ModulePK module) {
         return modulesCache.computeIfAbsent(key(module), (String mk) -> {
-            final ModuleWrapper wrapper;
-            storeQueue.offer(wrapper = new ModuleWrapper(module));
+            final ModuleKeyDto wrapper;
+            storeQueue.offer(wrapper = new ModuleKeyDto(module));
             return wrapper;
         });
     }
@@ -136,7 +136,7 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
         modulesCache = distributed.map(moduleCacheName);
         if (modulesCache.isEmpty()) {
             LOG.info("It seems like it first run.");
-            storage.modulesList().forEach(m -> modulesCache.put(key(m), new ModuleWrapper(m)));
+            storage.modulesList().forEach(m -> modulesCache.put(key(m), new ModuleKeyDto(m)));
         }
         storeQueue = distributed.queue(moduleQueueName);
     }
@@ -154,7 +154,7 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     @Override
     protected void serviceLoopIteration() {
         try {
-            final ModuleWrapper module = storeQueue.poll(100, TimeUnit.MILLISECONDS);
+            final ModuleKeyDto module = storeQueue.poll(100, TimeUnit.MILLISECONDS);
             if (module != null) {
                 storage.save(module);
             }

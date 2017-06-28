@@ -13,6 +13,7 @@ import java.util.StringTokenizer;
  */
 public final class MonitoredActionEntity extends MonitoredAction implements ValidatingEntity, Cloneable, StringEntity {
     private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private static final long serialVersionUID = 8378069061455031782L;
     // the PK of entity
     private String id;
 

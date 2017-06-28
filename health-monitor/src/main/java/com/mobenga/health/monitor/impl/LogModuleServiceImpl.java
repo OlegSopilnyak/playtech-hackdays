@@ -4,7 +4,7 @@ import com.mobenga.health.model.*;
 import com.mobenga.health.model.factory.TimeService;
 import com.mobenga.health.model.factory.UniqueIdGenerator;
 import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.storage.ModuleOutputStorage;
@@ -107,9 +107,9 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
     public void stopService(){super.shutdown();}
     
     @Override
-    protected void beforeStop() {}
+    protected void beforeStop() {distributedStorageQueue = null;}
     @Override
-    protected void afterStop() {notifier.unRegister(this);}
+    protected void afterStop() {offlineQueue.clear(); notifier.unRegister(this);}
 
     /**
      * To create the Device for module's output
@@ -210,9 +210,17 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
 
     @Override
     protected void serviceLoopIteration() throws InterruptedException {
+        if (!isActive()) {
+            return;
+        }
+        
         final Event event = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
         if (!Objects.isNull(event)) {
-            event.save(this);
+            if (isActive()) {
+                event.save(this);
+            } else {
+                distributedStorageQueue.put(event);
+            }
         }
     }
 
@@ -247,9 +255,9 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
 
         private static final long serialVersionUID = 6538641586708962438L;
         // event's parameters
-        protected final ModuleWrapper module;
+        protected final ModuleKeyDto module;
 
-        public Event(ModulePK module) {this.module = new ModuleWrapper(module);}
+        public Event(ModulePK module) {this.module = new ModuleKeyDto(module);}
         /**
          * To save the values of event
          * @param service log-service instance
@@ -320,6 +328,10 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         }
 
         @Override
+        public boolean isActive() {
+            return LogModuleServiceImpl.this.isActive();
+        }
+        @Override
         protected void asyncOutput(ModulePK module, MonitoredAction action, Object... arguments) {
             LOG.debug("Output from module '{}'", module);
             try {
@@ -347,7 +359,7 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
             action.setState(MonitoredAction.State.INIT);
             action.setStart(timeService.now());
             try {
-                distributedQueue().put(new ActionEvent(new ModuleWrapper(module), action.copy()));
+                distributedQueue().put(new ActionEvent(new ModuleKeyDto(module), action.copy()));
             } catch (InterruptedException ex) {
                 LOG.error("Cannot transfer new action", ex);
             }
@@ -367,10 +379,11 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
                     break;
             }
             try {
-                distributedQueue().put(new ActionEvent(new ModuleWrapper(module), action.copy()));
+                distributedQueue().put(new ActionEvent(new ModuleKeyDto(module), action.copy()));
             } catch (InterruptedException ex) {
                 LOG.error("Cannot transfer updates of action", ex);
             }
         }
+
     }
 }

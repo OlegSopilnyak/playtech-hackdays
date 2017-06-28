@@ -13,7 +13,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>war</packaging>
 
-    <name>hm-openbet-web</name>
+    <name>WebModuleToShowBetOperations</name>
 
 
     <dependencies>

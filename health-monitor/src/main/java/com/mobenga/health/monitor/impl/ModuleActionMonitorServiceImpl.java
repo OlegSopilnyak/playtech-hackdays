@@ -2,7 +2,7 @@ package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.MonitoredAction;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleMonitoringService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 import static com.mobenga.health.HealthUtils.key;
 import com.mobenga.health.model.ModulePK;
-import java.util.function.Consumer;
 
 /**
  * realization of core monitoring service
@@ -87,6 +86,7 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
 
     @Override
     protected void beforeStop() {
+        distributedStorageQueue = null;
         templateAction = null;
     }
 
@@ -122,6 +122,8 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
      */
     @Override
     public void actionMonitoring(ModulePK module, MonitoredAction action) {
+        if (!isActive()) return;
+        
         if (!moduleIsIgnored(module)) {
             distributedStorageQueue.offer(new StoreActionWrapper(module, action));
         }
@@ -167,6 +169,8 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
 
     @Override
     protected void serviceLoopIteration() throws InterruptedException {
+        if (!isActive()) return;
+        
         final StoreActionWrapper wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
         if (wrappedAction != null) {
             LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
@@ -204,11 +208,11 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
 
         private static final long serialVersionUID = -6242682305211719324L;
 
-        final ModuleWrapper module;
+        final ModuleKeyDto module;
         final MonitoredAction action;
 
         public StoreActionWrapper(ModulePK module, MonitoredAction action) {
-            this.module = new ModuleWrapper(module);
+            this.module = new ModuleKeyDto(module);
             this.action = action;
         }
     }

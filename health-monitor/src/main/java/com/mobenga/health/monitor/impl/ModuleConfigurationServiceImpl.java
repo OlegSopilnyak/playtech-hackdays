@@ -1,8 +1,8 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.*;
 import com.mobenga.health.storage.ConfigurationStorage;
 import org.slf4j.Logger;
@@ -239,7 +239,7 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
         ConfiguredVariableItem item;
         if ((item = configuration.get(path)) == null){
             String parts[] = path.split("\\.");
-            item = new LocalConfiguredVariableItem(parts[parts.length-1], "Ad hoc updated by operator", value );
+            item = new ConfiguredVariableItemDto(parts[parts.length-1], "Ad hoc updated by operator", value );
         }else {
             item.set(value);
         }
@@ -317,10 +317,10 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
     private static abstract class StoreEvent implements Serializable{
 
         private static final long serialVersionUID = -3402253351758269847L;
-        protected final ModuleWrapper module;
+        protected final ModuleKeyDto module;
         protected final Map<String, ConfiguredVariableItem> configuration;
         public StoreEvent(ModulePK module, Map<String, ConfiguredVariableItem> configuration){
-            this.module = new ModuleWrapper(module);
+            this.module = new ModuleKeyDto(module);
             this.configuration = new HashMap<>(configuration);
         }
         public abstract void storeData(final ModuleConfigurationServiceImpl service);

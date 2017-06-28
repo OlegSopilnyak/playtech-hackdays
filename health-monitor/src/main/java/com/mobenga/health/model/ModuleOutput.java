@@ -142,7 +142,7 @@ public interface ModuleOutput {
     }
 
     /**
-     * The criteria of module's ouput selection
+     * The criteria of module's output selection
      */
     interface Criteria {
         /**
@@ -172,14 +172,14 @@ public interface ModuleOutput {
         String[] getActionIds();
 
         /**
-         * select all entities which happined after the date
+         * select all entities which happened after the date
          *
          * @return the value or null if ignored
          */
         Date getMoreThan();
 
         /**
-         * select all entities which happend before the date
+         * select all entities which happened before the date
          *
          * @return the value or null if ignored
          */

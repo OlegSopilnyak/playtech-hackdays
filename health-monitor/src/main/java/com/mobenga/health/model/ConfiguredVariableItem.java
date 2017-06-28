@@ -1,6 +1,6 @@
 package com.mobenga.health.model;
 
-import com.mobenga.health.monitor.strategy.VariableTypeStrategies;
+import com.mobenga.health.monitor.strategy.VariableTypeStrategiesFactory;
 import com.mobenga.health.monitor.strategy.VariableTypeStrategy;
 
 import java.io.Serializable;
@@ -23,18 +23,18 @@ public abstract class ConfiguredVariableItem implements Serializable {
     private ConfiguredVariableItem(String name, String description, Object value, Type type) {
         this(name, description, type);
         Objects.requireNonNull(value);
-        setValue(strategy.toString(value));
+        this.setValue(strategy.toString(value));
     }
 
     public ConfiguredVariableItem(String name, String description, Type type) {
         Objects.requireNonNull(name);
         Objects.requireNonNull(description);
         Objects.requireNonNull(type);
-        setName(name);
-        setDescription(description);
-        setType(type);
-        strategy = VariableTypeStrategies.get(type);
-        setValue(strategy.defaultValue());
+        this.setName(name);
+        this.setDescription(description);
+        this.setType(type);
+        this.strategy = VariableTypeStrategiesFactory.get(type);
+        this.setValue(strategy.defaultValue());
     }
 
     public ConfiguredVariableItem(String name, String description, String value) {

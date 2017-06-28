@@ -1,8 +1,8 @@
 package com.mobenga.health.monitor.impl;
 
 import com.mobenga.health.model.*;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
 import org.junit.Test;
@@ -136,7 +136,7 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
-        pk = new ModuleWrapper(pk);
+        pk = new ModuleKeyDto(pk);
 
         final LogMessage output = mock(LogMessage.class);
         when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
@@ -170,7 +170,7 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
-        pk = new ModuleWrapper(pk);
+        pk = new ModuleKeyDto(pk);
 
         final LogMessage output = mock(LogMessage.class);
         when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
@@ -214,7 +214,7 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
-        pk = new ModuleWrapper(pk);
+        pk = new ModuleKeyDto(pk);
 
         final LogMessage output = mock(LogMessage.class);
         when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
@@ -255,7 +255,7 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
-        pk = new ModuleWrapper(pk);
+        pk = new ModuleKeyDto(pk);
 
         final LogMessage output = mock(LogMessage.class);
         when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
@@ -301,7 +301,7 @@ public class LogModuleServiceImplTest {
         when(pk.getApplicationId()).thenReturn(application);
         when(pk.getVersionId()).thenReturn(version);
         when(pk.getDescription()).thenReturn(description);
-        pk = new ModuleWrapper(pk);
+        pk = new ModuleKeyDto(pk);
 
         final LogMessage output = mock(LogMessage.class);
         when(storage.createModuleOutput(eq(pk), eq(LogMessage.OUTPUT_TYPE))).thenReturn(output);
@@ -368,7 +368,7 @@ public class LogModuleServiceImplTest {
     @Test
     public void configurationChanged() throws Exception {
         final String VarKey = LogModuleServiceImpl.IGNORE_MODULES_FULL_NAME;
-        final LocalConfiguredVariableItem item = new LocalConfiguredVariableItem(LogModuleServiceImpl.IGNORE_MODULES_NAME, "test", "VarKey");
+        final ConfiguredVariableItemDto item = new ConfiguredVariableItemDto(LogModuleServiceImpl.IGNORE_MODULES_NAME, "test", "VarKey");
         Map<String, ConfiguredVariableItem> changed = new HashMap<>();
         changed.put(VarKey, item);
         assertNotEquals("VarKey", service.getConfiguration().get(VarKey).get(String.class));

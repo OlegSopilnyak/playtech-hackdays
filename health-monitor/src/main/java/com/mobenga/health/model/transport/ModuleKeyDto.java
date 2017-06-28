@@ -8,7 +8,7 @@ import com.mobenga.health.model.ModulePK;
 /**
  * Wrapper for module to transport
  */
-public class ModuleWrapper implements ModulePK, Serializable {
+public class ModuleKeyDto implements ModulePK, Serializable {
 
     private static final long serialVersionUID = 2636625287244847952L;
     private String systemId;
@@ -16,10 +16,10 @@ public class ModuleWrapper implements ModulePK, Serializable {
     private String versionId;
     private String description;
 
-    public ModuleWrapper() {
+    public ModuleKeyDto() {
     }
 
-    public ModuleWrapper(ModulePK module) {
+    public ModuleKeyDto(ModulePK module) {
         this.systemId = module.getSystemId();
         this.applicationId = module.getApplicationId();
         this.versionId = module.getVersionId();

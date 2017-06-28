@@ -2,7 +2,7 @@ package com.mobenga.health.monitor.impl;
 
 import static com.mobenga.health.HealthUtils.key;
 import com.mobenga.health.model.ModulePK;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.storage.HealthModuleStorage;
@@ -53,7 +53,7 @@ public class HealthModuleServiceImplTest {
 
     @Test
     public void testGetModulePK() {
-        ModulePK expResult = new ModuleWrapper(instance);
+        ModulePK expResult = new ModuleKeyDto(instance);
         ModulePK result = instance.getModulePK();
         assertEquals(expResult, result);
     }
@@ -75,7 +75,7 @@ public class HealthModuleServiceImplTest {
 
     @Test
     public void testGetModule_String() {
-        ModulePK expResult = new ModuleWrapper(instance.getModulePK());
+        ModulePK expResult = new ModuleKeyDto(instance.getModulePK());
         String moduleId = key(instance.getModule(instance.getModulePK()));
         ModulePK result = instance.getModule(moduleId);
         assertEquals(expResult, result);

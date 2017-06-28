@@ -2,8 +2,8 @@ package com.mobenga.health.monitor;
 
 import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.HeartBeat;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
-import com.mobenga.health.model.transport.ModuleHealthItem;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
+import com.mobenga.health.model.transport.ModuleHealthDto;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ public interface ModuleStateNotificationService extends MonitoredService {
     // HeartBeat delay for Modules StateNotificationService
     String HB_DELAY_NAME = "delay";
     ConfiguredVariableItem HB_DELAY = 
-            new LocalConfiguredVariableItem(HB_DELAY_NAME, "The delay between heart beats", HeartBeat.DELAY);
+            new ConfiguredVariableItemDto(HB_DELAY_NAME, "The delay between heart beats", HeartBeat.DELAY);
     String HB_DELAY_FULL_NAME = PARAMS_PACKAGE + "." + HB_DELAY_NAME;
     
     /**
@@ -77,5 +77,5 @@ public interface ModuleStateNotificationService extends MonitoredService {
      *
      * @return the list of module states
      */
-    List<ModuleHealthItem> getSystemHealth();
+    List<ModuleHealthDto> getSystemHealth();
 }

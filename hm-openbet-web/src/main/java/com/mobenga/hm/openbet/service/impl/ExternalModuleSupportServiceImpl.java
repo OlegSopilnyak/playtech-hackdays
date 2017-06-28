@@ -156,7 +156,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Override
     public List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update) {
         LOG.debug("Request batch change configuration from '{}' for '{}'", update.getHost(), update.getModule());
-        final HealthItemPK module = update.getModule();
+        final ModulePK module = update.getModule();
         final Map<String, ConfiguredVariableItem> updated, updating = new HashMap<>();
         update.getUpdated().forEach(item -> {
             final String pack[] = item.getPath().split("\\.");
@@ -295,7 +295,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     // store output from ping
     private void storePing(ExternalModulePing ping){
         LOG.debug("Processing ping from '{}'", ping.getHost());
-        final HealthItemPK pk = modules.getModule(ping.getModule());
+        final ModulePK pk = modules.getModule(ping.getModule());
 
         // process heart-beat
         LOG.debug("Processing state of module '{}'", ping.getState());

@@ -12,6 +12,8 @@ import java.util.Date;
  */
 public class ModuleOutputCriteriaBase implements ModuleOutput.Criteria, Serializable {
 
+    private static final long serialVersionUID = -6356691990805101060L;
+
     protected String outputId;
     protected String type;
     protected String modulePK;
@@ -60,7 +62,7 @@ public class ModuleOutputCriteriaBase implements ModuleOutput.Criteria, Serializ
     }
 
     /**
-     * select all entities which happined after the date
+     * select all entities which happened after the date
      *
      * @return the value or null if ignored
      */
@@ -70,7 +72,7 @@ public class ModuleOutputCriteriaBase implements ModuleOutput.Criteria, Serializ
     }
 
     /**
-     * select all entities which happend before the date
+     * select all entities which happened before the date
      *
      * @return the value or null if ignored
      */

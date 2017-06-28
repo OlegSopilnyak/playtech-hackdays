@@ -151,6 +151,12 @@
                 <artifactId>annotations</artifactId>
                 <version>13.0</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.1</version>
+                <type>maven-plugin</type>
+            </dependency>        
         </dependencies>
     </dependencyManagement>
 
@@ -159,7 +165,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.5.1</version>
+                <version>${maven-compiler-plugin-version}</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -169,6 +175,7 @@
     </build>
 
     <properties>
+        <maven-compiler-plugin-version>3.6.1</maven-compiler-plugin-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <platform.version>3.65</platform.version>
         <cucumber.version>1.1.1</cucumber.version>

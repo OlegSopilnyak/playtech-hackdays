@@ -11,6 +11,7 @@ import java.util.StringTokenizer;
  */
 public class LogMessageEntity extends LogMessage implements StringEntity, Cloneable {
     private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
+    private static final long serialVersionUID = 6631223050471982892L;
     /**
      * The name of storage for this sort of beans
      *
@@ -63,6 +64,7 @@ public class LogMessageEntity extends LogMessage implements StringEntity, Clonea
         }
     }
 
+    @Override
     public ModuleOutput setModulePK(String modulePK) {
         super.modulePK = modulePK;
         return this;

@@ -4,7 +4,7 @@ import com.mobenga.health.model.ConfiguredVariableItem;
 import com.mobenga.health.model.ModuleOutput;
 import com.mobenga.health.model.ModulePK;
 import com.mobenga.health.model.MonitoredAction;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,7 +18,7 @@ public interface ModuleLoggerDeviceFactory extends ModuleOutput.DeviceFactory, M
     String PARAMS_PACKAGE = "health.monitor.service.module.output.log";
     String IGNORE_MODULES_NAME = "ignoreModules";
     ConfiguredVariableItem IGNORE_MODULES
-            = new LocalConfiguredVariableItem(IGNORE_MODULES_NAME, "The set of modules to ignore logging for.", "none");
+            = new ConfiguredVariableItemDto(IGNORE_MODULES_NAME, "The set of modules to ignore logging for.", "none");
     // canonical name of configured parameter
     String IGNORE_MODULES_FULL_NAME = PARAMS_PACKAGE + "." + IGNORE_MODULES_NAME;
 
@@ -95,6 +95,10 @@ public interface ModuleLoggerDeviceFactory extends ModuleOutput.DeviceFactory, M
         public void associate(MonitoredAction newAction) {
             try {
                 actionLock.lock();
+                if (!isActive()) {
+                    return;
+                }
+
                 if (newAction != null) {
                     asyncInitMonitoredAction(module, newAction);
                 }
@@ -113,6 +117,10 @@ public interface ModuleLoggerDeviceFactory extends ModuleOutput.DeviceFactory, M
         public void associate(String actionDescription) {
             try {
                 actionLock.lock();
+                if (!isActive()) {
+                    return;
+                }
+
                 final MonitoredAction newAction = createMonitoredAction();
                 newAction.setDescription(actionDescription);
                 asyncInitMonitoredAction(module, newAction);
@@ -142,6 +150,10 @@ public interface ModuleLoggerDeviceFactory extends ModuleOutput.DeviceFactory, M
          */
         @Override
         public void actionBegin() {
+            if (!isActive()) {
+                return;
+            }
+
             if (Objects.isNull(action)) {
                 return;
             }
@@ -159,6 +171,10 @@ public interface ModuleLoggerDeviceFactory extends ModuleOutput.DeviceFactory, M
          */
         @Override
         public void actionEnd() {
+            if (!isActive()) {
+                return;
+            }
+
             if (Objects.isNull(action)) {
                 return;
             }
@@ -176,6 +192,10 @@ public interface ModuleLoggerDeviceFactory extends ModuleOutput.DeviceFactory, M
          */
         @Override
         public void actionFail() {
+            if (!isActive()) {
+                return;
+            }
+
             if (Objects.isNull(action)) {
                 return;
             }
@@ -187,6 +207,13 @@ public interface ModuleLoggerDeviceFactory extends ModuleOutput.DeviceFactory, M
             }
 
         }
+
+        /**
+         * To check is logger active
+         *
+         * @return true if active
+         */
+        public abstract boolean isActive();
 
         /**
          * Asynchronous output of logger
