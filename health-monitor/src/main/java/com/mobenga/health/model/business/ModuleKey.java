@@ -1,12 +1,9 @@
-package com.mobenga.health.model;
-
-import java.io.Serializable;
+package com.mobenga.health.model.business;
 
 /**
- * Interface of PK for any Health items
+ * Interface of PK for any Health items (module)
  */
-//@JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, include=JsonTypeInfo.As.PROPERTY, property="@class")
-public interface ModulePK {
+public interface ModuleKey {
     // the name of storage item (table/index-type/etc)
     String STORAGE_NAME = "health-pk";
     /**

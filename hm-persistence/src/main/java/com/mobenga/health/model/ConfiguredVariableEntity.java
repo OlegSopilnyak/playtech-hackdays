@@ -1,7 +1,8 @@
 package com.mobenga.health.model;
 
+import com.mobenga.health.model.business.ConfiguredVariableItem;
 import com.mobenga.health.model.persistence.ValidatingEntity;
-import com.mobenga.health.monitor.strategy.VariableTypeStrategies;
+import com.mobenga.health.monitor.strategy.VariableTypeStrategiesFactory;
 import org.springframework.util.StringUtils;
 
 import java.util.StringTokenizer;
@@ -93,7 +94,7 @@ public class ConfiguredVariableEntity extends ConfiguredVariableItem implements 
         recovered.setType(Type.valueOf(st.nextToken()));
         recovered.setVersion(Integer.parseInt(st.nextToken()));
         recovered.setValue(st.nextToken());
-        recovered.strategy = VariableTypeStrategies.get(recovered.getType());
+        recovered.strategy = VariableTypeStrategiesFactory.get(recovered.getType());
         return recovered;
     }
 
@@ -136,7 +137,7 @@ public class ConfiguredVariableEntity extends ConfiguredVariableItem implements 
     @Override
     public void setType(Type type) {
         entity.put("type", type);
-        strategy = VariableTypeStrategies.get(type);
+        strategy = VariableTypeStrategiesFactory.get(type);
     }
     public String getId() {
         return (String) entity.get("id");

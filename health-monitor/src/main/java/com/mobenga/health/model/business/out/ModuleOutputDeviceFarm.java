@@ -1,21 +1,21 @@
-package com.mobenga.health.model.factory.impl;
+package com.mobenga.health.model.business.out;
 
-import com.mobenga.health.model.ModuleOutput;
+import com.mobenga.health.model.business.ModuleKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
-import com.mobenga.health.model.ModulePK;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The factory of outputs (devices to output information from module)
+ * The farm of modules output factories which create devices to output information from module
  */
-public class ModuleOutputDeviceFactory {
+public class ModuleOutputDeviceFarm {
     // the farm of factories by output types
-    private  static final Map<String, ModuleOutput.DeviceFactory> farm = new HashMap<>();
-    // standart logger
-    private static final Logger LOG = LoggerFactory.getLogger(ModuleOutputDeviceFactory.class);
+    private  static final Map<String, ModuleOutputDevice.Factory> farm = new ConcurrentHashMap<>();
+    // standard slf4j logger
+    private static final Logger LOG = LoggerFactory.getLogger(ModuleOutputDeviceFarm.class);
+
     /**
      * To get the device for appropriate module and particular type
      *
@@ -23,9 +23,9 @@ public class ModuleOutputDeviceFactory {
      * @param type requested type of output
      * @return the instance or null if not supported
      */
-    public static ModuleOutput.Device getDevice(ModulePK module, String type){
+    public static ModuleOutputDevice getDevice(ModuleKey module, String type){
         LOG.debug("Creating output device type '{}'  for module '{}'", type, module);
-        final ModuleOutput.DeviceFactory factory = farm.get(type);
+        final ModuleOutputDevice.Factory factory = farm.get(type);
         return factory == null ? null : factory.create(module);
     }
 
@@ -34,7 +34,7 @@ public class ModuleOutputDeviceFactory {
      *
      * @param factory factory to register
      */
-    public static void registerDeviceFactory(ModuleOutput.DeviceFactory factory){
+    public static void registerDeviceFactory(ModuleOutputDevice.Factory factory){
         LOG.debug("Registering devices factory '{}'", factory);
         farm.put(factory.getType(), factory);
     }
@@ -46,8 +46,8 @@ public class ModuleOutputDeviceFactory {
      * @param type type of output
      * @return true if ignored
      */
-    public static boolean isModuleIgnored(ModulePK module, String type){
-        final ModuleOutput.DeviceFactory factory = farm.get(type);
+    public static boolean isModuleIgnored(ModuleKey module, String type){
+        final ModuleOutputDevice.Factory factory = farm.get(type);
         return factory == null ? true : factory.isModuleIgnored(module);
     }
 }

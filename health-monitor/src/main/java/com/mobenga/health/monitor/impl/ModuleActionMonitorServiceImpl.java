@@ -1,8 +1,10 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.business.MonitoredAction;
 import com.mobenga.health.model.transport.ModuleKeyDto;
+import com.mobenga.health.model.transport.MonitoredActionDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleMonitoringService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
@@ -13,14 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * realization of core monitoring service
@@ -31,6 +31,8 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
 
     private static final Logger LOG = LoggerFactory.getLogger(ModuleActionMonitorServiceImpl.class);
 
+    private final MonitoredActionDto templateAction = new MonitoredActionDto();
+
     @Autowired
     private MonitoredActionStorage storage;
 
@@ -40,8 +42,6 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
     @Autowired
     private DistributedContainersService distributed;
 
-    private MonitoredAction templateAction;
-
     @Value("${configuration.shared.actions.queue.name:'actions-storage-queue'}")
     private String sharedQueueName;
     private BlockingQueue<StoreActionWrapper> distributedStorageQueue;
@@ -49,21 +49,30 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
     private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
 
     private String ignoreModules = IGRNORE_MODULES.get(String.class);
+    private Set<String> ignored = new LinkedHashSet<>();
 
     public ModuleActionMonitorServiceImpl() {
         config.put(IGNORE_MODULES_FULL_NAME, IGRNORE_MODULES);
+        buildIgnoredModules();
     }
 
     @Override
     protected Logger getLogger() {return LOG;}
 
     /**
-     * To get the value of Module's PK
+     * Return a delay between run iterations
      *
-     * @return value of PK (not null)
+     * @return the value
      */
     @Override
-    public ModulePK getModulePK() {return this;}
+    protected long scanDelayMillis() {
+        return 200L;
+    }
+    @Override
+    public String toString() {
+        return "-ModuleActionMonitorService-";
+    }
+
 
     public void initialize() {
         super.start();
@@ -72,12 +81,27 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
     @Override
     protected void beforeStart() {
         distributedStorageQueue = distributed.queue(sharedQueueName);
-        templateAction = storage.createMonitoredAction();
         notifier.register(this);
     }
 
     @Override
     protected void afterStart() {}
+
+    @Override
+    protected void serviceLoopIteration() throws InterruptedException {
+        if (!isActive()) return;
+
+        StoreActionWrapper wrappedAction = null;
+        while (isActive() && (wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS)) != null) {
+            LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
+            storage.saveActionState(wrappedAction.module, wrappedAction.action);
+        }
+    }
+
+    @Override
+    protected void serviceLoopException(Throwable t) {
+        LOG.error("Something went wrong", t);
+    }
 
     @Override
     public void shutdown() {
@@ -87,7 +111,6 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
     @Override
     protected void beforeStop() {
         distributedStorageQueue = null;
-        templateAction = null;
     }
 
     @Override
@@ -95,12 +118,9 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
         notifier.unRegister(this);
     }
 
-    public String getIgnoreModules() {
-        return ignoreModules;
-    }
-
     public void setIgnoreModules(String ignoreModules) {
         config.get(IGNORE_MODULES_FULL_NAME).set(this.ignoreModules = ignoreModules);
+        buildIgnoredModules();
     }
 
     /**
@@ -121,7 +141,7 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
      * @param action monitored action bean
      */
     @Override
-    public void actionMonitoring(ModulePK module, MonitoredAction action) {
+    public void actionMonitoring(ModuleKey module, MonitoredAction action) {
         if (!isActive()) return;
         
         if (!moduleIsIgnored(module)) {
@@ -161,46 +181,24 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
         // save new items of configuration
         config.putAll(changed);
     }
-
-    @Override
-    public String toString() {
-        return "-ModuleActionMonitorService-";
-    }
-
-    @Override
-    protected void serviceLoopIteration() throws InterruptedException {
-        if (!isActive()) return;
-        
-        final StoreActionWrapper wrappedAction = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
-        if (wrappedAction != null) {
-            LOG.debug("Saving MonitoredAction '{}' for '{}'", new Object[]{wrappedAction.action, wrappedAction.module});
-            storage.saveActionState(wrappedAction.module, wrappedAction.action);
-        }
-    }
-
     // private methods
-    private boolean moduleIsIgnored(ModulePK module) {
+    private boolean moduleIsIgnored(ModuleKey module) {
         return moduleIsIgnored(key(module));
     }
 
-    private boolean moduleIsIgnored(String moduleKey) {
-        // check the direct ignorance
-        if (ignoreModules.contains(moduleKey)) {
-            return true;
-        }
-        // check the groups
-        final StringTokenizer st = new StringTokenizer(ignoreModules, " ,");
-        while (st.hasMoreTokens()) {
-            String ignored = st.nextToken();
-            if (ignored.endsWith("*")) {
-                // cut off the start-symbol
-                ignored = ignored.substring(0, ignored.length() - 2);
-            }
-            if (moduleKey.startsWith(ignored)) {
-                return true;
-            }
-        }
-        return false;
+    private boolean moduleIsIgnored(final String moduleKey) {
+        final Optional<String> ignore = ignored.stream()
+                .filter(pattern -> pattern.equals(moduleKey))
+                .filter(pattern -> pattern.endsWith("*"))
+                .map(pattern -> pattern.substring(0, pattern.length() - 2))
+                .filter(prefix -> moduleKey.startsWith(prefix))
+                .findFirst();
+        return ignore.isPresent();
+    }
+
+    private void buildIgnoredModules() {
+        ignored = Collections.list(new StringTokenizer(ignoreModules, " ,"))
+                .stream().map(token -> (String) token).collect(Collectors.toSet());
     }
 
     // private classes
@@ -211,7 +209,7 @@ public class ModuleActionMonitorServiceImpl extends AbstractRunningService imple
         final ModuleKeyDto module;
         final MonitoredAction action;
 
-        public StoreActionWrapper(ModulePK module, MonitoredAction action) {
+        StoreActionWrapper(ModuleKey module, MonitoredAction action) {
             this.module = new ModuleKeyDto(module);
             this.action = action;
         }

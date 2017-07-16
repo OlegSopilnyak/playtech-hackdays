@@ -1,4 +1,4 @@
-package com.mobenga.health.model;
+package com.mobenga.health.model.business;
 
 import java.util.Date;
 
@@ -16,7 +16,7 @@ public interface HeartBeat {
      *
      * @return value of PK
      */
-    String getHealthPK();
+    String getModuleKeyPK();
 
     /**
      * Exact date-time of heard-beat
@@ -40,9 +40,9 @@ public interface HeartBeat {
     String getHostAddress();
 
     /**
-     * The state of module
+     * Condition of module's health
      *
-     * @return true if module is active
+     * @return value
      */
-    boolean isModuleActive();
+    ModuleHealth.Condition getCondition();
 }

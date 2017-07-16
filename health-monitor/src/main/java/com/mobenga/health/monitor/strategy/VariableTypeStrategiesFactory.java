@@ -1,6 +1,6 @@
 package com.mobenga.health.monitor.strategy;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
 import com.mobenga.health.monitor.strategy.impl.DoubleVariableTypeStrategy;
 import com.mobenga.health.monitor.strategy.impl.IntegerVariableTypeStrategy;
 import com.mobenga.health.monitor.strategy.impl.StringVariableTypeStrategy;

@@ -1,6 +1,6 @@
 package com.mobenga.health.model.factory.impl;
 
-import com.mobenga.health.model.factory.UniqueIdGenerator;
+import com.mobenga.health.monitor.UniqueIdGenerator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

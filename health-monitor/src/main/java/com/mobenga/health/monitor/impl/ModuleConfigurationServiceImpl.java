@@ -1,9 +1,13 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
 import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
 import com.mobenga.health.model.transport.ModuleKeyDto;
-import com.mobenga.health.monitor.*;
+import com.mobenga.health.monitor.DistributedContainersService;
+import com.mobenga.health.monitor.HealthModuleService;
+import com.mobenga.health.monitor.ModuleConfigurationService;
+import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.storage.ConfigurationStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * Realization of module configuration
@@ -49,12 +52,28 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
     @Autowired
     private ModuleStateNotificationService notifier;
 
-    private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
+    private final Map<String, ConfiguredVariableItem> config = new LinkedHashMap<>();
+    /**
+     * Return a delay between run iterations
+     *
+     * @return the value
+     */
+    @Override
+    protected long scanDelayMillis() {
+        return 200L;
+    }
 
     @Override
-    protected Logger getLogger() {return LOG;}
+    public String toString() {
+        return "-ModuleConfigurationService-";
+    }
 
-    public void initialize(){
+    @Override
+    protected Logger getLogger() {
+        return LOG;
+    }
+
+    public void initialize() {
         super.start();
     }
 
@@ -75,29 +94,48 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
     protected void afterStart() {
         notifier.register(this);
     }
-    
 
     @Override
-    public void shutdown(){
+    protected void serviceLoopIteration() throws InterruptedException {
+        if (!isActive()) {
+            return;
+        }
+
+        StoreEvent event;
+        while (isActive() && (event = sharedQueue.poll(100, TimeUnit.MILLISECONDS)) != null) {
+            event.storeData(this);
+        }
+    }
+
+    @Override
+    protected void serviceLoopException(Throwable t) {
+        LOG.error("Something went wrong", t);
+    }
+
+
+    @Override
+    public void shutdown() {
         super.shutdown();
     }
 
     @Override
-    protected void beforeStop() {}
+    protected void beforeStop() {
+    }
 
     @Override
     protected void afterStop() {
         notifier.unRegister(this);
     }
+
     /**
      * To get the configuration of module
      *
-     * @param module the consumer of configurations
-     * @param groupName   the dot-delimited name of group (empty is root)
+     * @param module    the consumer of configurations
+     * @param groupName the dot-delimited name of group (empty is root)
      * @return map of full-qualified configured variables
      */
     @Override
-    public Map<String, ConfiguredVariableItem> getConfigurationGroup(ModulePK module, String groupName) {
+    public Map<String, ConfiguredVariableItem> getConfigurationGroup(ModuleKey module, String groupName) {
         final String normalizedGroup = normal(groupName);
         final String moduleId = key(modules.getModule(module));
         LOG.debug("Getting configuration for '{}' from group '{}'", new Object[]{moduleId, normalizedGroup});
@@ -109,28 +147,27 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
     /**
      * To get updated configured variables
      *
-     * @param module   the consumer of configuration
+     * @param module               the consumer of configuration
      * @param currentConfiguration current state of configuration
      * @return updated variables (emptyMap if none)
      */
     @Override
-    public Map<String, ConfiguredVariableItem> getUpdatedVariables(ModulePK module, Map<String, ConfiguredVariableItem> currentConfiguration) {
-        if(!isActive()){
+    public Map<String, ConfiguredVariableItem> getUpdatedVariables(ModuleKey module, Map<String, ConfiguredVariableItem> currentConfiguration) {
+        if (!isActive()) {
             return Collections.EMPTY_MAP;
         }
-        
+
         // let's start
         final String moduleId = key(modules.getModule(module));
         LOG.debug("Getting real configuration for '{}'", moduleId);
-        
+
         // cached (actual) configuration of the module
         final Map<String, ConfiguredVariableItem>
-                cachedConfiguration = sharedCache.computeIfAbsent(moduleId, m -> new LinkedHashMap<>())
-                ;
+                cachedConfiguration = sharedCache.computeIfAbsent(moduleId, m -> new LinkedHashMap<>());
 
         // variables which not exists in the cache
         final Map<String, ConfiguredVariableItem> notCachedConfiguration = new LinkedHashMap<>();
-                // variables which value is different with cached variable (returns cached value)
+        // variables which value is different with cached variable (returns cached value)
         final Map<String, ConfiguredVariableItem> updatedVarsConfiguration = new LinkedHashMap<>();
 
         // process received module's configuration
@@ -146,7 +183,7 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
                 updatedVarsConfiguration.put(itemPath, cachedVarItem);
             }
         });
-        
+
         // store not cached variables
         if (!notCachedConfiguration.isEmpty()) {
             LOG.debug("Adding extra variables to the cached module config");
@@ -158,11 +195,11 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
     /**
      * To update configured variables
      *
-     * @param module   the consumer of configuration
+     * @param module                 the consumer of configuration
      * @param notCachedConfiguration new variables of configuration
      */
     @Override
-    public void newConfiguredVariables(ModulePK module, Map<String, ConfiguredVariableItem> notCachedConfiguration) {
+    public void newConfiguredVariables(ModuleKey module, Map<String, ConfiguredVariableItem> notCachedConfiguration) {
         // send request to store updates
         sharedQueue.offer(new UpdateConfigurationEvent(module, notCachedConfiguration));
 
@@ -170,8 +207,7 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
         final String moduleId = key(modules.getModule(module));
         LOG.debug("Update configuration for '{}'", moduleId);
         final Map<String, ConfiguredVariableItem> cachedConfiguration =
-                sharedCache.computeIfAbsent(moduleId, s -> new LinkedHashMap<>())
-                ;
+                sharedCache.computeIfAbsent(moduleId, s -> new LinkedHashMap<>());
         cachedConfiguration.putAll(notCachedConfiguration);
         LOG.debug("Refresh cache");
         // put updated configuration back to the cache
@@ -180,13 +216,13 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
 
     /**
      * To change/replace the configuration of module
-     * 
-     * @param module configurable module
+     *
+     * @param module        configurable module
      * @param configuration new configuration map
      * @return stored configuration
      */
     @Override
-    public Map<String, ConfiguredVariableItem> changeConfiguration(ModulePK module, Map<String, ConfiguredVariableItem> configuration) {
+    public Map<String, ConfiguredVariableItem> changeConfiguration(ModuleKey module, Map<String, ConfiguredVariableItem> configuration) {
         // send request to replace configuration
         sharedQueue.offer(new ChangeConfigurationEvent(module, configuration));
 
@@ -205,7 +241,7 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
     public List<String> getConfigurableGroups() {
         try {
             return modules.getModules().stream().map(m -> key(m)).collect(Collectors.toList());
-        }catch(Throwable t){
+        } catch (Throwable t) {
             LOG.error("Can't get list of configured groups", t);
             return Collections.<String>emptyList();
         }
@@ -226,21 +262,21 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
      * To get item by module-id and path
      *
      * @param moduleId module-id as string
-     * @param path path to value in configuration map
-     * @param value new value of parameter
+     * @param path     path to value in configuration map
+     * @param value    new value of parameter
      * @return stored configuration parameter or null if wrong parameters
      */
     @Override
     public ConfiguredVariableItem updateConfigurationItemByModule(String moduleId, String path, String value) {
-        final Map<String,ConfiguredVariableItem> configuration;
-        if ((configuration = sharedCache.get(moduleId)) == null){
+        final Map<String, ConfiguredVariableItem> configuration;
+        if ((configuration = sharedCache.get(moduleId)) == null) {
             return null;
         }
         ConfiguredVariableItem item;
-        if ((item = configuration.get(path)) == null){
+        if ((item = configuration.get(path)) == null) {
             String parts[] = path.split("\\.");
-            item = new ConfiguredVariableItemDto(parts[parts.length-1], "Ad hoc updated by operator", value );
-        }else {
+            item = new ConfiguredVariableItemDto(parts[parts.length - 1], "Ad hoc updated by operator", value);
+        } else {
             item.set(value);
         }
         if (item.isValid()) {
@@ -260,22 +296,14 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
     }
 
     /**
-     * To get the value of Module's PK
-     *
-     * @return value of PK (not null)
-     */
-    @Override
-    public ModulePK getModulePK() {
-        return this;
-    }
-
-    /**
      * To get current configuration of module
      *
      * @return the map
      */
     @Override
-    public Map<String, ConfiguredVariableItem> getConfiguration() {return config;}
+    public Map<String, ConfiguredVariableItem> getConfiguration() {
+        return config;
+    }
 
     /**
      * Notification about change configuration
@@ -283,28 +311,11 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
      * @param changed map with changes
      */
     @Override
-    public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {}
+    public void configurationChanged(Map<String, ConfiguredVariableItem> changed) {
+    }
 
     public Map<String, Map<String, ConfiguredVariableItem>> getSharedCache() {
         return sharedCache;
-    }
-
-    @Override
-    public String toString() {
-        return "-ModuleConfigurationService-";
-    }
-
-    @Override
-    protected void serviceLoopIteration() {
-        try {
-            final StoreEvent event = sharedQueue.poll(100, TimeUnit.MILLISECONDS);
-            if (event != null) {
-                event.storeData(this);
-            }
-        } catch (InterruptedException ex) {
-            LOG.error("Shared queue does not works.", ex);
-            super.active = false;
-        }
     }
 
     // private methods
@@ -314,25 +325,29 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
 
     // inner-classes for distributed queue
     // Base class storage update
-    private static abstract class StoreEvent implements Serializable{
+    private static abstract class StoreEvent implements Serializable {
 
         private static final long serialVersionUID = -3402253351758269847L;
         protected final ModuleKeyDto module;
         protected final Map<String, ConfiguredVariableItem> configuration;
-        public StoreEvent(ModulePK module, Map<String, ConfiguredVariableItem> configuration){
+
+        public StoreEvent(ModuleKey module, Map<String, ConfiguredVariableItem> configuration) {
             this.module = new ModuleKeyDto(module);
             this.configuration = new HashMap<>(configuration);
         }
+
         public abstract void storeData(final ModuleConfigurationServiceImpl service);
     }
+
     // class-event to update storage
     private static class UpdateConfigurationEvent extends StoreEvent {
 
         private static final long serialVersionUID = 3246466013912817229L;
 
-        public UpdateConfigurationEvent(ModulePK module, Map<String, ConfiguredVariableItem> configuration) {
+        public UpdateConfigurationEvent(ModuleKey module, Map<String, ConfiguredVariableItem> configuration) {
             super(module, configuration);
         }
+
         // updating storage
         @Override
         public void storeData(final ModuleConfigurationServiceImpl service) {
@@ -340,14 +355,16 @@ public class ModuleConfigurationServiceImpl extends AbstractRunningService imple
             service.storage.storeChangedConfiguration(module, configuration);
         }
     }
+
     // class-event for change storage
     private static class ChangeConfigurationEvent extends StoreEvent {
 
         private static final long serialVersionUID = 1282128459869589211L;
 
-        public ChangeConfigurationEvent(ModulePK module, Map<String, ConfiguredVariableItem> configuration) {
+        public ChangeConfigurationEvent(ModuleKey module, Map<String, ConfiguredVariableItem> configuration) {
             super(module, configuration);
         }
+
         // data substituted by new one
         @Override
         public void storeData(final ModuleConfigurationServiceImpl service) {

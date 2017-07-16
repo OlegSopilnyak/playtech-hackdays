@@ -2,7 +2,7 @@ package com.mobenga.hm.openbet.configuration;
 
 import com.mobenga.health.configuration.BasicMonitorConfiguration;
 import com.mobenga.health.configuration.FactoryConfiguration;
-import com.mobenga.health.model.factory.UniqueIdGenerator;
+import com.mobenga.health.monitor.UniqueIdGenerator;
 import com.mobenga.hm.openbet.service.DateTimeConverter;
 import com.mobenga.hm.openbet.service.ExternalModuleSupportService;
 import com.mobenga.hm.openbet.service.OpenbetOperationsManipulationService;

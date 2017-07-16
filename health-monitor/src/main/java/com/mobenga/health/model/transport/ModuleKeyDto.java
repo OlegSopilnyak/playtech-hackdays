@@ -1,14 +1,14 @@
 package com.mobenga.health.model.transport;
 
-import java.io.Serializable;
+import com.mobenga.health.model.business.ModuleKey;
 
+import java.io.Serializable;
 import java.util.Objects;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * Wrapper for module to transport
  */
-public class ModuleKeyDto implements ModulePK, Serializable {
+public class ModuleKeyDto implements ModuleKey, Serializable {
 
     private static final long serialVersionUID = 2636625287244847952L;
     private String systemId;
@@ -19,7 +19,7 @@ public class ModuleKeyDto implements ModulePK, Serializable {
     public ModuleKeyDto() {
     }
 
-    public ModuleKeyDto(ModulePK module) {
+    public ModuleKeyDto(ModuleKey module) {
         this.systemId = module.getSystemId();
         this.applicationId = module.getApplicationId();
         this.versionId = module.getVersionId();
@@ -62,8 +62,8 @@ public class ModuleKeyDto implements ModulePK, Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || !(o instanceof ModulePK)) return false;
-        final ModulePK that = (ModulePK) o;
+        if (o == null || !(o instanceof ModuleKey)) return false;
+        final ModuleKey that = (ModuleKey) o;
         return Objects.equals(getSystemId(), that.getSystemId()) &&
                 Objects.equals(getApplicationId(), that.getApplicationId()) &&
                 Objects.equals(getVersionId(), that.getVersionId()) &&

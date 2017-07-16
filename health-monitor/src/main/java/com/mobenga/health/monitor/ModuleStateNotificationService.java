@@ -1,9 +1,9 @@
 package com.mobenga.health.monitor;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.HeartBeat;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.HeartBeat;
+import com.mobenga.health.model.business.ModuleHealth;
 import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
-import com.mobenga.health.model.transport.ModuleHealthDto;
 
 import java.util.List;
 
@@ -15,7 +15,7 @@ public interface ModuleStateNotificationService extends MonitoredService {
     
     // HeartBeat delay for Modules StateNotificationService
     String HB_DELAY_NAME = "delay";
-    ConfiguredVariableItem HB_DELAY = 
+    ConfiguredVariableItem HB_DELAY =
             new ConfiguredVariableItemDto(HB_DELAY_NAME, "The delay between heart beats", HeartBeat.DELAY);
     String HB_DELAY_FULL_NAME = PARAMS_PACKAGE + "." + HB_DELAY_NAME;
     
@@ -25,7 +25,7 @@ public interface ModuleStateNotificationService extends MonitoredService {
      * @return the value
      */
     @Override
-    default public String getSystemId() {
+    default String getSystemId() {
         return "healthMonitor";
     }
 
@@ -35,7 +35,7 @@ public interface ModuleStateNotificationService extends MonitoredService {
      * @return the value
      */
     @Override
-    default public String getApplicationId() {
+    default String getApplicationId() {
         return "serviceStateScanner";
     }
 
@@ -45,7 +45,7 @@ public interface ModuleStateNotificationService extends MonitoredService {
      * @return the value
      */
     @Override
-    default public String getVersionId() {
+    default String getVersionId() {
         return "0.1";
     }
 
@@ -55,7 +55,7 @@ public interface ModuleStateNotificationService extends MonitoredService {
      * @return the value
      */
     @Override
-    default public String getDescription() {
+    default String getDescription() {
         return "The service to notify about changes state of registered modules";
     }
 
@@ -77,5 +77,5 @@ public interface ModuleStateNotificationService extends MonitoredService {
      *
      * @return the list of module states
      */
-    List<ModuleHealthDto> getSystemHealth();
+    List<ModuleHealth> getSystemHealth();
 }

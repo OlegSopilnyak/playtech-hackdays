@@ -1,16 +1,16 @@
 package com.mobenga.health.model;
 
+import com.mobenga.health.model.business.out.ModuleOutputMessage;
+import com.mobenga.health.model.business.out.log.ModuleLoggerMessage;
 import org.springframework.util.StringUtils;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.StringTokenizer;
 
 /**
  * The entity of module's log-message
  */
-public class LogMessageEntity extends LogMessage implements StringEntity, Cloneable {
-    private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
+public class LogMessageEntity extends ModuleLoggerMessage implements StringEntity, Cloneable {
     private static final long serialVersionUID = 6631223050471982892L;
     /**
      * The name of storage for this sort of beans
@@ -27,7 +27,7 @@ public class LogMessageEntity extends LogMessage implements StringEntity, Clonea
         return getId() +"#"
                 + getModulePK() + "#"
                 + getActionId() + "#"
-                + (getWhenOccurred() == null ? null : dateConverter.format(getWhenOccurred())) + "#"
+                + (getWhenOccurred() == null ? null : DATE_TIME_FORMATER.format(getWhenOccurred())) + "#"
                 + getPayload()
                 ;
     }
@@ -40,7 +40,7 @@ public class LogMessageEntity extends LogMessage implements StringEntity, Clonea
         entity.modulePK = st.nextToken();
         entity.setActionId(st.nextToken());
         try {
-            entity.setWhenOccured(dateConverter.parse(st.nextToken()));
+            entity.setWhenOccured(DATE_TIME_FORMATER.parse(st.nextToken()));
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -65,7 +65,7 @@ public class LogMessageEntity extends LogMessage implements StringEntity, Clonea
     }
 
     @Override
-    public ModuleOutput setModulePK(String modulePK) {
+    public ModuleOutputMessage setModulePK(String modulePK) {
         super.modulePK = modulePK;
         return this;
     }
@@ -76,7 +76,7 @@ public class LogMessageEntity extends LogMessage implements StringEntity, Clonea
      * @return copy instance
      */
     @Override
-    public ModuleOutput copy() {
+    public ModuleOutputMessage copy() {
         try {
             return (LogMessageEntity)clone();
         } catch (CloneNotSupportedException e) {

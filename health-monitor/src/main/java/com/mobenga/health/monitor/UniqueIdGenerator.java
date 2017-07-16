@@ -1,4 +1,4 @@
-package com.mobenga.health.model.factory;
+package com.mobenga.health.monitor;
 
 /**
  * Service to generate unique Ids

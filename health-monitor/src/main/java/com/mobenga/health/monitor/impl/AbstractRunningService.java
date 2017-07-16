@@ -1,30 +1,45 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Phaser;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleHealth;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+
 /**
  * Service to support runnable feature
  */
-public abstract class AbstractRunningService {
+public abstract class AbstractRunningService implements ModuleHealth {
 
-    protected volatile boolean active = false;
+    private volatile Condition condition = Condition.VERY_GOOD;
+    private volatile ScheduledFuture scanFuture;
+    protected volatile boolean active = false, firstTime = true;
 
     private final Lock stateChangeLock = new ReentrantLock();
     private final Phaser runtimePhaser = new Phaser(2);
+    private final LruCache<Long, Object> errors = new LruCache<>(Condition.values().length);
 
     @Autowired
     @Qualifier("serviceRunner")
-    private ExecutorService executor;
+    private ScheduledExecutorService executor;
+
+    /**
+     * Return a delay between run iterations
+     *
+     * @return the value
+     */
+    protected abstract long scanDelayMillis();
 
     /**
      * To start the loop of service
@@ -37,19 +52,22 @@ public abstract class AbstractRunningService {
         try {
             stateChangeLock.lock();
             getLogger().info("Starting service...");
+            firstTime = true;
+            errors.clear();
+            condition = Condition.VERY_GOOD;
 
             getLogger().debug("Execute pre-start method");
             beforeStart();
 
             getLogger().debug("Starting main service loop");
-            executor.submit(() -> serviceLoop());
+            scanFuture = executor.scheduleWithFixedDelay(()->moduleServiceIteration(), 0, scanDelayMillis(), TimeUnit.MILLISECONDS);
             int phase = runtimePhaser.arriveAndAwaitAdvance();
             getLogger().debug("Starting service phase = {}...", phase);
 
             getLogger().debug("Execute post-start method");
             afterStart();
 
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             getLogger().error("Start sequence threw", ex);
         } finally {
             stateChangeLock.unlock();
@@ -58,7 +76,6 @@ public abstract class AbstractRunningService {
 
     /**
      * To shutdown the loop of service
-     *
      */
     public void shutdown() {
         if (!active) {
@@ -73,9 +90,7 @@ public abstract class AbstractRunningService {
 
             active = false;
             getLogger().info("Stopping service...");
-            int phase = runtimePhaser.arriveAndAwaitAdvance();
-            getLogger().debug("Stopped main-loop phase = {}...", phase);
-
+            scanFuture.cancel(true);
             getLogger().debug("Execute post-stop method");
             afterStop();
         } catch (Exception ex) {
@@ -90,8 +105,31 @@ public abstract class AbstractRunningService {
      *
      * @return true if main loop is run
      */
+    @Override
     public boolean isActive() {
         return active;
+    }
+
+    /**
+     * To get the health condition of module for the moment
+     *
+     * @returnn current condition value
+     */
+    @Override
+    public Condition getCondition() {
+        return condition;
+    }
+
+    /**
+     * To get last throwable object
+     *
+     * @return mistake or null if none
+     */
+    @Override
+    public Throwable getLastMistake() {
+        final Optional<Throwable> mistake = errors.values()
+                .stream().filter(v -> v instanceof  Throwable).map(v -> (Throwable)v).findFirst();
+        return mistake.isPresent() ? mistake.get() : null;
     }
 
     /**
@@ -133,26 +171,67 @@ public abstract class AbstractRunningService {
      *
      * @param t exception
      */
-    protected void serviceLoopException(Throwable t) {}
+    protected void serviceLoopException(Throwable t) {
+    }
 
     /**
      * To update configured parameter in bean
      *
-     * @param changes received new configuration
-     * @param fullName canonical (with path) name of item
-     * @param ubdatByItem function to do for particular item
+     * @param changes      received new configuration
+     * @param fullName     canonical (with path) name of configured item
+     * @param updateByItem function to do for particular item
      */
     protected void updateParameter(
             final Map<String, ConfiguredVariableItem> changes,
             final String fullName,
-            final Consumer<ConfiguredVariableItem> ubdatByItem) {
-        final ConfiguredVariableItem item;
-        if ((item = changes.get(fullName)) != null) {
-            ubdatByItem.accept(item);
+            final Consumer<ConfiguredVariableItem> updateByItem) {
+        final ConfiguredVariableItem item = changes.get(fullName);
+        if (item != null) {
+            updateByItem.accept(item);
         }
     }
 
     // private methods
+    private void moduleServiceIteration() {
+        if (firstTime) {
+            active = true;
+            int phase = runtimePhaser.arriveAndAwaitAdvance();
+            firstTime = false;
+            getLogger().debug("Started service phase = {}...", phase);
+        }
+        try {
+            if (active) {
+                getLogger().debug("Execute iteration of main loop.");
+                serviceLoopIteration();
+                healthBetter();
+            }
+        } catch (Throwable ex) {
+            getLogger().error("Caught error", ex);
+            if (!active) {
+                return;
+            }
+            serviceLoopException(ex);
+            if (condition == Condition.FAIL) {
+                shutdown();
+            }
+            healthWorse(ex);
+        }
+    }
+
+    private void healthWorse(Throwable ex) {
+        final int state = condition.ordinal();
+        final Condition[] conditions = Condition.values();
+        condition = conditions[state == conditions.length - 1 ? state : state + 1];
+        errors.put(System.currentTimeMillis(), ex);
+    }
+
+    private void healthBetter() {
+        final int state = condition.ordinal();
+        final Condition[] conditions = Condition.values();
+        condition = conditions[state == 0 ? state : state - 1];
+        errors.put(System.currentTimeMillis(), "Success");
+    }
+
     // Main loop method
     private void serviceLoop() {
         active = true;
@@ -167,13 +246,28 @@ public abstract class AbstractRunningService {
                 }
             }
         } catch (Throwable t) {
-            getLogger().error("Cautch error", t);
+            getLogger().error("Caught error", t);
             serviceLoopException(t);
         } finally {
             getLogger().info("Service main loop is finished.");
             active = false;
             int phase = runtimePhaser.arrive();
             getLogger().debug("Finished service phase = {}...", phase);
+        }
+    }
+
+    // inner classes
+    private class LruCache<A, B> extends LinkedHashMap<A, B> {
+        private final int maxEntries;
+
+        public LruCache(final int maxEntries) {
+            super(maxEntries + 1, 1.0f, true);
+            this.maxEntries = maxEntries;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(final Map.Entry<A, B> eldest) {
+            return super.size() > maxEntries;
         }
     }
 }

@@ -1,8 +1,9 @@
 package com.mobenga.health.storage;
 
 
+import com.mobenga.health.model.business.ModuleKey;
+
 import java.util.List;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * Heath services data storage
@@ -13,12 +14,12 @@ public interface HealthModuleStorage {
      *
      * @param module information of module to save
      */
-    void save(ModulePK module);
+    void save(ModuleKey module);
 
     /**
      * To return the list of stored modules
      *
      * @return list of modules
      */
-    List<ModulePK> modulesList();
+    List<ModuleKey> modulesList();
 }

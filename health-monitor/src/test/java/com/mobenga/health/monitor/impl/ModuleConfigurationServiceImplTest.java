@@ -1,31 +1,31 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.ModulePK;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
 import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.HealthModuleService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.storage.ConfigurationStorage;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.After;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.assertEquals;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.*;
-import org.mockito.Spy;
-import org.mockito.runners.MockitoJUnitRunner;
 
 /**
  * Test for ModuleConfigurationServiceImpl
@@ -47,7 +47,7 @@ public class ModuleConfigurationServiceImplTest {
     @Mock
     private HealthModuleService modules;
     @Spy
-    private final ExecutorService executor = Executors.newFixedThreadPool(1);
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
 
     private final ModuleKeyDto module = new ModuleKeyDto();
 
@@ -77,7 +77,7 @@ public class ModuleConfigurationServiceImplTest {
                 return (Map) invocationOnMock.getArguments()[1];
             }
         });
-        when(modules.getModule(any(ModulePK.class))).thenReturn(module);
+        when(modules.getModule(any(ModuleKey.class))).thenReturn(module);
         when(distributed.queue(anyString())).thenReturn(new ArrayBlockingQueue(10));
         service.initialize();
 

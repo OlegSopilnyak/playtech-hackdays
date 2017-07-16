@@ -1,25 +1,29 @@
-package com.mobenga.health.model;
+package com.mobenga.health.model.business.out.log;
 
+import com.mobenga.health.model.business.out.ModuleOutputMessage;
 import com.mobenga.health.model.persistence.ValidatingEntity;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
  * Simple log message from the module
  */
-public abstract class LogMessage implements ModuleOutput, ValidatingEntity{
+public abstract class ModuleLoggerMessage implements ModuleOutputMessage, ValidatingEntity{
+    // format of date-time applied for log-message
+    public static final SimpleDateFormat DATE_TIME_FORMATER = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
     // the name of storage item (table/index-type/etc)
     public static final String STORAGE_NAME = "log-message";
-    public static final String OUTPUT_TYPE = "log";
+    public static final String LOG_OUTPUT_TYPE = "log";
 
     private String id;
     protected String modulePK;
     private String actionId;
-    private Date whenOccured;
+    private Date whenOccurred;
     private String payload;
 
 
-    protected LogMessage() {
+    protected ModuleLoggerMessage() {
     }
 
 
@@ -63,7 +67,7 @@ public abstract class LogMessage implements ModuleOutput, ValidatingEntity{
      */
     @Override
     public String getMessageType() {
-        return OUTPUT_TYPE;
+        return LOG_OUTPUT_TYPE;
     }
 
     /**
@@ -73,7 +77,7 @@ public abstract class LogMessage implements ModuleOutput, ValidatingEntity{
      */
     @Override
     public Date getWhenOccurred() {
-        return whenOccured;
+        return whenOccurred;
     }
 
     /**
@@ -94,8 +98,8 @@ public abstract class LogMessage implements ModuleOutput, ValidatingEntity{
         this.actionId = actionId;
     }
 
-    public void setWhenOccured(Date whenOccured) {
-        this.whenOccured = whenOccured;
+    public void setWhenOccured(Date whenOccurred) {
+        this.whenOccurred = whenOccurred;
     }
 
     public void setPayload(String payload) {

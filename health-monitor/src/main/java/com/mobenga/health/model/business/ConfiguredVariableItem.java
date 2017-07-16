@@ -1,4 +1,4 @@
-package com.mobenga.health.model;
+package com.mobenga.health.model.business;
 
 import com.mobenga.health.monitor.strategy.VariableTypeStrategiesFactory;
 import com.mobenga.health.monitor.strategy.VariableTypeStrategy;

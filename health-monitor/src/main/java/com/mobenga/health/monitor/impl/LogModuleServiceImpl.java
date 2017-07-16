@@ -1,57 +1,58 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.*;
-import com.mobenga.health.model.factory.TimeService;
-import com.mobenga.health.model.factory.UniqueIdGenerator;
-import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.business.MonitoredAction;
+import com.mobenga.health.model.business.out.ModuleOutputDevice;
+import com.mobenga.health.model.business.out.ModuleOutputDeviceFarm;
+import com.mobenga.health.model.business.out.log.ModuleLoggerDevice;
+import com.mobenga.health.model.business.out.log.ModuleLoggerDeviceFactory;
+import com.mobenga.health.model.business.out.log.ModuleLoggerMessage;
 import com.mobenga.health.model.transport.ModuleKeyDto;
+import com.mobenga.health.model.transport.MonitoredActionDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
+import com.mobenga.health.monitor.TimeService;
+import com.mobenga.health.monitor.UniqueIdGenerator;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import com.mobenga.health.storage.MonitoredActionStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
-import com.mobenga.health.monitor.ModuleLoggerDeviceFactory;
-import java.util.Objects;
 
 /**
  * The service handles module's output type "log"
  */
 public class LogModuleServiceImpl extends AbstractRunningService implements ModuleLoggerDeviceFactory, ApplicationListener<ContextRefreshedEvent> {
+
     private static final Logger LOG = LoggerFactory.getLogger(LogModuleServiceImpl.class);
 
-    private volatile MonitoredAction actionTemplate = null;
-            
-    @Autowired
-    @Qualifier("serviceRunner")
-    private ExecutorService executor;
+    // the template for monitored actions
+    private static final MonitoredActionDto actionTemplate = new MonitoredActionDto();
+
+
     @Autowired
     private UniqueIdGenerator idGenerator;
+
     @Autowired
     private TimeService timeService;
     @Autowired
     private MonitoredActionStorage actionStorage;
-    // configuration of module
-    private final Map<String, ConfiguredVariableItem> config = new HashMap<>();
 
     @Autowired
-    private ModuleOutputStorage storage;
+    private ModuleOutputStorage outputStorage;
 
     @Autowired
     private ModuleStateNotificationService notifier;
@@ -62,26 +63,36 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
     @Value("${configuration.shared.output.log.queue.name:'log-output-storage-queue'}")
     private String sharedQueueName;
     private BlockingQueue<Event> distributedStorageQueue;
+    // queue for messages of inactive service
     private final BlockingQueue<Event> offlineQueue = new LinkedBlockingQueue<>();
-
+    // the set of modules to ignore output
     private String ignoreModules = IGNORE_MODULES.get(String.class);
+    private Set<String> ignored = new LinkedHashSet<>();
+    // configuration of module
+    private final Map<String, ConfiguredVariableItem> config = new LinkedHashMap<>();
+
 
     public LogModuleServiceImpl() {
         config.put(IGNORE_MODULES_FULL_NAME, IGNORE_MODULES);
+        buildIgnoredModules();
         // register the device
-        ModuleOutputDeviceFactory.registerDeviceFactory(this);
+        ModuleOutputDeviceFarm.registerDeviceFactory(this);
     }
 
-    /** 
-     * for test purposes only
-     * @param notifier real notifier from notifier unit test
+    /**
+     * Return a delay between run iterations
+     *
+     * @return the value
      */
-    void setNotifier(ModuleStateNotificationService notifier) {
-        this.notifier = notifier;
+    @Override
+    protected long scanDelayMillis() {
+        return 200L;
     }
 
     @Override
-    protected Logger getLogger() {return LOG;}
+    protected Logger getLogger() {
+        return LOG;
+    }
 
 
     @Override
@@ -89,8 +100,10 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         startService();
     }
 
-    public void startService(){super.start();}
-    
+    public void startService() {
+        super.start();
+    }
+
     @Override
     protected void beforeStart() {
         distributedStorageQueue = distributed.queue(sharedQueueName);
@@ -98,18 +111,43 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
 
     @Override
     protected void afterStart() {
-        offlineQueue.forEach( e -> distributedStorageQueue.offer(e));
+        offlineQueue.forEach(e -> distributedStorageQueue.offer(e));
         offlineQueue.clear();
         notifier.register(this);
     }
 
+    @Override
+    protected void serviceLoopIteration() throws InterruptedException {
+        if (!isActive()) {
+            return;
+        }
 
-    public void stopService(){super.shutdown();}
-    
+        Event event = null;
+        while (isActive() && (event = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS)) != null) {
+            event.save(this);
+        }
+    }
+
     @Override
-    protected void beforeStop() {distributedStorageQueue = null;}
+    protected void serviceLoopException(Throwable t) {
+        LOG.error("Something went wrong", t);
+    }
+
+
+    public void stopService() {
+        super.shutdown();
+    }
+
     @Override
-    protected void afterStop() {offlineQueue.clear(); notifier.unRegister(this);}
+    protected void beforeStop() {
+        distributedStorageQueue = null;
+    }
+
+    @Override
+    protected void afterStop() {
+        offlineQueue.clear();
+        notifier.unRegister(this);
+    }
 
     /**
      * To create the Device for module's output
@@ -118,17 +156,19 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
      * @return the instance
      */
     @Override
-    public ModuleOutput.Device create(ModulePK module) {
+    public ModuleOutputDevice create(ModuleKey module) {
         return new ModuleLogger(module);
     }
 
     /**
-     * returns supported type of ModuleOutput
+     * returns supported type of ModuleOutputMessage
      *
      * @return the value
      */
     @Override
-    public String getType() {return LogMessage.OUTPUT_TYPE;}
+    public String getType() {
+        return ModuleLoggerMessage.LOG_OUTPUT_TYPE;
+    }
 
     /**
      * To check is module ignored for saving
@@ -137,7 +177,7 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
      * @return true if ignored
      */
     @Override
-    public boolean isModuleIgnored(ModulePK module) {
+    public boolean isModuleIgnored(ModuleKey module) {
         return moduleIsIgnored(key(module));
     }
 
@@ -147,17 +187,9 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
 
     public void setIgnoreModules(String ignoreModules) {
         config.get(IGNORE_MODULES_FULL_NAME).set(this.ignoreModules = ignoreModules);
+        buildIgnoredModules();
     }
 
-    /**
-     * To get the value of Module's PK
-     *
-     * @return value of PK (not null)
-     */
-    @Override
-    public ModulePK getModulePK() {
-        return this;
-    }
 
     /**
      * The handle to restart monitored service
@@ -165,11 +197,6 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
     @Override
     public void restart() {
         stopService();
-//        try {
-//            Thread.sleep(100);
-//        } catch (InterruptedException ex) {
-//            LOG.error("interrupted ...", ex);
-//        }
         startService();
     }
 
@@ -208,45 +235,23 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         return distributedStorageQueue == null ? offlineQueue : distributedStorageQueue;
     }
 
-    @Override
-    protected void serviceLoopIteration() throws InterruptedException {
-        if (!isActive()) {
-            return;
-        }
-        
-        final Event event = distributedStorageQueue.poll(100, TimeUnit.MILLISECONDS);
-        if (!Objects.isNull(event)) {
-            if (isActive()) {
-                event.save(this);
-            } else {
-                distributedStorageQueue.put(event);
-            }
-        }
+    private boolean moduleIsIgnored(final String moduleKey) {
+        final Optional<String> ignore = ignored.stream()
+                .filter(pattern -> pattern.equals(moduleKey))
+                .filter(pattern -> pattern.endsWith("*"))
+                .map(pattern -> pattern.substring(0, pattern.length() - 2))
+                .filter(pattern -> moduleKey.startsWith(pattern))
+                .findFirst();
+        return ignore.isPresent();
     }
 
-    @Override
-    protected void serviceLoopException(Throwable t) {
-        LOG.error("Something went wrong",t);
+    private void buildIgnoredModules() {
+        ignored = Collections.list(new StringTokenizer(ignoreModules, " ,"))
+                .stream().map(token -> (String) token).collect(Collectors.toSet());
     }
 
-    private boolean moduleIsIgnored(String moduleKey){
-        // check the direct ignorance
-        if (ignoreModules.contains(moduleKey)) {
-            return true;
-        }
-        // check the groups
-        final StringTokenizer st = new StringTokenizer(ignoreModules, " ,");
-        while(st.hasMoreTokens()){
-            String ignored = st.nextToken();
-            if (ignored.endsWith("*")){
-                // cut off the start-symbol
-                ignored = ignored.substring(0, ignored.length() - 2);
-            }
-            if (moduleKey.startsWith(ignored)){
-                return true;
-            }
-        }
-        return false;
+    void setNotifier(ModuleStateNotificationServiceImpl notifier) {
+        this.notifier = notifier;
     }
 
 
@@ -257,22 +262,27 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         // event's parameters
         protected final ModuleKeyDto module;
 
-        public Event(ModulePK module) {this.module = new ModuleKeyDto(module);}
+        public Event(ModuleKey module) {
+            this.module = new ModuleKeyDto(module);
+        }
+
         /**
          * To save the values of event
+         *
          * @param service log-service instance
          */
         protected abstract void save(LogModuleServiceImpl service);
     }
+
     // output event
     private static class OutputEvent extends Event {
 
         private static final long serialVersionUID = 212382839050306882L;
         // event's parameters
         private final String actionId;
-        private final Object [] arguments;
+        private final Object[] arguments;
 
-        public OutputEvent(ModulePK module, String actionId, Object[] arguments) {
+        public OutputEvent(ModuleKey module, String actionId, Object[] arguments) {
             super(module);
             this.actionId = actionId;
             this.arguments = arguments;
@@ -281,30 +291,36 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         // to save the event like Bean Managed Persistence
         @Override
         protected void save(final LogModuleServiceImpl service) {
-            final String moduleKey = key(module);
-            if (service.moduleIsIgnored(moduleKey)){
-                LOG.warn("The module '{}' is ignored for save.", moduleKey);
+            if (service.moduleIsIgnored(key(module))) {
+                LOG.warn("The module '{}' is ignored for save.", key(module));
                 return;
             }
-            final LogMessage message = (LogMessage) service.storage.createModuleOutput(module, LogMessage.OUTPUT_TYPE);
-            if (message != null) {
-                message.setId(service.idGenerator.generate());
-                message.setActionId(actionId);
-                message.setWhenOccured(service.timeService.now());
-                final StringBuilder msg = new StringBuilder();
-                for (Object arg : arguments) msg.append(arg);
-                message.setPayload(msg.toString());
-                service.storage.saveModuleOutput(message);
+            final ModuleLoggerMessage message =
+                    (ModuleLoggerMessage) service.outputStorage.createModuleOutput(module, ModuleLoggerMessage.LOG_OUTPUT_TYPE);
+
+            if (message == null) {
+                // output message couldn't created
+                return;
             }
+            // prepare and save created output message
+            message.setId(service.idGenerator.generate());
+            message.setActionId(actionId);
+            message.setWhenOccured(service.timeService.now());
+            final StringBuilder msg = new StringBuilder();
+            for (Object arg : arguments) msg.append(arg);
+            message.setPayload(msg.toString());
+            // persistence the output message
+            service.outputStorage.saveModuleOutput(message);
         }
     }
+
     // monitored newAction changes event
     private static class ActionEvent extends Event {
 
         private static final long serialVersionUID = 4277689698575052493L;
         private final MonitoredAction action;
 
-        public ActionEvent(ModulePK module, MonitoredAction action) {
+        public ActionEvent(ModuleKey module, MonitoredAction action) {
             super(module);
             this.action = action;
         }
@@ -312,18 +328,19 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         // to save the event like Bean Managed Persistence
         @Override
         protected void save(final LogModuleServiceImpl service) {
-            final String moduleKey = key(module);
-            if (service.moduleIsIgnored(moduleKey)){
-                LOG.debug("The module '{}' is ignored for save.", moduleKey);
+            if (service.moduleIsIgnored(key(module))) {
+                LOG.debug("The module '{}' is ignored for save.", key(module));
                 return;
             }
+            // save updated monitored action
             service.actionStorage.saveActionState(module, action);
         }
     }
 
-    private class ModuleLogger extends AbstractLogger{
+    // device to output log information
+    private class ModuleLogger extends ModuleLoggerDevice {
 
-        public ModuleLogger(ModulePK module) {
+        public ModuleLogger(ModuleKey module) {
             super(module);
         }
 
@@ -331,8 +348,9 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         public boolean isActive() {
             return LogModuleServiceImpl.this.isActive();
         }
+
         @Override
-        protected void asyncOutput(ModulePK module, MonitoredAction action, Object... arguments) {
+        protected void asyncOutput(ModuleKey module, MonitoredAction action, Object... arguments) {
             LOG.debug("Output from module '{}'", module);
             try {
                 distributedQueue().put(new OutputEvent(module, action == null ? null : action.getId(), arguments));
@@ -343,21 +361,13 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
 
         @Override
         protected MonitoredAction createMonitoredAction() {
-            if (actionTemplate != null) {
-                return actionTemplate.copy();
-            }
-            synchronized (ModuleLogger.class) {
-                if (actionTemplate == null) {
-                    actionTemplate = actionStorage.createMonitoredAction();
-                }
-            }
             return actionTemplate.copy();
         }
 
         @Override
-        protected void asyncInitMonitoredAction(ModulePK module, MonitoredAction action) {
-            action.setState(MonitoredAction.State.INIT);
-            action.setStart(timeService.now());
+        protected void asyncInitMonitoredAction(ModuleKey module, MonitoredAction action) {
+            ((MonitoredActionDto) action).setState(MonitoredAction.State.INIT);
+            ((MonitoredActionDto) action).setStart(timeService.now());
             try {
                 distributedQueue().put(new ActionEvent(new ModuleKeyDto(module), action.copy()));
             } catch (InterruptedException ex) {
@@ -366,16 +376,16 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
         }
 
         @Override
-        protected void asyncUpdateMonitoredAction(ModulePK module, MonitoredAction action, MonitoredAction.State state) {
-            action.setState(state);
+        protected void asyncUpdateMonitoredAction(ModuleKey module, MonitoredAction action, MonitoredAction.State state) {
+            ((MonitoredActionDto) action).setState(state);
             switch (state) {
                 case PROGRESS:
-                    action.setStart(timeService.now());
+                    ((MonitoredActionDto) action).setStart(timeService.now());
                     break;
                 case SUCCESS:
                 case FAIL:
-                    action.setFinish(timeService.now());
-                    action.setDuration(action.getFinish().getTime() - action.getStart().getTime());
+                    ((MonitoredActionDto) action).setFinish(timeService.now());
+                    ((MonitoredActionDto) action).setDuration(action.getFinish().getTime() - action.getStart().getTime());
                     break;
             }
             try {
@@ -384,6 +394,5 @@ public class LogModuleServiceImpl extends AbstractRunningService implements Modu
                 LOG.error("Cannot transfer updates of action", ex);
             }
         }
-
     }
 }

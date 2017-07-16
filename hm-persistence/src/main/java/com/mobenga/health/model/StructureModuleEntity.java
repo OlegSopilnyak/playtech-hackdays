@@ -1,5 +1,6 @@
 package com.mobenga.health.model;
 
+import com.mobenga.health.model.business.ModuleKey;
 import com.mobenga.health.model.persistence.ValidatingEntity;
 import org.springframework.util.StringUtils;
 
@@ -9,7 +10,7 @@ import java.util.StringTokenizer;
 /**
  * The entity to keep information about module. The owner of monitored-action and heard-beats<BR/>
  */
-public class StructureModuleEntity implements ModulePK, ValidatingEntity, Cloneable, StringEntity  {
+public class StructureModuleEntity implements ModuleKey, ValidatingEntity, Cloneable, StringEntity  {
 
     private static final long serialVersionUID = 1048253612582366971L;
     // the ID of module-descriptor
@@ -67,7 +68,7 @@ public class StructureModuleEntity implements ModulePK, ValidatingEntity, Clonea
         return enity;
     }
 
-    public StructureModuleEntity(ModulePK module){
+    public StructureModuleEntity(ModuleKey module){
         this.systemId = module.getSystemId();
         this.applicationId = module.getApplicationId();
         this.versionId = module.getVersionId();
@@ -161,8 +162,8 @@ public class StructureModuleEntity implements ModulePK, ValidatingEntity, Clonea
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || !(o instanceof ModulePK)) return false;
-        ModulePK that = (ModulePK) o;
+        if (o == null || !(o instanceof ModuleKey)) return false;
+        ModuleKey that = (ModuleKey) o;
         return Objects.equals(getSystemId(), that.getSystemId()) &&
                 Objects.equals(getApplicationId(), that.getApplicationId()) &&
                 Objects.equals(getVersionId(), that.getVersionId());

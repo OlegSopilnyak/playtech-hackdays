@@ -1,6 +1,6 @@
 package com.mobenga.health.model.transport;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
 import com.mobenga.health.monitor.strategy.VariableTypeStrategiesFactory;
 
 import java.io.IOException;

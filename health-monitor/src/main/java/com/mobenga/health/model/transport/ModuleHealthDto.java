@@ -1,94 +1,69 @@
 package com.mobenga.health.model.transport;
 
-import com.mobenga.health.model.ModulePK;
+import com.mobenga.health.model.business.ModuleHealth;
+import com.mobenga.health.model.business.ModuleKey;
+
 import java.io.Serializable;
 
 /**
  * Transport object for module's health
  */
-public class ModuleHealthDto implements ModulePK, Serializable{
-
+public class ModuleHealthDto extends ModuleKeyDto implements ModuleHealth, Serializable{
     private static final long serialVersionUID = -2049959624478697903L;
-    // the ID of the system
-    private String systemId;
-    // the ID of the module
-    private String applicationId;
-    // the ID of module's version
-    private String versionId;
-    // The description of the module
-    private String description;
-    // Flag is module active now
+
+    // current condition of module
+    private ModuleHealth.Condition condition;
+    private Throwable lastMistake;
     private boolean active;
-    @Override
-    public String getSystemId() {
-        return systemId;
-    }
+
 
     public ModuleHealthDto() {
     }
 
-    public ModuleHealthDto(ModulePK module, boolean active) {
-        systemId = module.getSystemId();
-        applicationId = module.getApplicationId();
-        versionId = module.getVersionId();
-        description = module.getDescription();
-        this.active = active;
+    public ModuleHealthDto(ModuleKey module, ModuleHealth.Condition condition) {
+        super(module);
+        this.condition = condition;
     }
 
+    /**
+     * To get the health condition of module for the moment
+     *
+     * @returnn current condition value
+     */
     @Override
-    public String getApplicationId() {
-        return applicationId;
+    public Condition getCondition() {
+        return condition;
     }
 
+    /**
+     * To get last throwable object
+     *
+     * @return mistake or null if none
+     */
     @Override
-    public String getVersionId() {
-        return versionId;
+    public Throwable getLastMistake() {
+        return lastMistake;
     }
 
+    /**
+     * To check is module active (is working)
+     *
+     * @return true if module is working
+     */
     @Override
-    public String getDescription() {
-        return description;
-    }
-
     public boolean isActive() {
         return active;
     }
 
-    public void setSystemId(String systemId) {
-        this.systemId = systemId;
+    public void setCondition(Condition condition) {
+        this.condition = condition;
     }
 
-    public void setApplicationId(String applicationId) {
-        this.applicationId = applicationId;
-    }
-
-    public void setVersionId(String versionId) {
-        this.versionId = versionId;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
+    public void setLastMistake(Throwable lastMistake) {
+        this.lastMistake = lastMistake;
     }
 
     public void setActive(boolean active) {
         this.active = active;
-    }
-
-    public boolean sameAs(ModulePK module){
-        return systemId.equals(module.getSystemId()) &&
-                applicationId.equals(module.getApplicationId()) &&
-                versionId.equals(module.getVersionId())
-                ;
-    }
-
-    @Override
-    public String toString() {
-        return "ModuleHealthItem{" +
-                "systemId='" + systemId + '\'' +
-                ", applicationId='" + applicationId + '\'' +
-                ", versionId='" + versionId + '\'' +
-                ", description='" + description + '\'' +
-                ", active=" + active +
-                '}';
     }
 }

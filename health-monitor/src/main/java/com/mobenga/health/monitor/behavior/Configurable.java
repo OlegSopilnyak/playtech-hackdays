@@ -1,11 +1,11 @@
 package com.mobenga.health.monitor.behavior;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
 
 import java.util.Map;
 
 /**
- * Interface means tha service can publish configuration and accept configuration changes
+ * Interface means that service can publish configuration information and accept configuration changes
  */
 public interface Configurable {
     /**

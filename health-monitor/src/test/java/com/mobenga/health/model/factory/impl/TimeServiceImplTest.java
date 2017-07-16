@@ -1,6 +1,6 @@
 package com.mobenga.health.model.factory.impl;
 
-import com.mobenga.health.model.factory.TimeService;
+import com.mobenga.health.monitor.TimeService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

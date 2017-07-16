@@ -1,9 +1,10 @@
 package com.mobenga.health.storage;
 
-import com.mobenga.health.model.ModuleOutput;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.business.out.ModuleOutputMessage;
+import com.mobenga.health.model.business.out.SelectOutputCriteria;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * The service to manage module's output stuff
@@ -15,14 +16,14 @@ public interface ModuleOutputStorage {
      * @param type the type of output
      * @return a new instance of output
      */
-    ModuleOutput createModuleOutput(ModulePK module, String type);
+    ModuleOutputMessage createModuleOutput(ModuleKey module, String type);
 
     /**
-     * To save chaged module's output
+     * To save changed module's output
      *
      * @param message output to save
      */
-    void saveModuleOutput(ModuleOutput message);
+    void saveModuleOutput(ModuleOutputMessage message);
 
     /**
      * To select entities suit the criteria
@@ -31,12 +32,12 @@ public interface ModuleOutputStorage {
      * @param offset required part of selection
      * @return required
      */
-    Page<ModuleOutput> select(ModuleOutput.Criteria criteria, Pageable offset);
+    Page<ModuleOutputMessage> select(SelectOutputCriteria criteria, Pageable offset);
 
     /**
      * To delete unnecessary entities
      * @param criteria criteria of selection
      * @return the quantity of deleted entities
      */
-    int delete(ModuleOutput.Criteria criteria);
+    int delete(SelectOutputCriteria criteria);
 }

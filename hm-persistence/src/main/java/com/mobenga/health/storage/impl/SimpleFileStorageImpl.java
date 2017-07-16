@@ -1,11 +1,13 @@
 package com.mobenga.health.storage.impl;
 
 import com.mobenga.health.model.*;
-import com.mobenga.health.model.factory.TimeService;
-import com.mobenga.health.model.factory.UniqueIdGenerator;
+import com.mobenga.health.model.business.*;
+import com.mobenga.health.model.business.out.ModuleOutputMessage;
+import com.mobenga.health.model.business.out.SelectOutputCriteria;
 import com.mobenga.health.model.persistence.ValidatingEntity;
-import com.mobenga.health.model.transport.ModuleHealthItem;
-import com.mobenga.health.monitor.behavior.ModuleHealth;
+import com.mobenga.health.model.transport.ModuleHealthDto;
+import com.mobenga.health.monitor.TimeService;
+import com.mobenga.health.monitor.UniqueIdGenerator;
 import com.mobenga.health.storage.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +41,7 @@ public class SimpleFileStorageImpl implements
         ModuleOutputStorage
 {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleFileStorageImpl.class);
-    public static final String DATA_FILE_MODULES = ModulePK.STORAGE_NAME + ".properties";
+    public static final String DATA_FILE_MODULES = ModuleKey.STORAGE_NAME + ".properties";
     public static final String DATA_FILE_CONFIG = ConfiguredVariableItem.STORAGE_NAME;
     public static final String DATA_FILE_HEARTBEAT = HeartBeat.STORAGE_NAME;
     public static final String DATA_FILE_ACTIONS = MonitoredAction.STORAGE_NAME;
@@ -56,7 +58,7 @@ public class SimpleFileStorageImpl implements
     private Properties modules = new Properties();
     private StructureModuleEntity moduleTemplate = new StructureModuleEntity();
 
-    private Map<String, ModuleOutput> moduleOutputMap = new HashMap<>();
+    private Map<String, ModuleOutputMessage> moduleOutputMap = new HashMap<>();
 
     private boolean initialized = false;
 
@@ -96,7 +98,7 @@ public class SimpleFileStorageImpl implements
      * @return the instance
      */
 //    @Override
-    public ModulePK getModulePK(ModulePK application) {
+    public ModuleKey getModulePK(ModuleKey application) {
         return getOrCreateModuleEntity(application);
     }
 
@@ -105,15 +107,15 @@ public class SimpleFileStorageImpl implements
      * @return
      */
 //    @Override
-    public ModulePK getModulePK(String applicationId) {
+    public ModuleKey getModulePK(String applicationId) {
         String moduleString = modules.getProperty(applicationId);
         if (moduleString == null){
-            ModulePK module = new StructureModuleEntity(applicationId);
+            ModuleKey module = new StructureModuleEntity(applicationId);
             modules.setProperty(applicationId, module.toString());
             storeModules();
             return module;
         }
-        return (ModulePK) moduleTemplate.fromString(moduleString);
+        return (ModuleKey) moduleTemplate.fromString(moduleString);
     }
 
     /**
@@ -126,16 +128,16 @@ public class SimpleFileStorageImpl implements
         final Date nowDateTime = timer.now();
         LOG.debug("Saving module heart-beat time '{}'", nowDateTime);
         Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
-        String moduleId = key(module.getModulePK());
+        String moduleId = key(module);
         LOG.debug("Heart-beat is not stored in this version of storage.");
         String key = moduleId + "."+hostName;
         HealthConditionEntity condition = (HealthConditionEntity) repository.get(key);
         if (condition == null || condition.changed(module)) {
             condition = new HealthConditionEntity();
-            condition.setHealthPK(module.getModulePK());
+            condition.setHealthPK(module);
             condition.setHostAddress(hostIp);
             condition.setHostName(hostName);
-            condition.setModuleActive(module.isActive());
+//            condition.setModuleActive(module.isActive());
             repository.put(key, condition);
             storeRepository(DATA_FILE_HEARTBEAT, repository);
             hbRepo = repository;
@@ -143,7 +145,7 @@ public class SimpleFileStorageImpl implements
     }
 
     @Override
-    public void saveModuleState(ModulePK module, boolean isActive){
+    public void saveModuleState(ModuleKey module, boolean isActive){
         final Date nowDateTime = timer.now();
         LOG.debug("Saving module heart-beat time '{}'", nowDateTime);
         Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
@@ -151,19 +153,19 @@ public class SimpleFileStorageImpl implements
         LOG.debug("Heart-beat is not stored in this version of storage.");
         String key = moduleId + "."+hostName;
         HealthConditionEntity condition = (HealthConditionEntity) repository.get(key);
-        if (condition == null || condition.isModuleActive() != isActive) {
+        if (condition == null ){//|| condition.isModuleActive() != isActive) {
             condition = new HealthConditionEntity();
             condition.setHealthPK(module);
             condition.setHostAddress(hostIp);
             condition.setHostName(hostName);
-            condition.setModuleActive(isActive);
+//            condition.setModuleActive(isActive);
             repository.put(key, condition);
             storeRepository(DATA_FILE_HEARTBEAT, repository);
             hbRepo = repository;
         }
     }
 
-    void removeModuleHB(ModulePK pk){
+    void removeModuleHB(ModuleKey pk){
         Map<String, StringEntity> repository = reStoreRepository(DATA_FILE_HEARTBEAT, hbTemplate);
         final String key = key(pk) + "."+hostName;
         repository.remove(key);
@@ -177,12 +179,12 @@ public class SimpleFileStorageImpl implements
      * @return list of states
      */
     @Override
-    public List<ModuleHealthItem> getSystemHealth() {
-        final List<ModuleHealthItem> systemHealth = new ArrayList<>();
+    public List<ModuleHealth> getSystemHealth() {
+        final List<ModuleHealth> systemHealth = new ArrayList<>();
         for(StringEntity entity : hbRepo.values()){
             HealthConditionEntity condition = (HealthConditionEntity) entity;
             if (hostName.equals(condition.getHostName())) {
-                systemHealth.add(new ModuleHealthItem(condition.getModule(), condition.isModuleActive()));
+                systemHealth.add(new ModuleHealthDto(condition.getModule(), condition.getCondition()));
             }
         }
         return systemHealth;
@@ -195,7 +197,7 @@ public class SimpleFileStorageImpl implements
      * @param action action to save
      */
     @Override
-    public void saveActionState(ModulePK pk, MonitoredAction action) {
+    public void saveActionState(ModuleKey pk, MonitoredAction action) {
         if (!(action instanceof MonitoredActionEntity)) {
             LOG.error("Action instance is not entity '{}'", action);
             return;
@@ -259,7 +261,7 @@ public class SimpleFileStorageImpl implements
      * @param configuration new configuration
      */
     @Override
-    public Map<String, ConfiguredVariableItem> replaceConfiguration(ModulePK module, Map<String, ConfiguredVariableItem> configuration) {
+    public Map<String, ConfiguredVariableItem> replaceConfiguration(ModuleKey module, Map<String, ConfiguredVariableItem> configuration) {
         LOG.debug("Storing whole configuration for '{}'", module);
         final String moduleKey = key(getModulePK(module));
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
@@ -292,7 +294,7 @@ public class SimpleFileStorageImpl implements
         return changedItems.stream().collect(Collectors.toMap( i -> i.getMapKey(), i -> i ));
     }
 
-    void removeModuleConfiguration(ModulePK module){
+    void removeModuleConfiguration(ModuleKey module){
         final String moduleId = key(module);
         final Map<String, StringEntity> repository = restoreConfigurationRepository();
         for(Iterator<Map.Entry<String, StringEntity>> i = repository.entrySet().iterator();i.hasNext();){
@@ -312,7 +314,7 @@ public class SimpleFileStorageImpl implements
      * @param configuration configured variables
      */
     @Override
-    public void storeChangedConfiguration(ModulePK module, Map<String, ConfiguredVariableItem> configuration) {
+    public void storeChangedConfiguration(ModuleKey module, Map<String, ConfiguredVariableItem> configuration) {
         LOG.debug("Storing changed configuration for '{}'", module);
         final String applicationKey = key(getModulePK(module));
         final List<ConfiguredVariableEntity> changedItems = new ArrayList<>();
@@ -424,7 +426,7 @@ public class SimpleFileStorageImpl implements
      * @return actual version of configuration
      */
     @Override
-    public int getConfigurationVersion(ModulePK module) {
+    public int getConfigurationVersion(ModuleKey module) {
         return getConfigurationVersion(key(module));
     }
 
@@ -436,8 +438,8 @@ public class SimpleFileStorageImpl implements
      * @return a new instance of output
      */
     @Override
-    public ModuleOutput createModuleOutput(ModulePK module, String type) {
-        final ModuleOutput template = moduleOutputMap.get(type);
+    public ModuleOutputMessage createModuleOutput(ModuleKey module, String type) {
+        final ModuleOutputMessage template = moduleOutputMap.get(type);
         return template == null ? null : template.copy().setModulePK(key(module));
     }
 
@@ -447,9 +449,9 @@ public class SimpleFileStorageImpl implements
      * @param message output to save
      */
     @Override
-    public void saveModuleOutput(ModuleOutput message) {
+    public void saveModuleOutput(ModuleOutputMessage message) {
         LOG.debug("Saving module-output class='{}'", message.getClass().getCanonicalName());
-        final ModuleOutput template = moduleOutputMap.get(message.getMessageType());
+        final ModuleOutputMessage template = moduleOutputMap.get(message.getMessageType());
         if (template instanceof StringEntity){
             final StringEntity entityTemplate = (StringEntity) template.copy();
             final String repositoryName = entityTemplate.storageName();
@@ -478,20 +480,20 @@ public class SimpleFileStorageImpl implements
      * @return required
      */
     @Override
-    public Page<ModuleOutput> select(ModuleOutput.Criteria criteria, Pageable offset) {
-        final List<ModuleOutput> selected = new ArrayList<>();
+    public Page<ModuleOutputMessage> select(SelectOutputCriteria criteria, Pageable offset) {
+        final List<ModuleOutputMessage> selected = new ArrayList<>();
         final int maxMessagesQuantity = offset == null ? Integer.MAX_VALUE : offset.getPageSize();
         long total = 0;
         if (StringUtils.isEmpty(criteria.getType())){
             // to evaluate all types of messages
-            for(final ModuleOutput message: moduleOutputMap.values()){
+            for(final ModuleOutputMessage message: moduleOutputMap.values()){
                 total += walkThroughRepository(criteria, selected, (StringEntity) message, maxMessagesQuantity);
             }
         }else {
             // to evaluate particular type of messages
             total += walkThroughRepository(criteria, selected, (StringEntity) moduleOutputMap.get(criteria.getType()), maxMessagesQuantity);
         }
-        return new PageImpl<ModuleOutput>(selected, offset, total);
+        return new PageImpl<ModuleOutputMessage>(selected, offset, total);
     }
 
     /**
@@ -501,11 +503,11 @@ public class SimpleFileStorageImpl implements
      * @return the quantity of deleted entities
      */
     @Override
-    public int delete(ModuleOutput.Criteria criteria) {
+    public int delete(SelectOutputCriteria criteria) {
         final int deleted[] = {0};
         if (StringUtils.isEmpty(criteria.getType())){
             // walk through all types
-            for(final ModuleOutput message: moduleOutputMap.values()){
+            for(final ModuleOutputMessage message: moduleOutputMap.values()){
                 final StringEntity template = (StringEntity) message;
                 walkAndDeleteThroughRepository(criteria, template, deleted);
             }
@@ -517,37 +519,37 @@ public class SimpleFileStorageImpl implements
         return deleted[0];
     }
 
-    public Map<String, ModuleOutput> getModuleOutputMap() {
+    public Map<String, ModuleOutputMessage> getModuleOutputMap() {
         return moduleOutputMap;
     }
 
-    public void setModuleOutputMap(Map<String, ModuleOutput> moduleOutputMap) {
+    public void setModuleOutputMap(Map<String, ModuleOutputMessage> moduleOutputMap) {
         this.moduleOutputMap = moduleOutputMap;
     }
 
     // private methods
-    private void walkAndDeleteThroughRepository(ModuleOutput.Criteria criteria,StringEntity template, int counter[]){
+    private void walkAndDeleteThroughRepository(SelectOutputCriteria criteria, StringEntity template, int counter[]){
         if (template == null) return;
         final Map<String, StringEntity> repository = reStoreRepository(template.storageName(), template);
         final Map<String, StringEntity> newRepo = repository.entrySet().stream()
-                .filter(entry -> entry.getValue() instanceof ModuleOutput)
-                .filter(entry -> !criteria.isSuitable((ModuleOutput) entry.getValue()))
+                .filter(entry -> entry.getValue() instanceof ModuleOutputMessage)
+                .filter(entry -> !criteria.isSuitable((ModuleOutputMessage) entry.getValue()))
                 .collect(Collectors.toMap(entry -> entry.getKey(), entry-> entry.getValue()));
         storeRepository(template.storageName(), newRepo);
         counter[0] += repository.size() - newRepo.size();
     }
-    private long walkThroughRepository(ModuleOutput.Criteria criteria, List<ModuleOutput> selected, StringEntity template, int maxItem) {
+    private long walkThroughRepository(SelectOutputCriteria criteria, List<ModuleOutputMessage> selected, StringEntity template, int maxItem) {
         if (template == null) return 0;
         final Map<String, StringEntity> repository = reStoreRepository(template.storageName(), template);
         final int []added = {0};
         repository.values().stream()
                 .filter(item -> maxItem > added[0])
-                .filter(item -> item instanceof ModuleOutput)
-                .filter(item -> criteria.isSuitable((ModuleOutput) item))
-                .forEach((item) -> {selected.add((ModuleOutput)item); added[0]++;});
+                .filter(item -> item instanceof ModuleOutputMessage)
+                .filter(item -> criteria.isSuitable((ModuleOutputMessage) item))
+                .forEach((item) -> {selected.add((ModuleOutputMessage)item); added[0]++;});
         return repository.values().stream()
-                .filter(item -> item instanceof ModuleOutput)
-                .filter(item -> criteria.isSuitable((ModuleOutput) item))
+                .filter(item -> item instanceof ModuleOutputMessage)
+                .filter(item -> criteria.isSuitable((ModuleOutputMessage) item))
                 .count();
     }
 
@@ -561,7 +563,7 @@ public class SimpleFileStorageImpl implements
         return builder.toString();
     }
 
-    void removeModule(ModulePK module){
+    void removeModule(ModuleKey module){
         LOG.debug("Removing module {}.", module);
         reStoreModules();
         modules.remove(key(module));
@@ -569,7 +571,7 @@ public class SimpleFileStorageImpl implements
     }
 
     @Nullable
-    private StructureModuleEntity getOrCreateModuleEntity(ModulePK module) {
+    private StructureModuleEntity getOrCreateModuleEntity(ModuleKey module) {
         LOG.debug("Finding entity for '{}'", module);
         try {
             reStoreModules();
@@ -696,7 +698,7 @@ public class SimpleFileStorageImpl implements
      * @param module information of module to save
      */
     @Override
-    public void save(ModulePK module) {
+    public void save(ModuleKey module) {
         LOG.debug("Removing module {}.", module);
         reStoreModules();
         final String moduleId = key(module);
@@ -712,7 +714,7 @@ public class SimpleFileStorageImpl implements
      * @return
      */
     @Override
-    public List<ModulePK> modulesList() {
+    public List<ModuleKey> modulesList() {
         return modules.values().stream()
                 .map(s-> (StructureModuleEntity)moduleTemplate.fromString((String) s))
                 .collect(Collectors.toList());

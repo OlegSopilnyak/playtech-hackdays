@@ -1,6 +1,7 @@
 package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
 import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.HealthModuleService;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * Realization of modules service
@@ -49,19 +50,61 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     private BlockingQueue<ModuleKeyDto> storeQueue;
 
     /**
-     * To get the value of Module's PK
+     * Return a delay between run iterations
      *
-     * @return value of PK (not null)
+     * @return the value
      */
     @Override
-    public ModulePK getModulePK() {return this;}
+    protected long scanDelayMillis() {
+        return 200L;
+    }
+
     /**
      * Represent module as a string
      * @return string
      */
     @Override
     public String toString() {return "-HealthModuleService-";}
-    
+
+    @Override
+    protected void beforeStart() {
+        modulesCache = distributed.map(moduleCacheName);
+        if (modulesCache.isEmpty()) {
+            LOG.info("It seems like it first run.");
+            storage.modulesList().forEach(m -> modulesCache.put(key(m), new ModuleKeyDto(m)));
+        }
+        storeQueue = distributed.queue(moduleQueueName);
+    }
+    @Override
+    protected void afterStart() {notifier.register(this);}
+
+    @Override
+    protected void serviceLoopIteration() throws InterruptedException {
+        if (!isActive()) {
+            return;
+        }
+
+        ModuleKeyDto module = null;
+        while (isActive() && (module = storeQueue.poll(100, TimeUnit.MILLISECONDS)) != null) {
+            storage.save(module);
+        }
+    }
+
+
+    @Override
+    protected void serviceLoopException(Throwable t) {
+        LOG.error("Something went wrong", t);
+    }
+
+
+    @Override
+    protected void beforeStop() {}
+    @Override
+    protected void afterStop() {notifier.unRegister(this);}
+
+    @Override
+    protected Logger getLogger() {return LOG;}
+
     public void initialize() {super.start();}
 
     @Override
@@ -74,7 +117,7 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
      * @return the wrapper of module
      */
     @Override
-    public ModulePK getModule(final ModulePK module) {
+    public ModuleKey getModule(final ModuleKey module) {
         return modulesCache.computeIfAbsent(key(module), (String mk) -> {
             final ModuleKeyDto wrapper;
             storeQueue.offer(wrapper = new ModuleKeyDto(module));
@@ -89,7 +132,7 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
      * @return the wrapper of module
      */
     @Override
-    public ModulePK getModule(String moduleId) {
+    public ModuleKey getModule(String moduleId) {
         return modulesCache.get(moduleId);
     }
 
@@ -99,8 +142,8 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
      * @return list of wrappers of modules
      */
     @Override
-    public List<ModulePK> getModules() {
-        return modulesCache.values().stream().collect(Collectors.toList());
+    public List<ModuleKey> getModules() {
+        return isActive() ? modulesCache.values().stream().collect(Collectors.toList()) : new ArrayList<>();
     }
 
 
@@ -131,37 +174,5 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     }
 
     // redefined protected methods
-    @Override
-    protected void beforeStart() {
-        modulesCache = distributed.map(moduleCacheName);
-        if (modulesCache.isEmpty()) {
-            LOG.info("It seems like it first run.");
-            storage.modulesList().forEach(m -> modulesCache.put(key(m), new ModuleKeyDto(m)));
-        }
-        storeQueue = distributed.queue(moduleQueueName);
-    }
-    @Override
-    protected void afterStart() {notifier.register(this);}
-
-    @Override
-    protected void beforeStop() {}
-    @Override
-    protected void afterStop() {notifier.unRegister(this);}
-
-    @Override
-    protected Logger getLogger() {return LOG;}
-
-    @Override
-    protected void serviceLoopIteration() {
-        try {
-            final ModuleKeyDto module = storeQueue.poll(100, TimeUnit.MILLISECONDS);
-            if (module != null) {
-                storage.save(module);
-            }
-        } catch (InterruptedException e) {
-            LOG.error("Poll was interrupted ", e);
-        }
-    }
-
     // private methods
 }

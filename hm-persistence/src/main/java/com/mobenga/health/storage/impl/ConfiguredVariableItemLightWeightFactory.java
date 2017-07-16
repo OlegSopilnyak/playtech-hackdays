@@ -1,7 +1,7 @@
 package com.mobenga.health.storage.impl;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,14 +19,10 @@ public final class ConfiguredVariableItemLightWeightFactory {
     }
 
     public static ConfiguredVariableItem itemFor(String modulePK, String packageKey, ConfiguredVariableItem original) {
-        final String cacheKey = 
-                new StringBuilder(modulePK)
-                        .append("|").append(packageKey)
-                        .append(".").append(original.getName())
-                        .toString();
+        final String cacheKey = new StringBuilder(modulePK).append("|").append(packageKey).append(".").append(original.getName()).toString();
         synchronized(cache){
-            final ConfiguredVariableItem item = 
-                    cache.computeIfAbsent(cacheKey, k -> new LocalConfiguredVariableItem(original));
+            final ConfiguredVariableItem item =
+                    cache.computeIfAbsent(cacheKey, k -> new ConfiguredVariableItemDto(original));
             item.setType(original.getType());
             item.setValue(original.getValue());
             return item;

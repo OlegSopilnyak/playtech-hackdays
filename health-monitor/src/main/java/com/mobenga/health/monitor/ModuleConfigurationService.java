@@ -1,10 +1,10 @@
 package com.mobenga.health.monitor;
 
-import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
 
 import java.util.List;
 import java.util.Map;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * Service to support modules configurations
@@ -55,7 +55,7 @@ public interface ModuleConfigurationService extends MonitoredService {
      * @param groupName the dot-delimited name of group (empty is root)
      * @return map of full-qualified configured variables
      */
-    Map<String, ConfiguredVariableItem> getConfigurationGroup(ModulePK application, String groupName);
+    Map<String, ConfiguredVariableItem> getConfigurationGroup(ModuleKey application, String groupName);
 
     /**
      * To get updated configured variables
@@ -64,7 +64,7 @@ public interface ModuleConfigurationService extends MonitoredService {
      * @param configuration current state of configuration
      * @return updated variables (emptyMap if none)
      */
-    Map<String, ConfiguredVariableItem> getUpdatedVariables(ModulePK application, Map<String, ConfiguredVariableItem> configuration);
+    Map<String, ConfiguredVariableItem> getUpdatedVariables(ModuleKey application, Map<String, ConfiguredVariableItem> configuration);
 
     /**
      * To update configured variables
@@ -72,7 +72,7 @@ public interface ModuleConfigurationService extends MonitoredService {
      * @param application the consumer of configuration
      * @param configuration new variables
      */
-    void newConfiguredVariables(ModulePK application, Map<String, ConfiguredVariableItem> configuration);
+    void newConfiguredVariables(ModuleKey application, Map<String, ConfiguredVariableItem> configuration);
     
     /**
      * To change/replace the configuration of module
@@ -81,7 +81,7 @@ public interface ModuleConfigurationService extends MonitoredService {
      * @param configuration new configuration map
      * @return saved configuration
      */
-    Map<String, ConfiguredVariableItem> changeConfiguration(ModulePK application, Map<String, ConfiguredVariableItem> configuration);
+    Map<String, ConfiguredVariableItem> changeConfiguration(ModuleKey application, Map<String, ConfiguredVariableItem> configuration);
 
     /**
      * To get the list of configurable groups

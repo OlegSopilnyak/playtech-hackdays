@@ -1,9 +1,9 @@
 package com.mobenga.health.configuration;
 
-import com.mobenga.health.model.factory.TimeService;
-import com.mobenga.health.model.factory.UniqueIdGenerator;
-import com.mobenga.health.model.factory.impl.TimeServiceImpl;
-import com.mobenga.health.model.factory.impl.UniqueIdGeneratorImpl;
+import com.mobenga.health.monitor.TimeService;
+import com.mobenga.health.monitor.UniqueIdGenerator;
+import com.mobenga.health.monitor.impl.TimeServiceImpl;
+import com.mobenga.health.monitor.impl.UniqueIdGeneratorImpl;
 import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

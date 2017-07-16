@@ -1,20 +1,16 @@
 package com.mobenga.health.configuration;
 
-import com.mobenga.health.monitor.impl.HealthModuleServiceImpl;
-import com.mobenga.health.monitor.impl.LogModuleServiceImpl;
-import com.mobenga.health.monitor.impl.ModuleActionMonitorServiceImpl;
-import com.mobenga.health.monitor.impl.ModuleConfigurationServiceImpl;
-import com.mobenga.health.monitor.impl.ModuleStateNotificationServiceImpl;
+import com.mobenga.health.monitor.impl.*;
+import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * The Spring configuration for monitor basics (without persistence)
@@ -25,7 +21,7 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
         ignoreResourceNotFound = false)
 public class BasicMonitorConfiguration {
 
-    @Value("${threads.pool.init:7}")
+    @Value("${config.threads.pool.init:2}")
     private int corePoolSize;
     @Value("${heart.beat.delay:2000}")
     private int heartbeatDelay;
@@ -43,8 +39,8 @@ public class BasicMonitorConfiguration {
      * @return instance
      */
     @Bean(name = "serviceRunner", destroyMethod = "shutdown")
-    public ExecutorService serviceRunner(){
-        ExecutorService runner = Executors.newScheduledThreadPool(corePoolSize);
+    public ScheduledExecutorService serviceRunner(){
+        final ScheduledExecutorService runner = Executors.newScheduledThreadPool(corePoolSize);
         return runner;
     }
     /**
@@ -67,7 +63,8 @@ public class BasicMonitorConfiguration {
      */
     @Bean(name = "modulesConfigurationService", autowire = Autowire.BY_TYPE,
             initMethod = "initialize", destroyMethod = "shutdown")
-    public ModuleConfigurationServiceImpl configurationServive(){
+    @DependsOn("healthModulesManagement")
+    public ModuleConfigurationServiceImpl configurationService(){
         ModuleConfigurationServiceImpl service = new ModuleConfigurationServiceImpl();
         return service;
     }
@@ -79,7 +76,7 @@ public class BasicMonitorConfiguration {
      */
     @Bean(name = "healthModulesManagement", autowire = Autowire.BY_TYPE,
             initMethod = "initialize",  destroyMethod = "shutdown")
-    public HealthModuleServiceImpl healthService(){
+    public HealthModuleServiceImpl modulesService(){
         return new HealthModuleServiceImpl();
     }
     

@@ -1,7 +1,9 @@
 package com.mobenga.health.storage.stub;
 
-import com.mobenga.health.model.LogMessage;
-import com.mobenga.health.model.ModuleOutput;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.business.out.ModuleOutputMessage;
+import com.mobenga.health.model.business.out.SelectOutputCriteria;
+import com.mobenga.health.model.business.out.log.ModuleLoggerMessage;
 import com.mobenga.health.storage.ModuleOutputStorage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -10,7 +12,6 @@ import org.springframework.data.domain.Pageable;
 import java.util.Collections;
 
 import static org.mockito.Mockito.mock;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * The stub for ModuleOutputStorage
@@ -24,8 +25,8 @@ public class ModuleOutputStorageStub implements ModuleOutputStorage {
      * @return a new instance of output
      */
     @Override
-    public ModuleOutput createModuleOutput(ModulePK module, String type) {
-        if (LogMessage.OUTPUT_TYPE.equals(type))  return mock(LogMessage.class);
+    public ModuleOutputMessage createModuleOutput(ModuleKey module, String type) {
+        if (ModuleLoggerMessage.LOG_OUTPUT_TYPE.equals(type))  return mock(ModuleLoggerMessage.class);
         return null;
     }
 
@@ -35,7 +36,7 @@ public class ModuleOutputStorageStub implements ModuleOutputStorage {
      * @param message output to save
      */
     @Override
-    public void saveModuleOutput(ModuleOutput message) {
+    public void saveModuleOutput(ModuleOutputMessage message) {
         //
     }
 
@@ -47,8 +48,8 @@ public class ModuleOutputStorageStub implements ModuleOutputStorage {
      * @return required
      */
     @Override
-    public Page<ModuleOutput> select(ModuleOutput.Criteria criteria, Pageable offset) {
-        return new PageImpl<ModuleOutput>(Collections.EMPTY_LIST);
+    public Page<ModuleOutputMessage> select(SelectOutputCriteria criteria, Pageable offset) {
+        return new PageImpl<ModuleOutputMessage>(Collections.EMPTY_LIST);
     }
 
     /**
@@ -58,7 +59,7 @@ public class ModuleOutputStorageStub implements ModuleOutputStorage {
      * @return the quantity of deleted entities
      */
     @Override
-    public int delete(ModuleOutput.Criteria criteria) {
+    public int delete(SelectOutputCriteria criteria) {
         return 0;
     }
 }

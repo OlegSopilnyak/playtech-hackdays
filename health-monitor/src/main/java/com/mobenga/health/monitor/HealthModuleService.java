@@ -1,8 +1,9 @@
 package com.mobenga.health.monitor;
 
 
+import com.mobenga.health.model.business.ModuleKey;
+
 import java.util.List;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * The service to manage modules
@@ -15,7 +16,7 @@ public interface HealthModuleService extends MonitoredService{
      * @return the value
      */
     @Override
-    default public String getSystemId() {
+    default String getSystemId() {
         return "healthMonitor";
     }
 
@@ -25,7 +26,7 @@ public interface HealthModuleService extends MonitoredService{
      * @return the value
      */
     @Override
-    default public String getApplicationId() {
+    default String getApplicationId() {
         return "healthModulesManagement";
     }
 
@@ -35,7 +36,7 @@ public interface HealthModuleService extends MonitoredService{
      * @return the value
      */
     @Override
-    default public String getVersionId() {
+    default String getVersionId() {
         return "0.01";
     }
 
@@ -45,7 +46,7 @@ public interface HealthModuleService extends MonitoredService{
      * @return the value
      */
     @Override
-    default public String getDescription() {
+    default String getDescription() {
         return "Module to make distributed access to modules set.";
     }
 
@@ -55,7 +56,7 @@ public interface HealthModuleService extends MonitoredService{
      * @param module real module of application
      * @return the wrapper of module
      */
-    ModulePK getModule(ModulePK module);
+    ModuleKey getModule(ModuleKey module);
 
     /**
      * To get cached module by module's key
@@ -63,12 +64,12 @@ public interface HealthModuleService extends MonitoredService{
      * @param moduleId module's key
      * @return the wrapper of module
      */
-    ModulePK getModule(String moduleId);
+    ModuleKey getModule(String moduleId);
 
     /**
      * To get the list of all registered modules
      *
      * @return list of wrappers of modules
      */
-    List<ModulePK> getModules();
+    List<ModuleKey> getModules();
 }

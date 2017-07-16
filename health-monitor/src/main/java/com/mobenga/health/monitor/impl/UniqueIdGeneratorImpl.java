@@ -1,6 +1,6 @@
-package com.mobenga.health.model.factory.impl;
+package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.factory.UniqueIdGenerator;
+import com.mobenga.health.monitor.UniqueIdGenerator;
 
 import java.util.UUID;
 

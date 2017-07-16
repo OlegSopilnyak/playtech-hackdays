@@ -1,6 +1,6 @@
-package com.mobenga.health.model.factory.impl;
+package com.mobenga.health.monitor.impl;
 
-import com.mobenga.health.model.factory.TimeService;
+import com.mobenga.health.monitor.TimeService;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -9,7 +9,7 @@ import java.util.TimeZone;
 
 /**
  * Implementation of TimeService
- * @see com.mobenga.health.model.factory.TimeService
+ * @see TimeService
  */
 public class TimeServiceImpl implements TimeService{
     private TimeZone zone  = TimeZone.getDefault();

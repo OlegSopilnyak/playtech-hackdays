@@ -1,4 +1,4 @@
-package com.mobenga.health.model.factory;
+package com.mobenga.health.monitor;
 
 import java.util.Calendar;
 import java.util.Date;

@@ -1,18 +1,18 @@
 package com.mobenga.hm.openbet.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 
 import java.io.Serializable;
 import java.util.List;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * DTO. Ping from external module
  */
 public class ExternalModulePing implements Serializable {
     // the wrapper of real module
-    private ModuleWrapper module;
+    private ModuleKeyDto module;
     // the host where module works
     private String host;
     // The module's state (active|passive)
@@ -24,13 +24,13 @@ public class ExternalModulePing implements Serializable {
     // the output of module from last ping (with related actions
     private List<ModuleAction> actions;
 
-    @JsonDeserialize(as = ModuleWrapper.class)
-    public ModuleWrapper getModule() {
+    @JsonDeserialize(as = ModuleKeyDto.class)
+    public ModuleKeyDto getModule() {
         return module;
     }
 
-    public void setModule(ModulePK module) {
-        this.module = new ModuleWrapper(module);
+    public void setModule(ModuleKey module) {
+        this.module = new ModuleKeyDto(module);
     }
 
     public String getHost() {

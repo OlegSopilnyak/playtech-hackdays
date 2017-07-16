@@ -1,5 +1,6 @@
 package com.mobenga.health.model;
 
+import com.mobenga.health.model.business.MonitoredAction;
 import com.mobenga.health.model.persistence.ValidatingEntity;
 import org.springframework.util.StringUtils;
 
@@ -11,7 +12,7 @@ import java.util.StringTokenizer;
 /**
  * Entity-bean to store in storage
  */
-public final class MonitoredActionEntity extends MonitoredAction implements ValidatingEntity, Cloneable, StringEntity {
+public final class MonitoredActionEntity implements MonitoredAction, ValidatingEntity, Cloneable, StringEntity {
     private static final SimpleDateFormat dateConverter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     private static final long serialVersionUID = 8378069061455031782L;
     // the PK of entity
@@ -148,17 +149,22 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
+    /**
+     * The reference to ModuleKey
+     *
+     * @return value of module key
+     */
     @Override
-    public String getHealthPK() {
+    public String getModuleKey() {
         return healthPK;
     }
 
     public void setHealthPK(String healthPK) {
         this.healthPK = healthPK;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     /**
@@ -230,7 +236,6 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
      *
      * @param description new value
      */
-    @Override
     public void setDescription(String description) {
         this.description = description;
     }
@@ -240,7 +245,6 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
      *
      * @param starts new value
      */
-    @Override
     public void setStart(Date starts) {
         this.start = starts;
     }
@@ -250,7 +254,6 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
      *
      * @param state new value
      */
-    @Override
     public void setState(State state) {
         this.stateName = state.name();
     }
@@ -260,7 +263,6 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
      *
      * @param ends new value
      */
-    @Override
     public void setFinish(Date ends) {
         this.finish = ends;
     }
@@ -270,7 +272,6 @@ public final class MonitoredActionEntity extends MonitoredAction implements Vali
      *
      * @param duration new value (nanoseconds)
      */
-    @Override
     public void setDuration(long duration) {
         this.duration = duration;
     }

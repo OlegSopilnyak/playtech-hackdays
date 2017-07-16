@@ -1,11 +1,11 @@
 package com.mobenga.hm.openbet.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.mobenga.health.model.transport.ModuleWrapper;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.transport.ModuleKeyDto;
 
 import java.io.Serializable;
 import java.util.List;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * DTO for batch configuration update
@@ -14,7 +14,7 @@ public class ConfigurationUpdate implements Serializable{
     // the source of update request
     private String host;
     // module as wrapper
-    private ModuleWrapper module;
+    private ModuleKeyDto module;
     // items to update
     private List<ModuleConfigurationItem> updated;
 
@@ -26,13 +26,13 @@ public class ConfigurationUpdate implements Serializable{
         this.host = host;
     }
 
-    @JsonDeserialize(as = ModuleWrapper.class)
-    public ModulePK getModule() {
+    @JsonDeserialize(as = ModuleKeyDto.class)
+    public ModuleKey getModule() {
         return module;
     }
 
-    public void setModule(ModulePK module) {
-        this.module = new ModuleWrapper(module);
+    public void setModule(ModuleKey module) {
+        this.module = new ModuleKeyDto(module);
     }
 
     public List<ModuleConfigurationItem> getUpdated() {

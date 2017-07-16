@@ -10,7 +10,7 @@
         <constructor-arg value="3"/>
     </bean>
 
-    <bean id="action" class="com.mobenga.health.monitor.impl.MonitoredActionStub" />
+    <!--<bean id="action" class="com.mobenga.health.monitor.impl.MonitoredActionStub" />-->
 
 
     <bean id="storage" class="org.mockito.Mockito" factory-method="mock">
@@ -20,6 +20,6 @@
         <constructor-arg value="com.mobenga.health.monitor.ModuleStateNotificationService" />
     </bean>
     <bean id="module" class="org.mockito.Mockito" factory-method="mock">
-        <constructor-arg value="com.mobenga.health.model.ModulePK" />
+        <constructor-arg value="com.mobenga.health.model.business.ModuleKey" />
     </bean>
 </beans>

@@ -1,5 +1,6 @@
 package com.mobenga.health.model;
 
+import com.mobenga.health.model.business.ConfiguredVariableItem;
 import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
 import org.junit.Test;
 
@@ -10,7 +11,7 @@ import static org.junit.Assert.*;
 /**
  * Unit-test
  */
-public class ConfiguredVariableItemTest {
+public class ConfiguredVariableItemBusinessTest {
 
     @Test
     public void testStringGet() throws Exception {

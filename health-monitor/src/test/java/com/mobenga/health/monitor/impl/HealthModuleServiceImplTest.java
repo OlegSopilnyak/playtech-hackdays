@@ -1,26 +1,28 @@
 package com.mobenga.health.monitor.impl;
 
-import static com.mobenga.health.HealthUtils.key;
-import com.mobenga.health.model.ModulePK;
+import com.mobenga.health.model.business.ModuleKey;
 import com.mobenga.health.model.transport.ModuleKeyDto;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.ModuleStateNotificationService;
 import com.mobenga.health.storage.HealthModuleStorage;
-import java.util.HashMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
-import static org.mockito.Matchers.anyString;
 import org.mockito.Mock;
-import static org.mockito.Mockito.when;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
+
+import java.util.HashMap;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+import static com.mobenga.health.HealthUtils.key;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
  * Testing modules manager
@@ -35,7 +37,7 @@ public class HealthModuleServiceImplTest {
     @Mock
     private HealthModuleStorage storage;
     @Spy
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
     @Mock
     private ModuleStateNotificationService notifier;
 
@@ -53,8 +55,8 @@ public class HealthModuleServiceImplTest {
 
     @Test
     public void testGetModulePK() {
-        ModulePK expResult = new ModuleKeyDto(instance);
-        ModulePK result = instance.getModulePK();
+        ModuleKey expResult = new ModuleKeyDto(instance);
+        ModuleKey result = instance;
         assertEquals(expResult, result);
     }
 
@@ -75,9 +77,9 @@ public class HealthModuleServiceImplTest {
 
     @Test
     public void testGetModule_String() {
-        ModulePK expResult = new ModuleKeyDto(instance.getModulePK());
-        String moduleId = key(instance.getModule(instance.getModulePK()));
-        ModulePK result = instance.getModule(moduleId);
+        ModuleKey expResult = new ModuleKeyDto(instance);
+        String moduleId = key(instance.getModule(instance));
+        ModuleKey result = instance.getModule(moduleId);
         assertEquals(expResult, result);
     }
 

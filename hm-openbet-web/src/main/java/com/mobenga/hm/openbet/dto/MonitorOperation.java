@@ -1,7 +1,7 @@
 package com.mobenga.hm.openbet.dto;
 
-import com.mobenga.health.model.MonitoredAction;
 import com.mobenga.health.model.OpenBetOperation;
+import com.mobenga.health.model.business.MonitoredAction;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;

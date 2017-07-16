@@ -1,10 +1,9 @@
 package com.mobenga.health.storage;
 
-import com.mobenga.health.model.transport.ModuleHealthDto;
-import com.mobenga.health.monitor.behavior.ModuleHealth;
+import com.mobenga.health.model.business.ModuleHealth;
+import com.mobenga.health.model.business.ModuleKey;
 
 import java.util.List;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * The storage to work with hear-beat stuff
@@ -24,12 +23,12 @@ public interface HeartBeatStorage {
      * @param module checked module
      * @param isActive flag oi module active
      */
-    void saveModuleState(ModulePK module, boolean isActive);
+    void saveModuleState(ModuleKey module, boolean isActive);
 
     /**
      * To get states of all modules
      *
      * @return list of states
      */
-    List<ModuleHealthDto> getSystemHealth();
+    List<ModuleHealth> getSystemHealth();
 }

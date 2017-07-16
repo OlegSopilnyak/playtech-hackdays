@@ -3,7 +3,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="timeService" class="com.mobenga.health.model.factory.impl.TimeServiceImpl"/>
-    <bean id="idGenerator" class="com.mobenga.health.model.factory.impl.UniqueIdGeneratorImpl"/>
+    <bean id="timeService" class="com.mobenga.health.monitor.impl.TimeServiceImpl"/>
+    <bean id="idGenerator" class="com.mobenga.health.monitor.impl.UniqueIdGeneratorImpl"/>
 
 </beans>

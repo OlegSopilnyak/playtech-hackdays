@@ -1,6 +1,5 @@
-package com.mobenga.health.model.transport;
+package com.mobenga.health.model.business.out;
 
-import com.mobenga.health.model.ModuleOutput;
 import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
@@ -8,16 +7,16 @@ import java.util.Arrays;
 import java.util.Date;
 
 /**
- * The criteria to select ModuleOutput messages
+ * The criteria to select ModuleOutputMessage messages
  */
-public class ModuleOutputCriteriaBase implements ModuleOutput.Criteria, Serializable {
+public class ModuleOutputCriteriaBase implements SelectOutputCriteria, Serializable {
 
     private static final long serialVersionUID = -6356691990805101060L;
 
     protected String outputId;
     protected String type;
     protected String modulePK;
-    protected String[] actionIds;
+    protected String[] actionIds=new String[0];
     protected Date moreThan;
     protected Date lessThan;
 
@@ -88,7 +87,7 @@ public class ModuleOutputCriteriaBase implements ModuleOutput.Criteria, Serializ
      * @return true if message is suitable
      */
     @Override
-    public boolean isSuitable(ModuleOutput message) {
+    public boolean isSuitable(ModuleOutputMessage message) {
         if (message == null) return false;
         if (!StringUtils.isEmpty(getOutputId())) {
             if (!getOutputId().equals(message.getId())) return false;

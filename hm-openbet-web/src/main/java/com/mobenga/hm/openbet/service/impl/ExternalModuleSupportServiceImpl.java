@@ -1,8 +1,12 @@
 package com.mobenga.hm.openbet.service.impl;
 
-import com.mobenga.health.model.*;
-import com.mobenga.health.model.factory.impl.ModuleOutputDeviceFactory;
-import com.mobenga.health.model.transport.LocalConfiguredVariableItem;
+import com.mobenga.health.model.ConfiguredVariableEntity;
+import com.mobenga.health.model.MonitoredActionEntity;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.business.out.ModuleOutputDeviceFarm;
+import com.mobenga.health.model.business.out.log.ModuleLoggerMessage;
+import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
 import com.mobenga.health.monitor.*;
 import com.mobenga.health.storage.HeartBeatStorage;
 import com.mobenga.health.storage.ModuleOutputStorage;
@@ -24,13 +28,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static com.mobenga.health.HealthUtils.key;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * External modules support realization
@@ -111,7 +115,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         // postpone work with storages
         sharedQueue.offer(ping);
         // processing configuration section
-        final ModulePK pk = modules.getModule(ping.getModule());
+        final ModuleKey pk = modules.getModule(ping.getModule());
 
         LOG.debug("Processing module configuration items:'{}'", ping.getConfiguration().size());
 
@@ -156,12 +160,12 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     @Override
     public List<ModuleConfigurationItem> changeConfiguration(ConfigurationUpdate update) {
         LOG.debug("Request batch change configuration from '{}' for '{}'", update.getHost(), update.getModule());
-        final ModulePK module = update.getModule();
+        final ModuleKey module = update.getModule();
         final Map<String, ConfiguredVariableItem> updated, updating = new HashMap<>();
         update.getUpdated().forEach(item -> {
             final String pack[] = item.getPath().split("\\.");
-            final LocalConfiguredVariableItem i =
-                    new LocalConfiguredVariableItem(pack[pack.length-1], item.getDescription(), item.getValue());
+            final ConfiguredVariableItemDto i =
+                    new ConfiguredVariableItemDto(pack[pack.length-1], item.getDescription(), item.getValue());
             i.setType(ConfiguredVariableItem.Type.valueOf(item.getType()));
             if (i.isValid()) {
                 updating.put(item.getPath(), i);
@@ -180,13 +184,23 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     }
 
     /**
-     * To get the value of Module's PK
+     * To get the health condition of module for the moment
      *
-     * @return value of PK (not null)
+     * @returnn current condition value
      */
     @Override
-    public ModulePK getModulePK() {
-        return this;
+    public Condition getCondition() {
+        return null;
+    }
+
+    /**
+     * To get last throwable object
+     *
+     * @return mistake or null if none
+     */
+    @Override
+    public Throwable getLastMistake() {
+        return null;
     }
 
     /**
@@ -295,15 +309,15 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     // store output from ping
     private void storePing(ExternalModulePing ping){
         LOG.debug("Processing ping from '{}'", ping.getHost());
-        final ModulePK pk = modules.getModule(ping.getModule());
+        final ModuleKey pk = modules.getModule(ping.getModule());
 
         // process heart-beat
         LOG.debug("Processing state of module '{}'", ping.getState());
         hbStorage.saveModuleState(pk, "Active".equalsIgnoreCase(ping.getState()));
 
         // check prohibition of output storage
-        if (ModuleOutputDeviceFactory.isModuleIgnored(pk, LogMessage.OUTPUT_TYPE)) {
-            LOG.debug("Module '{}' is ignored to save for module-output-factory '{}'", pk, LogMessage.OUTPUT_TYPE);
+        if (ModuleOutputDeviceFarm.isModuleIgnored(pk, ModuleLoggerMessage.LOG_OUTPUT_TYPE)) {
+            LOG.debug("Module '{}' is ignored to save for module-output-factory '{}'", pk, ModuleLoggerMessage.LOG_OUTPUT_TYPE);
             // module ignored by logger
             return;
         }
@@ -313,7 +327,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         LOG.debug("Processing '{}' messages of raw log.", ping.getOutput().size());
         ping.getOutput().forEach(o->{
             // output for module is not is not ignored
-            final LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+            final ModuleLoggerMessage msg = (ModuleLoggerMessage) outputStorage.createModuleOutput(pk, ModuleLoggerMessage.LOG_OUTPUT_TYPE);
             msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
             msg.setModulePK(moduleKey);
             msg.setPayload(o.getPayload());
@@ -323,18 +337,18 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
         LOG.debug("Processing '{}' actions of action log.", ping.getActions().size());
         ping.getActions().forEach(a->{
             // output for module is not is not ignored
-            final MonitoredAction action = actionStorage.createMonitoredAction();
+            final MonitoredActionEntity action = (MonitoredActionEntity) actionStorage.createMonitoredAction();
             action.setHost(ping.getHost());
             action.setDescription(a.getDescription());
             action.setStart(dt.asDate(a.getStartTime()));
             action.setFinish(dt.asDate(a.getFinishTime()));
             action.setDuration(a.getDuration());
-            action.setState(MonitoredAction.State.valueOf(a.getState()));
+            action.setState(com.mobenga.health.model.business.MonitoredAction.State.valueOf(a.getState()));
             actionStorage.saveActionState(pk, action);
             final String actionId = action.getId();
             LOG.debug("Processing '{}' output logs for Action '{}'.", a.getOutput().size(), a.getDescription());
             a.getOutput().forEach(o->{
-                LogMessage msg = (LogMessage) outputStorage.createModuleOutput(pk, LogMessage.OUTPUT_TYPE);
+                ModuleLoggerMessage msg = (ModuleLoggerMessage) outputStorage.createModuleOutput(pk, ModuleLoggerMessage.LOG_OUTPUT_TYPE);
                 msg.setActionId(actionId);
                 msg.setWhenOccured(dt.asDate(o.getWhenOccurred()));
                 msg.setModulePK(moduleKey);

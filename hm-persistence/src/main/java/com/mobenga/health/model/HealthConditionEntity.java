@@ -1,7 +1,9 @@
 package com.mobenga.health.model;
 
 import com.mobenga.health.HealthUtils;
-import com.mobenga.health.monitor.behavior.ModuleHealth;
+import com.mobenga.health.model.business.HeartBeat;
+import com.mobenga.health.model.business.ModuleHealth;
+import com.mobenga.health.model.business.ModuleKey;
 
 import java.util.Date;
 import java.util.StringTokenizer;
@@ -11,13 +13,13 @@ import static com.mobenga.health.HealthUtils.key;
 /**
  * The entity of health condition
  */
-public class HealthConditionEntity implements HealthCondition, StringEntity {
+public class HealthConditionEntity implements HeartBeat, StringEntity {
 
     private final StructureModuleEntity module = new StructureModuleEntity();
     private Date time = new Date();
     private String hostName = "localhost";
     private String hostAddress = "127.0.0.1";
-    private boolean moduleActive = false;
+    private ModuleHealth.Condition condition = ModuleHealth.Condition.VERY_GOOD;
 
     /**
      * To store new value of id
@@ -46,21 +48,28 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
         entity.time = HealthUtils.fromString(st.nextToken());
         entity.hostName = st.nextToken();
         entity.hostAddress = st.nextToken();
-        entity.moduleActive = Boolean.parseBoolean(st.nextToken());
         return entity;
     }
     @Override
     public String toString() {
-        return getHealthPK()+"#" +
+        return getModuleKeyPK()+"#" +
                 HealthUtils.fromDate(getTime())+"#"+
                 getHostName()+"#"+
                 getHostAddress()+"#"+
-                isModuleActive()
+                "isModuleActive()"
                 ;
     }
 
-    public ModulePK getModule() {
+    public ModuleKey getModule() {
         return module;
+    }
+
+
+    public void setHealthPK(String pk){
+        applyModulePK(pk);
+    }
+    public void setHealthPK(ModuleKey pk){
+        applyModulePK(key(pk));
     }
 
     /**
@@ -69,15 +78,8 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
      * @return value of PK
      */
     @Override
-    public String getHealthPK() {
+    public String getModuleKeyPK() {
         return key(module);
-    }
-
-    public void setHealthPK(String pk){
-        applyModulePK(pk);
-    }
-    public void setHealthPK(ModulePK pk){
-        applyModulePK(key(pk));
     }
 
     /**
@@ -111,14 +113,15 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
     }
 
     /**
-     * The state of module
+     * Condition of module's health
      *
-     * @return true if module is active
+     * @return value
      */
     @Override
-    public boolean isModuleActive() {
-        return moduleActive;
+    public ModuleHealth.Condition getCondition() {
+        return condition;
     }
+
 
     public void setTime(Date time) {
         this.time = time;
@@ -132,10 +135,6 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
         this.hostAddress = hostAddress;
     }
 
-    public void setModuleActive(boolean moduleActive) {
-        this.moduleActive = moduleActive;
-    }
-
     // private methods
     private void applyModulePK(String pk){
         StringTokenizer st = new StringTokenizer(pk,"|");
@@ -145,6 +144,8 @@ public class HealthConditionEntity implements HealthCondition, StringEntity {
     }
 
     public boolean changed(ModuleHealth module) {
-        return isModuleActive() != module.isActive();
+//        return isModuleActive() != module.isActive();
+        return false;
     }
+
 }

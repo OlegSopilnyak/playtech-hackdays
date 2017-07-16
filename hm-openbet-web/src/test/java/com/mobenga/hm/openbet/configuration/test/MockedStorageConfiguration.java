@@ -1,9 +1,9 @@
 package com.mobenga.hm.openbet.configuration.test;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.mobenga.health.model.ConfiguredVariableItem;
-import com.mobenga.health.model.LogMessage;
-import com.mobenga.health.model.MonitoredAction;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ModuleKey;
+import com.mobenga.health.model.business.out.log.ModuleLoggerMessage;
 import com.mobenga.health.monitor.DistributedContainersService;
 import com.mobenga.health.monitor.impl.DistributedContainersServiceTrivialImpl;
 import com.mobenga.health.storage.*;
@@ -18,7 +18,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import com.mobenga.health.model.ModulePK;
 
 /**
  * The configuration of mocked storage
@@ -27,11 +26,11 @@ public class MockedStorageConfiguration {
 
     private Date now = new Date();
     @Autowired
-    private MonitoredAction action;
+    private com.mobenga.health.model.business.MonitoredAction action;
     @Autowired
     private ConfiguredVariableItem item;
     @Autowired
-    private LogMessage message;
+    private ModuleLoggerMessage message;
 
     @Bean
     public OpenbetOperationsManipulationService createOperationsStorage(){
@@ -44,8 +43,8 @@ public class MockedStorageConfiguration {
         return new DistributedContainersServiceTrivialImpl();
     }
     @Bean
-    public MonitoredAction mockedAction(){
-        MonitoredAction action = mock(MonitoredAction.class);
+    public com.mobenga.health.model.business.MonitoredAction mockedAction(){
+        com.mobenga.health.model.business.MonitoredAction action = mock(com.mobenga.health.model.business.MonitoredAction.class);
         when(action.copy()).thenReturn(action);
         when(action.getStart()).thenReturn(now);
         when(action.getFinish()).thenReturn(now);
@@ -73,15 +72,15 @@ public class MockedStorageConfiguration {
     }
 
     @Bean
-    public final LogMessage mockedLogMessage(){
-        LogMessage message = mock(LogMessage.class);
+    public ModuleLoggerMessage mockedLogMessage(){
+        ModuleLoggerMessage message = mock(ModuleLoggerMessage.class);
         return message;
     }
 
     @Bean
     public ModuleOutputStorage createOutputStorage(){
         ModuleOutputStorage storage = mock(ModuleOutputStorage.class);
-        when(storage.createModuleOutput(any(), eq(LogMessage.OUTPUT_TYPE))).thenReturn(message);
+        when(storage.createModuleOutput(any(), eq(ModuleLoggerMessage.LOG_OUTPUT_TYPE))).thenReturn(message);
         return storage;
     }
 
@@ -111,12 +110,12 @@ public class MockedStorageConfiguration {
         return storage;
     }
     // private inner classes
-    private static class ModuleStub implements ModulePK{
+    private static class ModuleStub implements ModuleKey {
         private String sysId        ;
         private String appId;
         private String verId;
 
-        public ModuleStub(ModulePK module) {
+        public ModuleStub(ModuleKey module) {
             sysId = module.getSystemId();
             appId = module.getApplicationId();
             verId = module.getVersionId();

@@ -1,7 +1,7 @@
 package com.mobenga.health.configuration;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.mobenga.health.model.ConfiguredVariableItem;
+import com.mobenga.health.model.business.ConfiguredVariableItem;
 import com.mobenga.health.monitor.impl.ModuleConfigurationServiceImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,8 +14,8 @@ import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static junit.framework.Assert.*;
@@ -46,7 +46,7 @@ public class BasicMonitorConfigurationTest {
 
     @Autowired
     @Qualifier("serviceRunner")
-    private ExecutorService serviceRunner;
+    private ScheduledExecutorService serviceRunner;
 
     @Test
     public void testConfigurationServerMemoryStorage() throws Exception {

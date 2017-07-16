@@ -1,6 +1,7 @@
 package com.mobenga.health.model.transport;
 
-import com.mobenga.health.model.ModuleOutput;
+import com.mobenga.health.model.business.out.ModuleOutputCriteriaBase;
+import com.mobenga.health.model.business.out.ModuleOutputMessage;
 import org.junit.Test;
 
 import java.util.Date;
@@ -10,12 +11,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test for ModuleOutput criteria basic
+ * Test for ModuleOutputMessage criteria basic
  */
 public class ModuleOutputCriteriaBaseTest {
 
     private ModuleOutputCriteriaBase criteriaBase = new ModuleOutputCriteriaBase();
-    private ModuleOutput message = mock(ModuleOutput.class);
+    private ModuleOutputMessage message = mock(ModuleOutputMessage.class);
 
     @Test
     public void isNotSuitable() throws Exception {
