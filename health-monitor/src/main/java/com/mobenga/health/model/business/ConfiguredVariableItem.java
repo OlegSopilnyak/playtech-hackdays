@@ -71,7 +71,7 @@ public abstract class ConfiguredVariableItem implements Serializable {
     /**
      * To get the value of particular type
      *
-     * @param <T> possible type of value
+     * @param <T> required type of value
      * @param resultType the type of result (class)
      * @return the value by type
      */

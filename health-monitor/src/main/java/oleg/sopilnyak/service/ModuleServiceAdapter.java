@@ -1,0 +1,262 @@
+/**
+ * Copyright (C) Oleg Sopilnyak 2018
+ */
+package oleg.sopilnyak.service;
+
+
+import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.metric.MetricsContainer;
+import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.module.model.ModuleHealthCondition;
+import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
+import oleg.sopilnyak.service.action.ModuleActionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static oleg.sopilnyak.module.model.ModuleHealthCondition.*;
+
+/**
+ * Adapter for periodical actions service
+ */
+public abstract class ModuleServiceAdapter implements Module {
+	private volatile ModuleAction moduleMainAction;
+
+	protected volatile boolean active = false;
+	protected volatile ModuleHealthCondition healthCondition;
+	private Lock healthLock = new ReentrantLock();
+	protected final Map<String, VariableItem> moduleConfiguration = new ConcurrentHashMap<>();
+
+	// launcher of module's actions
+	@Autowired
+	protected ScheduledExecutorService activityRunner;
+	// the registry of modules
+	@Autowired
+	protected ModulesRegistry registry;
+	// the factory of actions
+	@Autowired
+	protected ModuleActionFactory actionsFactory;
+	// container of metrics
+	@Autowired
+	private MetricsContainer metricsContainer;
+
+	/**
+	 * Action after module is built
+	 */
+	@PostConstruct
+	public void initialSetUp() {
+		if (active) {
+			return;
+		}
+
+		registry.add(this);
+		initAsService();
+		active = true;
+
+		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
+		action.setState(ModuleAction.State.PROGRESS);
+		metricsContainer.actionChanged(action);
+	}
+
+	/**
+	 * Actions before module shut down
+	 */
+	@PreDestroy
+	public void shutdownModule() {
+		if (!active) {
+			return;
+		}
+
+		active = false;
+		registry.remove(this);
+		shutdownAsService();
+
+		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
+		action.setState(ModuleAction.State.SUCCESS);
+		metricsContainer.actionFinished(action);
+	}
+
+	/**
+	 * To get root action of module
+	 *
+	 * @return instance
+	 */
+	@Override
+	public ModuleAction getMainAction() {
+		if (Objects.isNull(moduleMainAction)){
+			synchronized (ModuleAction.class){
+				if (Objects.isNull(moduleMainAction)){
+					moduleMainAction = actionsFactory.createModuleMainAction(this);
+				}
+			}
+
+		}
+		return moduleMainAction;
+	}
+
+	/**
+	 * To check is module active (is working)
+	 *
+	 * @return true if module is working
+	 */
+	@Override
+	public boolean isActive() {
+		return active;
+	}
+
+	/**
+	 * To get the health condition of module for the moment
+	 *
+	 * @return current condition value
+	 */
+	@Override
+	public ModuleHealthCondition getCondition() {
+		return healthCondition;
+	}
+
+	/**
+	 * After action detected success
+	 */
+	@Override
+	public void healthGoUp() {
+		healthLock.lock();
+		try{
+			switch (healthCondition){
+				case INIT:
+				case GOOD:
+					healthCondition = VERY_GOOD;
+					break;
+				case AVERAGE:
+					healthCondition = GOOD;
+					break;
+				case POOR:
+					healthCondition = AVERAGE;
+					break;
+				case FAIL:
+					healthCondition = POOR;
+					break;
+			}
+		}finally {
+			healthLock.unlock();
+		}
+	}
+
+	/**
+	 * After action detected fail
+	 */
+	@Override
+	public void healthGoLow() {
+		healthLock.lock();
+		try{
+			switch (healthCondition){
+				case VERY_GOOD:
+					healthCondition = GOOD;
+					break;
+				case GOOD:
+					healthCondition = AVERAGE;
+					break;
+				case AVERAGE:
+					healthCondition = POOR;
+					break;
+				case POOR:
+					healthCondition = FAIL;
+					break;
+				case FAIL:
+					shutdownModule();
+					break;
+			}
+		}finally {
+			healthLock.unlock();
+		}
+	}
+
+	/**
+	 * To check is module allows to be restarted
+	 *
+	 * @return true if module can restart
+	 */
+	@Override
+	public boolean canRestart() {
+		return true;
+	}
+
+	/**
+	 * To restart module
+	 */
+	@Override
+	public void restart() {
+		if (!canRestart()) {
+			return;
+		}
+		if (active) {
+			shutdownModule();
+		}
+		initialSetUp();
+	}
+
+	/**
+	 * To get current configuration of module
+	 *
+	 * @return configuration as map
+	 */
+	@Override
+	public Map<String, VariableItem> getConfiguration() {
+		return moduleConfiguration;
+	}
+
+	/**
+	 * Notification about change configuration
+	 *
+	 * @param changed map with changes
+	 */
+	@Override
+	public void configurationChanged(Map<String, VariableItem> changed) {
+		if (changed.isEmpty()) {
+			return;
+		}
+		changed.forEach((k, v) -> configurationItemChanged(k, v));
+		restart();
+	}
+
+	/**
+	 * To get access to Module's metrics container
+	 *
+	 * @return instance
+	 */
+	@Override
+	public MetricsContainer getMetricsContainer() {
+		return metricsContainer;
+	}
+
+	// protected methods - should be redefined in children
+
+	/**
+	 * Allocate module's resources and get module ready to work
+	 */
+	protected void initAsService() {
+	}
+
+	/**
+	 * Free allocated resources
+	 */
+	protected void shutdownAsService() {
+	}
+
+	/**
+	 * Notify about changes of configuration property
+	 *
+	 * @param itemName  name of property
+	 * @param itemValue new value of property
+	 */
+	protected void configurationItemChanged(String itemName, VariableItem itemValue) {
+	}
+
+}

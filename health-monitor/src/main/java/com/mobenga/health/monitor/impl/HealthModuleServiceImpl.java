@@ -45,7 +45,7 @@ public class HealthModuleServiceImpl extends AbstractRunningService implements H
     @Autowired
     private DistributedContainersService distributed;
 
-    // distributed cached vontainers of module
+    // distributed cached containers of module
     private Map<String, ModuleKeyDto> modulesCache;
     private BlockingQueue<ModuleKeyDto> storeQueue;
 
