@@ -42,5 +42,17 @@ public class ModuleActionAdapter implements ModuleAction {
 		this.started = started;
 		this.duration = 0L;
 	}
+
+	public String valueAsString() {
+		return name
+				+ " id:" + id
+				+ " host:" + hostName
+				+ " state:" + state
+				+ " module:" + module.primaryKey()
+				+ " started:" + started
+				+ " duration:" + duration
+				+ " description: " + description;
+
+	}
 }
 

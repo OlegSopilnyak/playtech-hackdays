@@ -1,13 +1,18 @@
 /**
  * Copyright (C) Oleg Sopilnyak 2018
  */
-package oleg.sopilnyak.module.metric.impl;
+package oleg.sopilnyak.service.metric.impl;
 
-import oleg.sopilnyak.module.metric.MetricsContainer;
+import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.service.TimeService;
+import oleg.sopilnyak.service.action.ActionChangedMetric;
+import oleg.sopilnyak.service.action.ActionExceptionMetric;
+import oleg.sopilnyak.service.metric.ActionMetricsContainer;
+import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
+import oleg.sopilnyak.service.registry.impl.HeartBeatMetric;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Collection;
@@ -17,7 +22,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Service - container of metrics
  */
-public class MetricsContainerImpl implements MetricsContainer {
+public class MetricsContainerImpl implements ActionMetricsContainer, HeartBeatMetricContainer {
 	private static final Object METRIC = new Object();
 	private ConcurrentMap<ModuleMetric, Object> metrics = new ConcurrentHashMap<>();
 	@Autowired
@@ -79,7 +84,7 @@ public class MetricsContainerImpl implements MetricsContainer {
 				break;
 
 		}
-		this.add(new ActionChangedMetric(action, timeService.now()));
+		add(new ActionChangedMetric(action, timeService.now()));
 	}
 
 	/**
@@ -92,7 +97,7 @@ public class MetricsContainerImpl implements MetricsContainer {
 	public void actionFinished(ModuleAction action, Throwable t) {
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 		adapter.setDuration(timeService.duration(action.getStarted()));
-		this.add(new ActionExceptionMetric(action, timeService.now(), t));
+		add(new ActionExceptionMetric(action, timeService.now(), t));
 	}
 
 	/**
@@ -104,6 +109,17 @@ public class MetricsContainerImpl implements MetricsContainer {
 	public void actionFinished(ModuleAction action) {
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 		adapter.setDuration(timeService.duration(action.getStarted()));
-		this.add(new ActionChangedMetric(action, timeService.now()));
+		add(new ActionChangedMetric(action, timeService.now()));
+	}
+
+	/**
+	 * To store Health Condition for module
+	 *
+	 * @param action action to save
+	 * @param module module to check
+	 */
+	@Override
+	public void heatBeat(ModuleAction action, Module module) {
+		module.getMetricsContainer().add(new HeartBeatMetric(action, timeService.now()));
 	}
 }

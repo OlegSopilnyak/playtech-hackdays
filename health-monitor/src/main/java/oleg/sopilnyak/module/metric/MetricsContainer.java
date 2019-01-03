@@ -3,8 +3,6 @@
  */
 package oleg.sopilnyak.module.metric;
 
-import oleg.sopilnyak.module.model.ModuleAction;
-
 import java.util.Collection;
 
 /**
@@ -37,25 +35,4 @@ public interface MetricsContainer {
 	 */
 	Collection<ModuleMetric> metrics();
 
-	/**
-	 * To add metric about action state change
-	 *
-	 * @param action action
-	 */
-	void actionChanged(ModuleAction action);
-
-	/**
-	 * To add metric about action finish
-	 *
-	 * @param action action
-	 * @param t exception
-	 */
-	void actionFinished(ModuleAction action, Throwable t);
-
-	/**
-	 * To add metric about action finish
-	 *
-	 * @param action action
-	 */
-	void actionFinished(ModuleAction action);
 }

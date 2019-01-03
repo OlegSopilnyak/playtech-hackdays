@@ -11,7 +11,7 @@ import com.mobenga.health.monitor.MonitoredService;
 public interface ModuleLoggerDeviceFactory extends ModuleOutputDevice.Factory, MonitoredService {
 
     // names of configured parameter "ignoreModules"
-    String PARAMS_PACKAGE = "health.monitor.service.module.output.log";
+    String PARAMS_PACKAGE = "registry.monitor.service.module.output.log";
     String IGNORE_MODULES_NAME = "ignoreModules";
     ConfiguredVariableItem IGNORE_MODULES
             = new ConfiguredVariableItemDto(IGNORE_MODULES_NAME, "The set of modules to ignore logging for.", "none");

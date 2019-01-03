@@ -11,6 +11,6 @@ import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
  */
 class ModuleRegularAction extends ModuleActionAdapter {
 	public ModuleRegularAction(ModuleBasics module, String name) {
-		super(module, name);
+		super(module, "[" + name + "]");
 	}
 }

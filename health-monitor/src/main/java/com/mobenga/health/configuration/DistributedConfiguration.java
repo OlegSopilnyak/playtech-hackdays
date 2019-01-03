@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class DistributedConfiguration {
     
-    @Value("${configuration.shared.cluster.name:'modules-health-and-configuration'}")
+    @Value("${configuration.shared.cluster.name:'modules-registry-and-configuration'}")
     private String clusterName;
     @Bean
     public HazelcastInstance hazelcastInstance(){

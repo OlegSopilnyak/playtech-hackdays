@@ -1,11 +1,11 @@
 package com.mobenga.health.model.business;
 
 /**
- * The condition of module health at the moment
+ * The condition of module registry at the moment
  */
 public interface ModuleHealth extends ModuleKey {
     /**
-     * To get the health condition of module for the moment
+     * To get the registry condition of module for the moment
      *
      * @return current condition value
      */
@@ -25,7 +25,7 @@ public interface ModuleHealth extends ModuleKey {
      */
     boolean isActive();
     /**
-     * The health condition of the module at the moment
+     * The registry condition of the module at the moment
      */
     enum Condition {
         VERY_GOOD,

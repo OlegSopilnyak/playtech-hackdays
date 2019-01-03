@@ -9,7 +9,7 @@ import com.mobenga.health.model.business.MonitoredAction;
  * The names of storage elements
  */
 public interface Storage {
-    String INSTANCE_NAME = "health";
+    String INSTANCE_NAME = "registry";
     String MODULE_STATE_STORAGE_NAME = "module-state";
     String CONFIGURATION_STORAGE_NAME = ConfiguredVariableItem.STORAGE_NAME;
     String HEARTBEAT_STORAGE_NAME = HeartBeat.STORAGE_NAME;

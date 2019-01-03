@@ -1,5 +1,5 @@
 /*
- * The services used to support module's health
+ * The services used to support module's registry
  */
 'use strict';
 /**
@@ -51,10 +51,10 @@ function HealthScannerService() {
     MonitoredService.call(this, new HealthScannerModule());
     var self = this;
 
-    var DELAY_PATH = "health.monitor.service.external.heartbeat.delay";
+    var DELAY_PATH = "registry.monitor.service.external.heartbeat.delay";
     var delay = 2000;
 
-    var PING_URL_PATH = "health.monitor.service.external.heartbeat.ping.url";
+    var PING_URL_PATH = "registry.monitor.service.external.heartbeat.ping.url";
     var pingUrl = "module/ping";
 
     var timerId = null;

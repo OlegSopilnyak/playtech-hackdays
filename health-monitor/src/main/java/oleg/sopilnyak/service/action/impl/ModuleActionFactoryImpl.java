@@ -12,6 +12,7 @@ import oleg.sopilnyak.module.model.action.ModuleActionExceptionWrapper;
 import oleg.sopilnyak.module.model.action.SuccessModuleAction;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -20,6 +21,7 @@ import java.net.UnknownHostException;
 
 /**
  * Service: Factory of module actions
+ *
  * @see oleg.sopilnyak.service.action.ModuleActionFactory
  */
 @Slf4j
@@ -53,7 +55,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription("Main action of " + module.getDescription());
-		module.getMetricsContainer().actionChanged(action);
+		((ActionMetricsContainer) module.getMetricsContainer()).actionChanged(action);
 		return action;
 	}
 
@@ -68,10 +70,11 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction createModuleRegularAction(Module module, String name) {
 		log.debug("Creating regular '{}' action for module {}", name, module.primaryKey());
 		final ModuleRegularAction action = new ModuleRegularAction(module, name);
+		action.setParent(module.getMainAction());
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription(name + " action of " + module.getDescription());
-		module.getMetricsContainer().actionChanged(action);
+		((ActionMetricsContainer) module.getMetricsContainer()).actionChanged(action);
 		return action;
 	}
 
@@ -87,20 +90,20 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction executeAtomicModuleAction(ModuleAction action, Runnable executable, boolean rethrow) {
 		log.debug("Executing  for action {}", action.getName());
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
-		final Module currentModule = (Module) action.getModule();
+		final Module module = (Module) action.getModule();
 
 		adapter.setState(ModuleAction.State.PROGRESS);
-		currentModule.getMetricsContainer().actionChanged(action);
+		((ActionMetricsContainer) module.getMetricsContainer()).actionChanged(action);
 
 		try {
 			executable.run();
-			currentModule.healthGoUp();
+			module.healthGoUp();
 		} catch (Throwable t) {
 			log.error("Cannot execute action {}", action.getName(), t);
 
 			adapter.setState(ModuleAction.State.FAIL);
-			currentModule.getMetricsContainer().actionFinished(action, t);
-			currentModule.healthGoLow();
+			((ActionMetricsContainer) module.getMetricsContainer()).actionFinished(action, t);
+			module.healthGoLow(t);
 
 			if (rethrow) {
 				throw new ModuleActionExceptionWrapper("Fail in " + action.getName(), t);
@@ -110,7 +113,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 
 		log.debug("Finished execution of {}", action.getName());
 		adapter.setState(ModuleAction.State.SUCCESS);
-		currentModule.getMetricsContainer().actionFinished(action);
+		((ActionMetricsContainer) module.getMetricsContainer()).actionFinished(action);
 		return new SuccessModuleAction(action);
 	}
 }

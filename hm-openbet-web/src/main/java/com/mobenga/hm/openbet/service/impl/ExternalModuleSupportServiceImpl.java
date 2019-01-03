@@ -184,7 +184,7 @@ public class ExternalModuleSupportServiceImpl implements ExternalModuleSupportSe
     }
 
     /**
-     * To get the health condition of module for the moment
+     * To get the registry condition of module for the moment
      *
      * @returnn current condition value
      */

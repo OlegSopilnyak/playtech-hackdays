@@ -6,7 +6,7 @@ import com.mobenga.health.model.business.ModuleKey;
 import java.io.Serializable;
 
 /**
- * Transport object for module's health
+ * Transport object for module's registry
  */
 public class ModuleHealthDto extends ModuleKeyDto implements ModuleHealth, Serializable{
     private static final long serialVersionUID = -2049959624478697903L;
@@ -26,7 +26,7 @@ public class ModuleHealthDto extends ModuleKeyDto implements ModuleHealth, Seria
     }
 
     /**
-     * To get the health condition of module for the moment
+     * To get the registry condition of module for the moment
      *
      * @returnn current condition value
      */

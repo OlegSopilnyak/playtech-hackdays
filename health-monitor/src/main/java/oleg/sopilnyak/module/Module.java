@@ -22,7 +22,7 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 	boolean isActive();
 
 	/**
-	 * To get the health condition of module for the moment
+	 * To get the registry condition of module for the moment
 	 *
 	 * @return current condition value
 	 */
@@ -30,8 +30,10 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 
 	/**
 	 * After action detected fail
+	 *
+	 * @param exception cause of fail
 	 */
-	void healthGoLow();
+	void healthGoLow(Throwable exception);
 
 	/**
 	 * After action detected success

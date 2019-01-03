@@ -40,7 +40,7 @@ public interface HeartBeat {
     String getHostAddress();
 
     /**
-     * Condition of module's health
+     * Condition of module's registry
      *
      * @return value
      */

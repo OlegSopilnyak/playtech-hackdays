@@ -14,7 +14,7 @@ import java.util.List;
 public interface ExternalModuleSupportService {
 
     // namespace of service's parameters
-    String PARAMS_PACKAGE = "health.monitor.module.external.service";
+    String PARAMS_PACKAGE = "registry.monitor.module.external.service";
     // the value of service's parameter
     ConfiguredVariableItem PARAM1 = new ConfiguredVariableItemDto("parameter1", "Example of parameter number", 150);
     // the value of service's parameter

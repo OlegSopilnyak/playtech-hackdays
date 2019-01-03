@@ -9,7 +9,7 @@ import com.mobenga.health.model.transport.ConfiguredVariableItemDto;
  * The service to monitor actions of the module
  */
 public interface ModuleMonitoringService extends MonitoredService{
-    String PARAMS_PACKAGE = "health.monitor.service.monitored.actions";
+    String PARAMS_PACKAGE = "registry.monitor.service.monitored.actions";
 
     // ignore-modules configurable parameter
     String IGNORE_MODULES_NAME = "ignoreModules";

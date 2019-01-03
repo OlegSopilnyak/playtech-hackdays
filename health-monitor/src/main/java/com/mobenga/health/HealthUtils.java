@@ -10,7 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * Class-utility for health control and configuration services
+ * Class-utility for registry control and configuration services
  */
 public final class HealthUtils {
     private HealthUtils() {}

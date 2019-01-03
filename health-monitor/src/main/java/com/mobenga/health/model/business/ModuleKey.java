@@ -5,7 +5,7 @@ package com.mobenga.health.model.business;
  */
 public interface ModuleKey {
     // the name of storage item (table/index-type/etc)
-    String STORAGE_NAME = "health-pk";
+    String STORAGE_NAME = "registry-pk";
     /**
      * to get the value of item's system
      * @return the value

@@ -11,7 +11,7 @@ import java.util.List;
  * The service to notify about state of registered modules
  */
 public interface ModuleStateNotificationService extends MonitoredService {
-    String PARAMS_PACKAGE = "health.monitor.service.heartbeat";
+    String PARAMS_PACKAGE = "registry.monitor.service.heartbeat";
     
     // HeartBeat delay for Modules StateNotificationService
     String HB_DELAY_NAME = "delay";

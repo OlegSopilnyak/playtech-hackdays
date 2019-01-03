@@ -12,7 +12,7 @@ import org.springframework.beans.BeanUtils;
  */
 public class ModuleActionDto extends ModuleActionAdapter {
 	public ModuleActionDto(ModuleAction action) {
-		super();
+		super(action.getModule(), action.getParent(), action.getName());
 		BeanUtils.copyProperties(action, this);
 	}
 }

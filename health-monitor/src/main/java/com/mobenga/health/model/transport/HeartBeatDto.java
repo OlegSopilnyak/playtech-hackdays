@@ -56,7 +56,7 @@ public class HeartBeatDto implements HeartBeat{
     }
 
     /**
-     * Condition of module's health
+     * Condition of module's registry
      *
      * @return value
      */

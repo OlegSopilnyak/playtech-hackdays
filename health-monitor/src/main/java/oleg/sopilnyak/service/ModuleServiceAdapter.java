@@ -11,6 +11,8 @@ import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.metric.ActionMetricsContainer;
+import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -32,6 +34,7 @@ public abstract class ModuleServiceAdapter implements Module {
 
 	protected volatile boolean active = false;
 	protected volatile ModuleHealthCondition healthCondition;
+	protected volatile Throwable lastThrow;
 	private Lock healthLock = new ReentrantLock();
 	protected final Map<String, VariableItem> moduleConfiguration = new ConcurrentHashMap<>();
 
@@ -63,7 +66,7 @@ public abstract class ModuleServiceAdapter implements Module {
 
 		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
 		action.setState(ModuleAction.State.PROGRESS);
-		metricsContainer.actionChanged(action);
+		((ActionMetricsContainer)metricsContainer).actionChanged(action);
 	}
 
 	/**
@@ -80,8 +83,8 @@ public abstract class ModuleServiceAdapter implements Module {
 		shutdownAsService();
 
 		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
-		action.setState(ModuleAction.State.SUCCESS);
-		metricsContainer.actionFinished(action);
+		action.setState(healthCondition == FAIL ? ModuleAction.State.FAIL : ModuleAction.State.SUCCESS);
+		((ActionMetricsContainer)metricsContainer).actionFinished(action);
 	}
 
 	/**
@@ -91,9 +94,9 @@ public abstract class ModuleServiceAdapter implements Module {
 	 */
 	@Override
 	public ModuleAction getMainAction() {
-		if (Objects.isNull(moduleMainAction)){
-			synchronized (ModuleAction.class){
-				if (Objects.isNull(moduleMainAction)){
+		if (Objects.isNull(moduleMainAction)) {
+			synchronized (ModuleAction.class) {
+				if (Objects.isNull(moduleMainAction)) {
 					moduleMainAction = actionsFactory.createModuleMainAction(this);
 				}
 			}
@@ -113,7 +116,7 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	/**
-	 * To get the health condition of module for the moment
+	 * To get the registry condition of module for the moment
 	 *
 	 * @return current condition value
 	 */
@@ -128,8 +131,9 @@ public abstract class ModuleServiceAdapter implements Module {
 	@Override
 	public void healthGoUp() {
 		healthLock.lock();
-		try{
-			switch (healthCondition){
+		try {
+			lastThrow = null;
+			switch (healthCondition) {
 				case INIT:
 				case GOOD:
 					healthCondition = VERY_GOOD;
@@ -144,7 +148,7 @@ public abstract class ModuleServiceAdapter implements Module {
 					healthCondition = POOR;
 					break;
 			}
-		}finally {
+		} finally {
 			healthLock.unlock();
 		}
 	}
@@ -153,10 +157,11 @@ public abstract class ModuleServiceAdapter implements Module {
 	 * After action detected fail
 	 */
 	@Override
-	public void healthGoLow() {
+	public void healthGoLow(Throwable exception) {
 		healthLock.lock();
-		try{
-			switch (healthCondition){
+		try {
+			lastThrow = exception;
+			switch (healthCondition) {
 				case VERY_GOOD:
 					healthCondition = GOOD;
 					break;
@@ -173,7 +178,7 @@ public abstract class ModuleServiceAdapter implements Module {
 					shutdownModule();
 					break;
 			}
-		}finally {
+		} finally {
 			healthLock.unlock();
 		}
 	}

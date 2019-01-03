@@ -220,7 +220,7 @@ public class ModuleStateNotificationServiceImpl extends AbstractRunningService i
     /**
      * To check the state of the module
      *
-     * @param module the module to check health and configuration changes
+     * @param module the module to check registry and configuration changes
      */
     protected void checkHealth(MonitoredService module) {
         if (!isActive()) {

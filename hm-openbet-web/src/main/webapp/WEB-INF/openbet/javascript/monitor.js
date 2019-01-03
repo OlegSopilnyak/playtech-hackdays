@@ -26,9 +26,9 @@ OperationsCountModule.prototype.description = function () {return this.descr;};
 function OperationsCounterService(){
     MonitoredService.call(this, new OperationsCountModule());
     var self = this;
-    var DELAY_PATH = "health.monitor.service.external.ob.counter.delay";
+    var DELAY_PATH = "registry.monitor.service.external.ob.counter.delay";
     var delay = 2000;
-    var BORDER_COLOR_PATH = "health.monitor.service.external.ob.counter.border.color";
+    var BORDER_COLOR_PATH = "registry.monitor.service.external.ob.counter.border.color";
     var borderColor = "green";
     var selected = 0;
     // thread properties

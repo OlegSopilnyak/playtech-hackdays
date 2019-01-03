@@ -4,7 +4,7 @@
 package oleg.sopilnyak.module.model;
 
 /**
- * Type: enumeration of module's health
+ * Type: enumeration of module's registry
  */
 public enum ModuleHealthCondition {
 	INIT,

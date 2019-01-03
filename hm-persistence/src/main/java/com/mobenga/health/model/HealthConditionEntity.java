@@ -11,7 +11,7 @@ import java.util.StringTokenizer;
 import static com.mobenga.health.HealthUtils.key;
 
 /**
- * The entity of health condition
+ * The entity of registry condition
  */
 public class HealthConditionEntity implements HeartBeat, StringEntity {
 
@@ -113,7 +113,7 @@ public class HealthConditionEntity implements HeartBeat, StringEntity {
     }
 
     /**
-     * Condition of module's health
+     * Condition of module's registry
      *
      * @return value
      */
