@@ -10,16 +10,19 @@ import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.ModuleServiceAdapter;
+import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.dto.VariableItemDto;
 import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 /**
@@ -36,6 +39,8 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 
 	@Autowired
 	private ModuleMetricStorage metricStorage;
+	@Autowired
+	private TimeService timeService;
 
 	public HealthModuleService() {
 		moduleConfiguration.put(delayName(), new VariableItemDto(DELAY_NAME, DELAY_DEFAULT));
@@ -111,7 +116,7 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	 */
 	@Override
 	protected void configurationItemChanged(String itemName, VariableItem itemValue) {
-		if (!isActive() || StringUtils.isEmpty(itemName)){
+		if (!isActive() || StringUtils.isEmpty(itemName)) {
 			// service is not active or itemName is wrong
 			return;
 		}
@@ -131,6 +136,7 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 
 
 	// private methods
+
 	/**
 	 * To scan modules registry
 	 */
@@ -147,10 +153,16 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	}
 
 	void iterateRegisteredModules(ModuleAction health) {
-		registered().stream().filter(m -> isActive()).forEach(m -> inspectModule(health, m));
+		final Instant mark = timeService.now();
+		final AtomicInteger counter = new AtomicInteger(0);
+		registered().stream().filter(m -> isActive()).peek(m -> counter.incrementAndGet()).forEach(m -> inspectModule(health, m));
+
+		// save metric of total modules health check duration
+		getMetricsContainer().add(new TotalDurationMetric(health, timeService.now(), counter.get(), timeService.duration(mark)));
 	}
 
 	void inspectModule(ModuleAction health, Module module) {
+		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
 		log.debug("Scan module {}", modulePK);
 		if (Stream.of(ignoredModules).filter(i -> modulePK.startsWith(i)).count() > 0L) {
@@ -159,6 +171,9 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 		}
 		((HeartBeatMetricContainer) module.getMetricsContainer()).heatBeat(health, module);
 		module.metrics().stream().filter(m -> isActive()).forEach(m -> store(m));
+
+		// save metric about module health check duration
+		getMetricsContainer().add(new SimpleDurationMetric(health, timeService.now(), modulePK, timeService.duration(mark)));
 	}
 
 	void store(ModuleMetric metric) {
