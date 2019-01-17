@@ -14,7 +14,6 @@ import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 
 import java.util.Map;
 import java.util.Objects;
@@ -42,25 +41,20 @@ public abstract class ModuleServiceAdapter implements Module {
 	@Autowired
 	protected ScheduledExecutorService activityRunner;
 	// the registry of modules
+	@Autowired(required = false)
 	protected ModulesRegistry registry;
 	// the factory of actions
 	@Autowired
 	protected ModuleActionFactory actionsFactory;
 	// container of metrics
 	@Autowired
-	private MetricsContainer metricsContainer;
+	protected MetricsContainer metricsContainer;
+	// service of time
+	@Autowired
+	protected TimeService timeService;
 	// lock for access to mainAction
 	private final Lock mainActionLock = new ReentrantLock();
 
-	/**
-	 * Special setter to allow HealthModuleService start
-	 *
-	 * @param registry it's will be Spring proxy
-	 */
-	@Autowired
-	public void setRegistry(@Lazy ModulesRegistry registry) {
-		this.registry = registry;
-	}
 
 	/**
 	 * Action after module is built
@@ -79,6 +73,7 @@ public abstract class ModuleServiceAdapter implements Module {
 		}
 		initAsService();
 		active = true;
+		healthCondition = INIT;
 
 		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
 		action.setState(ModuleAction.State.PROGRESS);

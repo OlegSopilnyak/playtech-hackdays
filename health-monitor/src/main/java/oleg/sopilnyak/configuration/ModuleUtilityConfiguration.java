@@ -3,6 +3,9 @@
  */
 package oleg.sopilnyak.configuration;
 
+import ch.qos.logback.classic.PatternLayout;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Layout;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import org.springframework.context.annotation.Bean;
@@ -61,5 +64,12 @@ class ModuleUtilityConfiguration {
 		final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2);
 		executor.setMaximumPoolSize(100);
 		return executor;
+	}
+
+	@Bean
+	public Layout<ILoggingEvent> getLayout(){
+		PatternLayout layout = new PatternLayout();
+		layout.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
+		return layout;
 	}
 }

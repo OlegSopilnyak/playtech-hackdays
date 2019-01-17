@@ -3,10 +3,9 @@
  */
 package oleg.sopilnyak.configuration;
 
-import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
-import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl;
+import oleg.sopilnyak.service.logging.ModuleLogAppender;
 import oleg.sopilnyak.service.metric.impl.MetricsContainerImpl;
 import oleg.sopilnyak.service.registry.impl.HealthModuleService;
 import org.springframework.beans.factory.annotation.Autowire;
@@ -35,7 +34,7 @@ public class ModuleSystemConfiguration {
 	}
 	/**
 	 * Service: factory of actions
-	 * @see ModuleActionFactory
+	 * @see oleg.sopilnyak.service.action.ModuleActionFactory
 	 *
 	 * @return singleton
 	 */
@@ -46,7 +45,7 @@ public class ModuleSystemConfiguration {
 
 	/**
 	 * Service: service to serve change configuration in registered modules
-	 * @see ModuleConfigurationService
+	 * @see oleg.sopilnyak.service.configuration.ModuleConfigurationService
 	 *
 	 * @return singleton
 	 */
@@ -64,5 +63,10 @@ public class ModuleSystemConfiguration {
 	@Bean(autowire = Autowire.BY_TYPE, initMethod = "initialSetUp", destroyMethod = "shutdownModule")
 	public HealthModuleService getHealthModuleService(){
 		return new HealthModuleService();
+	}
+
+	@Bean(autowire = Autowire.BY_TYPE, initMethod = "registerAppender", destroyMethod = "unRegisterAppender")
+	public ModuleLogAppender getModuleLogAppender(){
+		return new ModuleLogAppender();
 	}
 }

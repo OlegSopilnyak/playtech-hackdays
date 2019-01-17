@@ -5,6 +5,7 @@ package oleg.sopilnyak.module.model.action;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.dto.ModuleDto;
@@ -15,6 +16,7 @@ import java.time.Instant;
  * Type: parent of any action of module
  */
 @Data
+@ToString(of = {"name", "id", "hostName", "state", "module", "started", "duration", "description", "parent"})
 @NoArgsConstructor
 public class ModuleActionAdapter implements ModuleAction {
 	private ModuleBasics module;

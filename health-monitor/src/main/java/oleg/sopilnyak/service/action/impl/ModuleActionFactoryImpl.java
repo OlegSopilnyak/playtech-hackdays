@@ -10,6 +10,7 @@ import oleg.sopilnyak.module.model.action.FailModuleAction;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.module.model.action.ModuleActionExceptionWrapper;
 import oleg.sopilnyak.module.model.action.SuccessModuleAction;
+import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.metric.ActionMetricsContainer;
@@ -30,6 +31,8 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 
 	@Autowired
 	private UniqueIdGenerator idGenerator;
+	@Autowired
+	private TimeService timeService;
 
 	public void setUp() {
 		try {
@@ -79,18 +82,19 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	/**
 	 * Execute in context of module action
 	 *
-	 * @param action     action-context of execution
+	 * @param module     owner of simple action
+	 * @param actionName action's name
 	 * @param executable runnable to be executed
-	 * @param rethrow    flag for rethrow exception when it occurred
+	 * @param rethrow    flag for rethrow exception if occurred
 	 * @return action-result of execution
 	 */
 	@Override
-	public ModuleAction executeAtomicModuleAction(ModuleAction action, Runnable executable, boolean rethrow) {
-		current.set(action);
+	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
+		final ModuleAction action;
+		current.set(action = createModuleRegularAction(module, actionName));
 
 		log.debug("Executing  for action {}", action.getName());
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
-		final Module module = (Module) action.getModule();
 
 		adapter.setState(ModuleAction.State.PROGRESS);
 		((ActionMetricsContainer) module.getMetricsContainer()).actionChanged(action);
@@ -117,21 +121,6 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		adapter.setState(ModuleAction.State.SUCCESS);
 		((ActionMetricsContainer) module.getMetricsContainer()).actionFinished(action);
 		return new SuccessModuleAction(action);
-	}
-
-	/**
-	 * Execute in context of module action
-	 *
-	 * @param module     owner of simple action
-	 * @param actionName action's name
-	 * @param executable runnable to be executed
-	 * @param rethrow    flag for rethrow exception if occurred
-	 * @return action-result of execution
-	 */
-	@Override
-	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
-		final ModuleAction contextAction = this.createModuleRegularAction(module, actionName);
-		return executeAtomicModuleAction(contextAction, executable, rethrow);
 	}
 
 	/**

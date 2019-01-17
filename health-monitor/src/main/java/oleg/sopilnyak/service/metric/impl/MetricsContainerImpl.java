@@ -15,6 +15,7 @@ import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.registry.impl.HeartBeatMetric;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -74,17 +75,18 @@ public class MetricsContainerImpl implements ActionMetricsContainer, HeartBeatMe
 	@Override
 	public void actionChanged(ModuleAction action) {
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
+		final Instant mark = timeService.now();
 		switch (action.getState()) {
 			case INIT:
 				adapter.setDuration(-1L);
 				break;
 			case PROGRESS:
-				adapter.setStarted(timeService.now());
+				adapter.setStarted(mark);
 				adapter.setDuration(0L);
 				break;
 
 		}
-		add(new ActionChangedMetric(action, timeService.now()));
+		add(new ActionChangedMetric(action, mark));
 	}
 
 	/**
@@ -120,6 +122,6 @@ public class MetricsContainerImpl implements ActionMetricsContainer, HeartBeatMe
 	 */
 	@Override
 	public void heatBeat(ModuleAction action, Module module) {
-		module.getMetricsContainer().add(new HeartBeatMetric(action, timeService.now()));
+		module.getMetricsContainer().add(new HeartBeatMetric(action, module, timeService.now()));
 	}
 }

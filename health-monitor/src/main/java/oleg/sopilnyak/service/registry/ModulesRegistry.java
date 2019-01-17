@@ -4,6 +4,7 @@
 package oleg.sopilnyak.service.registry;
 
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.ModuleBasics;
 
 import java.util.Collection;
 
@@ -98,4 +99,19 @@ public interface ModulesRegistry extends Module {
 	 * @return collection of registered modules
 	 */
 	Collection<Module> registered();
+
+	/**
+	 * To get registered module by module's primary key
+	 *
+	 * @param modulePK primary key
+	 * @return module or null if not registered
+	 */
+	Module getRegistered(String modulePK);
+	/**
+	 * To get registered module by module instance
+	 *
+	 * @param module module instance
+	 * @return module or null if not registered
+	 */
+	Module getRegistered(ModuleBasics module);
 }

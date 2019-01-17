@@ -23,10 +23,10 @@ public class HeartBeatMetric extends ModuleMetricAdapter {
 	private final ModuleHealthCondition condition;
 	private final boolean active;
 
-	public HeartBeatMetric(ModuleAction action, Instant measured) {
+	public HeartBeatMetric(ModuleAction action, Module module, Instant measured) {
 		super(action, measured);
-		condition = ((Module) action.getModule()).getCondition();
-		active = ((Module) action.getModule()).isActive();
+		this.condition = module.getCondition();
+		active = module.isActive();
 	}
 
 	/**

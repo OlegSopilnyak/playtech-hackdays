@@ -5,15 +5,16 @@ package oleg.sopilnyak.service.registry.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.ModuleServiceAdapter;
-import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.dto.VariableItemDto;
 import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
+import oleg.sopilnyak.service.metric.impl.SimpleDurationMetric;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.RegistryModulesIteratorAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
@@ -22,14 +23,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 /**
  * Service for register modules and check their registry condition
  */
 @Slf4j
-public class HealthModuleService extends ModuleServiceAdapter implements ModulesRegistry {
+public class HealthModuleService extends RegistryModulesIteratorAdapter implements ModulesRegistry {
 	// the map of registered modules
 	private final Map<String, Module> modules = new ConcurrentHashMap<>();
 	// future of scheduled activities
@@ -39,12 +39,11 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 
 	@Autowired
 	private ModuleMetricStorage metricStorage;
-	@Autowired
-	private TimeService timeService;
 
 	public HealthModuleService() {
 		moduleConfiguration.put(delayName(), new VariableItemDto(DELAY_NAME, DELAY_DEFAULT));
 		moduleConfiguration.put(ignoreModulesName(), new VariableItemDto(IGNORE_MODULE_NAME, IGNORE_MODULE_DEFAULT));
+		registry = this;
 	}
 
 	/**
@@ -83,6 +82,29 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	@Override
 	public Collection<Module> registered() {
 		return new LinkedHashSet<>(modules.values());
+	}
+
+	/**
+	 * To get registered module by module's primary key
+	 *
+	 * @param modulePK primary key
+	 * @return module or null if not registered
+	 */
+	@Override
+	public Module getRegistered(String modulePK) {
+		return StringUtils.isEmpty(modulePK) ? null :modules.get(modulePK);
+	}
+
+	/**
+	 * To get registered module by module instance
+	 *
+	 * @param module module instance
+	 * @return module or null if not registered
+	 */
+	@Override
+	public Module getRegistered(ModuleBasics module) {
+		assert module != null : "Module couldn't be null";
+		return getRegistered(module.primaryKey());
 	}
 
 	/**
@@ -136,6 +158,27 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 		}
 	}
 
+	/**
+	 * To inspect one module in context of action
+	 *
+	 * @param action action owner of inspection
+	 * @param module module to be inspected
+	 */
+	protected void inspectModule(ModuleAction action, Module module) {
+		final Instant mark = timeService.now();
+		final String modulePK = module.primaryKey();
+		log.debug("Scan module '{}'", modulePK);
+		if (Stream.of(ignoredModules).anyMatch(ignorance -> modulePK.startsWith(ignorance))) {
+			log.debug("Module '{}' is ignored.", modulePK);
+			return;
+		}
+		((HeartBeatMetricContainer) module.getMetricsContainer()).heatBeat(action, module);
+		module.metrics().stream().filter(m -> isActive()).forEach(m -> store(m));
+
+		// save metric about module health check duration
+		getMetricsContainer().add(new SimpleDurationMetric(action, timeService.now(), modulePK, timeService.duration(mark)));
+	}
+
 
 	// private methods
 
@@ -143,9 +186,11 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	 * To scan modules registry
 	 */
 	void scanModulesHealth() {
+		// setup action for main-module activity
+		actionsFactory.startMainAction(this);
+
 		log.info("Scanning modules.");
-		final ModuleAction health = actionsFactory.createModuleRegularAction(this, "metrics-check");
-		actionsFactory.executeAtomicModuleAction(health, () -> iterateRegisteredModules(health), false);
+		actionsFactory.executeAtomicModuleAction(this, "metrics-check", () -> iterateRegisteredModules(), false);
 		if (!isActive() || Objects.isNull(runnerFuture)) {
 			// service is stopped
 			return;
@@ -154,35 +199,16 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), delay, TimeUnit.MILLISECONDS);
 	}
 
-	void iterateRegisteredModules(ModuleAction health) {
-		final Instant mark = timeService.now();
-		final AtomicInteger counter = new AtomicInteger(0);
-		registered().stream().filter(m -> isActive()).peek(m -> counter.incrementAndGet()).forEach(m -> inspectModule(health, m));
-
-		// save metric of total modules health check duration
-		getMetricsContainer().add(new TotalDurationMetric(health, timeService.now(), counter.get(), timeService.duration(mark)));
-	}
-
-	void inspectModule(ModuleAction health, Module module) {
-		final Instant mark = timeService.now();
-		final String modulePK = module.primaryKey();
-		log.debug("Scan module '{}'", modulePK);
-		if (Stream.of(ignoredModules).anyMatch(ignorance -> modulePK.startsWith(ignorance))) {
-			log.debug("Module '{}' is ignored.", modulePK);
-			return;
-		}
-		((HeartBeatMetricContainer) module.getMetricsContainer()).heatBeat(health, module);
-		module.metrics().stream().filter(m -> isActive()).forEach(m -> store(m));
-
-		// save metric about module health check duration
-		getMetricsContainer().add(new SimpleDurationMetric(health, timeService.now(), modulePK, timeService.duration(mark)));
-	}
-
+	/**
+	 * To store metric into metrics storage
+	 *
+	 * @param metric metric to be saved
+	 */
 	void store(ModuleMetric metric) {
 		log.debug("Storing metric {} of {}", metric.name(), metric.action().getModule().primaryKey());
-		ModuleAction action = metric.action();
-		Module module = (Module) action.getModule();
-		metricStorage.storeMetric(metric.name(), module.primaryKey(), metric.measured(), action.getHostName(), metric.valuesAsString());
+		final ModuleAction action = metric.action();
+		final String modulePK = action.getModule().primaryKey();
+		metricStorage.storeMetric(metric.name(), modulePK, metric.measured(), action.getHostName(), metric.valuesAsString());
 		log.debug("Stored {}", metric);
 	}
 }

@@ -10,13 +10,21 @@ import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -29,12 +37,27 @@ public class ModuleSystemConfigurationTest {
 
 	@Bean
 	public ModuleMetricStorage getModuleMetricStorage() {
-		return mock(ModuleMetricStorage.class);
+		ModuleMetricStorage storage = mock(ModuleMetricStorage.class);
+		doNothing().doAnswer(new Answer() {
+			@Override
+			public Object answer(InvocationOnMock inv) throws Throwable {
+				Object[] args = inv.getArguments();
+				System.out.print("-------");
+				System.out.print(" name:"+args[0]);
+				System.out.print(" module:"+args[1]);
+				System.out.print(" measured:"+args[0]);
+				System.out.print(" host:"+args[0]);
+				System.out.print(" message:"+args[0]);
+				return null;
+			}
+		}).when(storage).storeMetric(anyString(),anyString(), any(Instant.class),anyString(), anyString());
+		return storage;
 	}
 
 	@Bean
 	public ModuleConfigurationStorage getModuleConfigurationStorage() {
-		return mock(ModuleConfigurationStorage.class);
+		ModuleConfigurationStorage storage = mock(ModuleConfigurationStorage.class);
+		return storage;
 	}
 
 	@Test
@@ -57,5 +80,9 @@ public class ModuleSystemConfigurationTest {
 	@Test
 	public void getHealthModuleService() {
 		assertNotNull(context.getBean(ModulesRegistry.class));
+	}
+	@Test
+	public void testDuring5seconds() throws InterruptedException {
+		TimeUnit.SECONDS.sleep(5);
 	}
 }

@@ -1,23 +1,22 @@
 /**
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.configuration.impl;
+package oleg.sopilnyak.service.metric.impl;
 
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.metric.impl.ModuleMetricAdapter;
 
 import java.time.Instant;
 
 /**
  * Type : metric for module check health
  */
-class TotalDurationMetric extends ModuleMetricAdapter {
-	private final int modules;
+public class SimpleDurationMetric extends ModuleMetricAdapter {
+	private final String module;
 	private final long duration;
 
-	public TotalDurationMetric(ModuleAction action, Instant measured, int modules, long duration) {
+	public SimpleDurationMetric(ModuleAction action, Instant measured, String module, long duration) {
 		super(action, measured);
-		this.modules = modules;
+		this.module = module;
 		this.duration = duration;
 	}
 
@@ -28,7 +27,7 @@ class TotalDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	public String name() {
-		return "total-modules-configuration";
+		return "module-health-check";
 	}
 
 	/**
@@ -38,6 +37,6 @@ class TotalDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	protected String concreteValue() {
-		return "Configuration of " + modules + " modules lasted " + duration + " millis.";
+		return "Module:" + module + " health check lasted " + duration + " millis.";
 	}
 }
