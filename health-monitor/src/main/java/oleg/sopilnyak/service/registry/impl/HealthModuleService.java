@@ -54,8 +54,8 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	 */
 	@Override
 	public void add(final Module module) {
-		log.debug("Registering {}", module);
 		assert module != null;
+		log.debug("Registering '{}'", module.primaryKey());
 		if (module != this) {
 			modules.putIfAbsent(module.primaryKey(), module);
 		}
@@ -68,8 +68,8 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	 */
 	@Override
 	public void remove(final Module module) {
-		log.debug("Unregistering {}", module);
 		assert module != null;
+		log.debug("Unregistering '{}'", module.primaryKey());
 		if (module != this) {
 			modules.remove(module.primaryKey());
 		}
@@ -91,7 +91,8 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	@Override
 	protected void initAsService() {
 		log.debug("Initiating service...");
-		add(this);
+		log.debug("Registering '{}'", this.primaryKey());
+		modules.putIfAbsent(this.primaryKey(), this);
 		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), 50, TimeUnit.MILLISECONDS);
 	}
 
@@ -105,7 +106,8 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 			runnerFuture.cancel(true);
 			runnerFuture = null;
 		}
-		remove(this);
+		log.debug("Unregistering '{}'", this.primaryKey());
+		modules.remove(this.primaryKey());
 	}
 
 	/**
@@ -164,9 +166,9 @@ public class HealthModuleService extends ModuleServiceAdapter implements Modules
 	void inspectModule(ModuleAction health, Module module) {
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
-		log.debug("Scan module {}", modulePK);
-		if (Stream.of(ignoredModules).filter(i -> modulePK.startsWith(i)).count() > 0L) {
-			log.debug("Module {} is ignored.", modulePK);
+		log.debug("Scan module '{}'", modulePK);
+		if (Stream.of(ignoredModules).anyMatch(ignorance -> modulePK.startsWith(ignorance))) {
+			log.debug("Module '{}' is ignored.", modulePK);
 			return;
 		}
 		((HeartBeatMetricContainer) module.getMetricsContainer()).heatBeat(health, module);

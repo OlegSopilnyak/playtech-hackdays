@@ -14,9 +14,8 @@ import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +29,7 @@ import static oleg.sopilnyak.module.model.ModuleHealthCondition.*;
  * Adapter for periodical actions service
  */
 public abstract class ModuleServiceAdapter implements Module {
+	// main action of module
 	private volatile ModuleAction moduleMainAction;
 
 	protected volatile boolean active = false;
@@ -42,7 +42,6 @@ public abstract class ModuleServiceAdapter implements Module {
 	@Autowired
 	protected ScheduledExecutorService activityRunner;
 	// the registry of modules
-	@Autowired
 	protected ModulesRegistry registry;
 	// the factory of actions
 	@Autowired
@@ -50,17 +49,34 @@ public abstract class ModuleServiceAdapter implements Module {
 	// container of metrics
 	@Autowired
 	private MetricsContainer metricsContainer;
+	// lock for access to mainAction
+	private final Lock mainActionLock = new ReentrantLock();
+
+	/**
+	 * Special setter to allow HealthModuleService start
+	 *
+	 * @param registry it's will be Spring proxy
+	 */
+	@Autowired
+	public void setRegistry(@Lazy ModulesRegistry registry) {
+		this.registry = registry;
+	}
 
 	/**
 	 * Action after module is built
 	 */
-	@PostConstruct
 	public void initialSetUp() {
 		if (active) {
 			return;
 		}
+		// setup action for main-module activity
+		actionsFactory.startMainAction(this);
 
-		registry.add(this);
+		if (this instanceof ModulesRegistry){
+			// used other technic for registration
+		}else {
+			registry.add(this);
+		}
 		initAsService();
 		active = true;
 
@@ -72,14 +88,20 @@ public abstract class ModuleServiceAdapter implements Module {
 	/**
 	 * Actions before module shut down
 	 */
-	@PreDestroy
 	public void shutdownModule() {
 		if (!active) {
 			return;
 		}
 
+		// setup action for main-module activity
+		actionsFactory.startMainAction(this);
+
 		active = false;
-		registry.remove(this);
+		if (this instanceof ModulesRegistry){
+			// used other technic for registration
+		}else {
+			registry.remove(this);
+		}
 		shutdownAsService();
 
 		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
@@ -95,12 +117,14 @@ public abstract class ModuleServiceAdapter implements Module {
 	@Override
 	public ModuleAction getMainAction() {
 		if (Objects.isNull(moduleMainAction)) {
-			synchronized (ModuleAction.class) {
+			mainActionLock.lock();
+			try {
 				if (Objects.isNull(moduleMainAction)) {
 					moduleMainAction = actionsFactory.createModuleMainAction(this);
 				}
+			}finally {
+				mainActionLock.unlock();
 			}
-
 		}
 		return moduleMainAction;
 	}
@@ -227,6 +251,9 @@ public abstract class ModuleServiceAdapter implements Module {
 		if (changed.isEmpty()) {
 			return;
 		}
+		// setup action for main-module activity
+		actionsFactory.startMainAction(this);
+
 		changed.forEach((k, v) -> configurationItemChanged(k, v));
 		restart();
 	}

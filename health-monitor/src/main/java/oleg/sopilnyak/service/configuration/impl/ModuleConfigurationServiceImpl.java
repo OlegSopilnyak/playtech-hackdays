@@ -11,7 +11,6 @@ import oleg.sopilnyak.service.ModuleServiceAdapter;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
@@ -41,9 +40,6 @@ public class ModuleConfigurationServiceImpl extends ModuleServiceAdapter impleme
 	// queue of updates
 	private final BlockingQueue<Collection<String>> storageChangesQueue = new LinkedBlockingQueue<>(1000);
 
-	// registry of modules
-	@Autowired
-	private ModulesRegistry registry;
 	// active storage of configurations
 	@Autowired
 	private ModuleConfigurationStorage storage;

@@ -15,7 +15,6 @@ import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.annotation.PostConstruct;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -32,7 +31,6 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	@Autowired
 	private UniqueIdGenerator idGenerator;
 
-	@PostConstruct
 	public void setUp() {
 		try {
 			hostName = InetAddress.getLocalHost().getHostName();
@@ -88,6 +86,8 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public ModuleAction executeAtomicModuleAction(ModuleAction action, Runnable executable, boolean rethrow) {
+		current.set(action);
+
 		log.debug("Executing  for action {}", action.getName());
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 		final Module module = (Module) action.getModule();
@@ -109,11 +109,48 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 				throw new ModuleActionExceptionWrapper("Fail in " + action.getName(), t);
 			}
 			return new FailModuleAction(action, t);
+		} finally {
+			current.set(action.getParent());
 		}
 
 		log.debug("Finished execution of {}", action.getName());
 		adapter.setState(ModuleAction.State.SUCCESS);
 		((ActionMetricsContainer) module.getMetricsContainer()).actionFinished(action);
 		return new SuccessModuleAction(action);
+	}
+
+	/**
+	 * Execute in context of module action
+	 *
+	 * @param module     owner of simple action
+	 * @param actionName action's name
+	 * @param executable runnable to be executed
+	 * @param rethrow    flag for rethrow exception if occurred
+	 * @return action-result of execution
+	 */
+	@Override
+	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
+		final ModuleAction contextAction = this.createModuleRegularAction(module, actionName);
+		return executeAtomicModuleAction(contextAction, executable, rethrow);
+	}
+
+	/**
+	 * To get current action by Thread context
+	 *
+	 * @return current action
+	 */
+	@Override
+	public ModuleAction currentAction() {
+		return current.get();
+	}
+
+	/**
+	 * To start main action for module
+	 *
+	 * @param module owner of action
+	 */
+	@Override
+	public void startMainAction(Module module) {
+		current.set(module.getMainAction());
 	}
 }
