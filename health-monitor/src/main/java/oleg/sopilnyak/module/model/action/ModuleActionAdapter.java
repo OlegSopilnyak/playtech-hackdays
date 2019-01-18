@@ -46,14 +46,14 @@ public class ModuleActionAdapter implements ModuleAction {
 	}
 
 	public String valueAsString() {
-		return name
-				+ " id:" + id
-				+ " host:" + hostName
-				+ " state:" + state
-				+ " module:" + module.primaryKey()
-				+ " started:" + started
-				+ " duration:" + duration
-				+ " description: " + description;
+		return "action :" + name
+				+ " id :" + id
+				+ " host :" + hostName
+				+ " state :" + state
+				+ " module :" + module.primaryKey()
+				+ " started :" + started
+				+ " duration :" + duration
+				+ " description : " + description;
 
 	}
 }

@@ -27,7 +27,7 @@ public class SimpleDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	public String name() {
-		return "module-health-check";
+		return "simple-duration " + duration + " millis of " + action().getName();
 	}
 
 	/**

@@ -34,16 +34,16 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	private final Map<String, Module> modules = new ConcurrentHashMap<>();
 	// future of scheduled activities
 	private volatile ScheduledFuture runnerFuture;
-	private volatile long delay;
-	private volatile String[] ignoredModules = new String[0];
+	private volatile long delay = DELAY_DEFAULT;
+	private volatile String[] ignoredModules = IGNORE_MODULE_DEFAULT.split(",");
 
 	@Autowired
 	private ModuleMetricStorage metricStorage;
 
 	public HealthModuleService() {
+		registry = this;
 		moduleConfiguration.put(delayName(), new VariableItemDto(DELAY_NAME, DELAY_DEFAULT));
 		moduleConfiguration.put(ignoreModulesName(), new VariableItemDto(IGNORE_MODULE_NAME, IGNORE_MODULE_DEFAULT));
-		registry = this;
 	}
 
 	/**
@@ -113,8 +113,8 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	@Override
 	protected void initAsService() {
 		log.debug("Initiating service...");
-		log.debug("Registering '{}'", this.primaryKey());
 		modules.putIfAbsent(this.primaryKey(), this);
+		log.debug("Registered '{}'", this.primaryKey());
 		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), 50, TimeUnit.MILLISECONDS);
 	}
 
@@ -144,17 +144,22 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 			// service is not active or itemName is wrong
 			return;
 		}
+		final VariableItem configurationVariable = moduleConfiguration.get(itemName);
+		if (Objects.isNull(configurationVariable)){
+			log.warn("No variable '{}' in configuration of module.", itemName);
+			return;
+		}
 		// check for delay
 		if (itemName.equals(delayName())) {
 			delay = itemValue.get(Integer.class).longValue();
-			log.debug("Changed 'delay' to {}", delay);
-			moduleConfiguration.get(itemName).set(delay);
+			log.debug("Changed variable 'delay' to {}", delay);
+			configurationVariable.set(delay);
 		}
 		// check for ignoredModules
 		if (itemName.equals(ignoreModulesName())) {
 			ignoredModules = itemValue.get(String.class).split(",");
-			log.debug("Changed 'ignoredModules' to {}", Arrays.asList(ignoredModules));
-			moduleConfiguration.get(itemName).set(String.join(",", ignoredModules));
+			log.debug("Changed variable 'ignoredModules' to {}", Arrays.asList(ignoredModules));
+			configurationVariable.set(String.join(",", ignoredModules));
 		}
 	}
 
@@ -168,12 +173,12 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
 		log.debug("Scan module '{}'", modulePK);
-		if (Stream.of(ignoredModules).anyMatch(ignorance -> modulePK.startsWith(ignorance))) {
+		if (Stream.of(ignoredModules).anyMatch(ignorance -> !StringUtils.isEmpty(ignorance) && modulePK.startsWith(ignorance))) {
 			log.debug("Module '{}' is ignored.", modulePK);
 			return;
 		}
 		((HeartBeatMetricContainer) module.getMetricsContainer()).heatBeat(action, module);
-		module.metrics().stream().filter(m -> isActive()).forEach(m -> store(m));
+		module.metrics().stream().filter(m -> isActive()).forEach(metric -> store(metric));
 
 		// save metric about module health check duration
 		getMetricsContainer().add(new SimpleDurationMetric(action, timeService.now(), modulePK, timeService.duration(mark)));
@@ -192,6 +197,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 		log.info("Scanning modules.");
 		actionsFactory.executeAtomicModuleAction(this, "metrics-check", () -> iterateRegisteredModules(), false);
 		if (!isActive() || Objects.isNull(runnerFuture)) {
+			log.debug("Scaning is stopped.");
 			// service is stopped
 			return;
 		}
@@ -205,10 +211,10 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	 * @param metric metric to be saved
 	 */
 	void store(ModuleMetric metric) {
-		log.debug("Storing metric {} of {}", metric.name(), metric.action().getModule().primaryKey());
+		log.debug("Storing metric '{}' of '{}'", metric.name(), metric.action().getModule().primaryKey());
 		final ModuleAction action = metric.action();
 		final String modulePK = action.getModule().primaryKey();
 		metricStorage.storeMetric(metric.name(), modulePK, metric.measured(), action.getHostName(), metric.valuesAsString());
-		log.debug("Stored {}", metric);
+		log.debug("Stored '{}'", metric);
 	}
 }

@@ -69,7 +69,7 @@ class ModuleUtilityConfiguration {
 	@Bean
 	public Layout<ILoggingEvent> getLayout(){
 		PatternLayout layout = new PatternLayout();
-		layout.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
+		layout.setPattern("[%thread] %-5level %logger{50} - %msg%n");
 		return layout;
 	}
 }

@@ -73,9 +73,9 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> {
 		if (Objects.isNull(currentAction)) {
 			return;
 		}
-		final String message = eventLayout.doLayout(event);
+		final String message = eventLayout.doLayout(event).trim();
 		final ModuleMetric loggerMetric = new Metric(currentAction, timeService.now(), message);
-		modulesRegistry.getRegistered(currentAction.getModule()).getMetricsContainer().add(loggerMetric);
+//		modulesRegistry.getRegistered(currentAction.getModule()).getMetricsContainer().add(loggerMetric);
 	}
 
 	// inner classes

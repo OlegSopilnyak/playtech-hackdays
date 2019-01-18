@@ -14,6 +14,7 @@ import java.time.Instant;
  */
 public class ActionExceptionMetric extends ActionChangedMetric {
 	private final Throwable cause;
+
 	public ActionExceptionMetric(ModuleAction action, Instant now, Throwable cause) {
 		super(action, now);
 		this.cause = cause;
@@ -26,7 +27,7 @@ public class ActionExceptionMetric extends ActionChangedMetric {
 	 */
 	@Override
 	public String name() {
-		return "exception";
+		return "exception in '" + action().getName() + "'";
 	}
 
 	/**
@@ -46,9 +47,9 @@ public class ActionExceptionMetric extends ActionChangedMetric {
 	 */
 	@Override
 	protected String concreteValue() {
-		if (cause != null){
+		if (cause != null) {
 			final StringWriter message = new StringWriter();
-			try(PrintWriter out = new PrintWriter(message, true)) {
+			try (PrintWriter out = new PrintWriter(message, true)) {
 				cause.printStackTrace(out);
 			}
 			return message.toString();

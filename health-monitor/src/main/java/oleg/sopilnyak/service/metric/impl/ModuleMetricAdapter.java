@@ -7,8 +7,10 @@ import lombok.Data;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.dto.ModuleActionDto;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Type: metric basic features
@@ -21,6 +23,14 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	public ModuleMetricAdapter(ModuleAction action, Instant measured) {
 		this.action = new ModuleActionDto(action);
 		this.measured = measured;
+	}
+
+	@Override
+	public String toString() {
+		return "Metric<" + getClass().getSimpleName() + ">{" +
+				"action=" + action +
+				", measured=" + measured +
+				'}';
 	}
 
 	/**
@@ -50,11 +60,17 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	 */
 	@Override
 	public String valuesAsString() {
-		final String value = "Metric " + name() + "[" + measured + "] value: " + concreteValue() + " | in action " + action.valueAsString();
-		if (action.getParent() != null) {
-			return value + ", parent id:" + action.getParent().getId();
+		final String concreteValue = concreteValue();
+		final StringBuilder valueBuilder = new StringBuilder("Metric ")
+				.append(name())
+				.append("[").append(measured).append("]")
+				.append(StringUtils.isEmpty(concreteValue) ? "" : " value: ")
+				.append(StringUtils.isEmpty(concreteValue) ? "" : concreteValue)
+				.append(" | in action ").append(action.valueAsString());
+		if (Objects.nonNull(action.getParent())) {
+			valueBuilder.append(", parent id: ").append(action.getParent().getId());
 		}
-		return value;
+		return valueBuilder.toString();
 	}
 
 	/**

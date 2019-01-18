@@ -53,6 +53,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction createModuleMainAction(Module module) {
 		log.debug("Creating main action for module {}", module.primaryKey());
 		final ModuleMainAction action = new ModuleMainAction(module);
+		action.setName(module.getSystemId() + "-" + module.getModuleId() + ":Main");
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription("Main action of " + module.getDescription());

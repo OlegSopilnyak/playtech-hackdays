@@ -17,16 +17,18 @@ import java.time.Instant;
  */
 @Data
 public class HeartBeatMetric extends ModuleMetricAdapter {
-	public static final String NAME = "registry";
+	public static final String NAME = "heart-beat of ";
 	public static final long DELAY = ModulesRegistry.DELAY_DEFAULT;
 
 	private final ModuleHealthCondition condition;
 	private final boolean active;
+	private final String modulePK;
 
 	public HeartBeatMetric(ModuleAction action, Module module, Instant measured) {
 		super(action, measured);
 		this.condition = module.getCondition();
 		active = module.isActive();
+		modulePK = module.primaryKey();
 	}
 
 	/**
@@ -46,7 +48,7 @@ public class HeartBeatMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	public String name() {
-		return "registry";
+		return NAME;
 	}
 
 	/**
@@ -56,6 +58,6 @@ public class HeartBeatMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	protected String concreteValue() {
-		return "registry condition: " + condition + ", active: " + active;
+		return "module: " + modulePK + ", condition: " + condition + ", active: " + active;
 	}
 }

@@ -9,6 +9,7 @@ import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 
 import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  * Type - service's module
@@ -72,9 +73,10 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 	 * @return metrics snapshot
 	 */
 	default Collection<ModuleMetric> metrics() {
-		final Collection<ModuleMetric> snapshot = getMetricsContainer().metrics();
-		getMetricsContainer().clear();
-		return snapshot;
+		final MetricsContainer metricsContainer = getMetricsContainer();
+		final Collection<ModuleMetric> metrics = new LinkedList<>(metricsContainer.metrics());
+		metricsContainer.clear();
+		return metrics;
 	}
 
 }

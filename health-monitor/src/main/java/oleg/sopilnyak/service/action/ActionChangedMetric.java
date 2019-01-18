@@ -15,6 +15,7 @@ public class ActionChangedMetric extends ModuleMetricAdapter {
 	public ActionChangedMetric(ModuleAction action, Instant now) {
 		super(action, now);
 	}
+
 	/**
 	 * To get the name of metric
 	 *
@@ -22,6 +23,16 @@ public class ActionChangedMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	public String name() {
-		return "action";
+		return "changed-state to '"+action().getState()+"' of '" + action().getName()+"'";
+	}
+
+	/**
+	 * To fill values metric's depended information
+	 *
+	 * @return concrete
+	 */
+	@Override
+	protected String concreteValue() {
+		return "";
 	}
 }

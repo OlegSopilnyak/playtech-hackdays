@@ -27,7 +27,7 @@ public class TotalDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	public String name() {
-		return "total-modules-configuration";
+		return "total-duration " + duration + " millis of " + action().getName();
 	}
 
 	/**
@@ -37,6 +37,6 @@ public class TotalDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	protected String concreteValue() {
-		return "Configuration of " + modules + " modules lasted " + duration + " millis.";
+		return "Processing of " + modules + " modules lasted " + duration + " millis.";
 	}
 }

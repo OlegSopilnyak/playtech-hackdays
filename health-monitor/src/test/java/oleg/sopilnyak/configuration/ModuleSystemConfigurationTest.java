@@ -45,9 +45,9 @@ public class ModuleSystemConfigurationTest {
 				System.out.print("-------");
 				System.out.print(" name:"+args[0]);
 				System.out.print(" module:"+args[1]);
-				System.out.print(" measured:"+args[0]);
-				System.out.print(" host:"+args[0]);
-				System.out.print(" message:"+args[0]);
+				System.out.print(" measured:"+args[2]);
+				System.out.print(" host:"+args[3]);
+				System.out.println(" message:"+args[4]);
 				return null;
 			}
 		}).when(storage).storeMetric(anyString(),anyString(), any(Instant.class),anyString(), anyString());
