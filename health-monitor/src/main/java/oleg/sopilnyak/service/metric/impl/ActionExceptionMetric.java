@@ -1,7 +1,7 @@
 /**
  * Copyright (C) Oleg Sopilnyak 2018
  */
-package oleg.sopilnyak.service.action;
+package oleg.sopilnyak.service.metric.impl;
 
 import oleg.sopilnyak.module.model.ModuleAction;
 
@@ -12,7 +12,7 @@ import java.time.Instant;
 /**
  * Type: metric for fail action
  */
-public class ActionExceptionMetric extends ActionChangedMetric {
+class ActionExceptionMetric extends ActionChangedMetric {
 	private final Throwable cause;
 
 	public ActionExceptionMetric(ModuleAction action, Instant now, Throwable cause) {

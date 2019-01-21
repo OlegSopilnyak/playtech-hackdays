@@ -10,12 +10,14 @@ import java.time.Instant;
 /**
  * Type : metric for module check health
  */
-public class SimpleDurationMetric extends ModuleMetricAdapter {
+class SimpleDurationMetric extends ModuleMetricAdapter {
+	private final String label;
 	private final String module;
 	private final long duration;
 
-	public SimpleDurationMetric(ModuleAction action, Instant measured, String module, long duration) {
+	SimpleDurationMetric(String label, ModuleAction action, Instant measured, String module, long duration) {
 		super(action, measured);
+		this.label = label;
 		this.module = module;
 		this.duration = duration;
 	}
@@ -27,7 +29,7 @@ public class SimpleDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	public String name() {
-		return "simple-duration " + duration + " millis of " + action().getName();
+		return "simple-duration of " + label + " for " + module;
 	}
 
 	/**
@@ -37,6 +39,6 @@ public class SimpleDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	protected String concreteValue() {
-		return "Module:" + module + " health check lasted " + duration + " millis.";
+		return label +" of module: " + module + " lasted " + duration + " millis.";
 	}
 }

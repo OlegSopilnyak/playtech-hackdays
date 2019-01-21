@@ -41,6 +41,6 @@ public interface ModuleBasics {
 	 * @return value of PK
 	 */
 	default String primaryKey() {
-		return getSystemId() + "|" + getModuleId() + "|" + getVersionId();
+		return getSystemId() + "::" + getModuleId() + "::" + getVersionId();
 	}
 }

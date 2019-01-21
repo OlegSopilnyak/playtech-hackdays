@@ -9,7 +9,6 @@ import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.metric.impl.SimpleDurationMetric;
 import oleg.sopilnyak.service.registry.RegistryModulesIteratorAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,6 +28,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapter implements ModuleConfigurationService {
+	private static final String ACTIVITY_LABEL = "Configuration";
 	// listener of storage's state changes
 	private final StorageListener storageListener = new StorageListener();
 	// future of scheduled activities
@@ -69,28 +69,32 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	/**
 	 * To inspect one module in context of action
 	 *
+	 * @param label  label of module's processing
 	 * @param action action owner of inspection
 	 * @param module module to be inspected
 	 */
-	protected void inspectModule(ModuleAction action, Module module) {
+	protected void inspectModule(String label, ModuleAction action, Module module) {
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
 		log.debug("Scan module {}", modulePK);
 		final Map<String, VariableItem> config = storage.getUpdatedVariables(module, module.getConfiguration());
 		if (config.isEmpty()) {
-			getMetricsContainer().add(new SimpleDurationMetric(action, timeService.now(), modulePK, timeService.duration(mark)));
+			getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
 			log.debug("Nothing to update properties for {}", modulePK);
 			return;
 		}
 		module.configurationChanged(config);
-		getMetricsContainer().add(new SimpleDurationMetric(action, timeService.now(), modulePK, timeService.duration(mark)));
+		getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
 		log.debug("Updated module {} by {}", modulePK, config);
 	}
 
 	// private methods
 	void scanModulesConfiguration() {
+		// activate main module action
+		activateMainModuleAction();
+
 		log.info("Scanning modules.");
-		actionsFactory.executeAtomicModuleAction(this, "configuration-check", () -> iterateRegisteredModules(), false);
+		actionsFactory.executeAtomicModuleAction(this, "configuration-check", () -> iterateRegisteredModules(ACTIVITY_LABEL), false);
 	}
 
 	void runNotificationProcessing(Collection<String> modules) {
@@ -109,6 +113,9 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	}
 
 	void scheduleScan() {
+		// activate main module action
+		activateMainModuleAction();
+
 		if (storageChangesQueue.isEmpty()) {
 			log.debug("Change configuration queue is empty.");
 			return;

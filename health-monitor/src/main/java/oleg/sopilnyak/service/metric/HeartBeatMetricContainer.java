@@ -4,7 +4,6 @@
 package oleg.sopilnyak.service.metric;
 
 import oleg.sopilnyak.module.Module;
-import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 
 /**
@@ -12,12 +11,12 @@ import oleg.sopilnyak.module.model.ModuleAction;
  *
  * @see oleg.sopilnyak.module.metric.MetricsContainer
  */
-public interface HeartBeatMetricContainer extends MetricsContainer {
+public interface HeartBeatMetricContainer {
 	/**
 	 * To store Health Condition for module
 	 *
 	 * @param action action to save
 	 * @param module module to check
 	 */
-	void heatBeat(ModuleAction action, Module module);
+	void heartBeat(ModuleAction action, Module module);
 }

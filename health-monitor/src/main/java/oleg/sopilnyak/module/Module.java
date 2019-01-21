@@ -37,6 +37,13 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 	void healthGoLow(Throwable exception);
 
 	/**
+	 * To get instance of last thrown exception
+	 *
+	 * @return exception or nul if wouldn't
+	 */
+	Throwable lastThrown();
+
+	/**
 	 * After action detected success
 	 */
 	void healthGoUp();

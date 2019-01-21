@@ -9,9 +9,11 @@ import oleg.sopilnyak.service.logging.ModuleLogAppender;
 import oleg.sopilnyak.service.metric.impl.MetricsContainerImpl;
 import oleg.sopilnyak.service.registry.impl.HealthModuleService;
 import org.springframework.beans.factory.annotation.Autowire;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 
 /**
  * Configuration: main configuration for modules system
@@ -29,6 +31,7 @@ public class ModuleSystemConfiguration {
 	 * @return singleton
 	 */
 	@Bean(autowire = Autowire.BY_TYPE)
+	@Scope( ConfigurableBeanFactory.SCOPE_PROTOTYPE )
 	public MetricsContainerImpl getMetricsContainer(){
 		return new MetricsContainerImpl();
 	}

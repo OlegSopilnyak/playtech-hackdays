@@ -52,4 +52,12 @@ public interface ModuleActionFactory {
 	 * @param module owner of the action
 	 */
 	void startMainAction(Module module);
+
+	/**
+	 * To finish main action
+	 *
+	 * @param module owner of action
+	 * @param success flag is it done good
+	 */
+	void finishMainAction(Module module, boolean success);
 }

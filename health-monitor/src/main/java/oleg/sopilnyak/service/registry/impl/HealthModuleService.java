@@ -11,8 +11,6 @@ import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.dto.VariableItemDto;
-import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
-import oleg.sopilnyak.service.metric.impl.SimpleDurationMetric;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import oleg.sopilnyak.service.registry.RegistryModulesIteratorAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 /**
@@ -30,6 +29,7 @@ import java.util.stream.Stream;
  */
 @Slf4j
 public class HealthModuleService extends RegistryModulesIteratorAdapter implements ModulesRegistry {
+	private static final String ACTIVITY_LABEL = "HealthCheck";
 	// the map of registered modules
 	private final Map<String, Module> modules = new ConcurrentHashMap<>();
 	// future of scheduled activities
@@ -54,6 +54,9 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	@Override
 	public void add(final Module module) {
 		assert module != null;
+		// activate main module action
+		activateMainModuleAction();
+
 		log.debug("Registering '{}'", module.primaryKey());
 		if (module != this) {
 			modules.putIfAbsent(module.primaryKey(), module);
@@ -68,6 +71,9 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	@Override
 	public void remove(final Module module) {
 		assert module != null;
+		// activate main module action
+		activateMainModuleAction();
+
 		log.debug("Unregistering '{}'", module.primaryKey());
 		if (module != this) {
 			modules.remove(module.primaryKey());
@@ -92,7 +98,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	 */
 	@Override
 	public Module getRegistered(String modulePK) {
-		return StringUtils.isEmpty(modulePK) ? null :modules.get(modulePK);
+		return StringUtils.isEmpty(modulePK) ? null : modules.get(modulePK);
 	}
 
 	/**
@@ -113,9 +119,9 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	@Override
 	protected void initAsService() {
 		log.debug("Initiating service...");
-		modules.putIfAbsent(this.primaryKey(), this);
-		log.debug("Registered '{}'", this.primaryKey());
-		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), 50, TimeUnit.MILLISECONDS);
+		final Module previous = modules.putIfAbsent(this.primaryKey(), this);
+		log.debug("Registered '{}' is '{}'", this.primaryKey(), Objects.isNull(previous));
+		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), 100, TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -145,7 +151,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 			return;
 		}
 		final VariableItem configurationVariable = moduleConfiguration.get(itemName);
-		if (Objects.isNull(configurationVariable)){
+		if (Objects.isNull(configurationVariable)) {
 			log.warn("No variable '{}' in configuration of module.", itemName);
 			return;
 		}
@@ -166,22 +172,29 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	/**
 	 * To inspect one module in context of action
 	 *
+	 * @param label  label of module's processing
 	 * @param action action owner of inspection
 	 * @param module module to be inspected
 	 */
-	protected void inspectModule(ModuleAction action, Module module) {
+	protected void inspectModule(String label, ModuleAction action, Module module) {
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
-		log.debug("Scan module '{}'", modulePK);
+		log.info("Scan module '{}'", modulePK);
 		if (Stream.of(ignoredModules).anyMatch(ignorance -> !StringUtils.isEmpty(ignorance) && modulePK.startsWith(ignorance))) {
 			log.debug("Module '{}' is ignored.", modulePK);
 			return;
 		}
-		((HeartBeatMetricContainer) module.getMetricsContainer()).heatBeat(action, module);
-		module.metrics().stream().filter(m -> isActive()).forEach(metric -> store(metric));
+		// get health state of module
+		module.getMetricsContainer().health().heartBeat(action, module);
+		// collect and save all metrics of module
+		AtomicInteger counter = new AtomicInteger(1);
+		module.metrics().stream()
+				.peek(metric -> log.debug("{} metric {}", counter.getAndIncrement(), metric.name()))
+				.filter(m -> isActive())
+				.forEach(metric -> store(metric));
 
 		// save metric about module health check duration
-		getMetricsContainer().add(new SimpleDurationMetric(action, timeService.now(), modulePK, timeService.duration(mark)));
+		getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
 	}
 
 
@@ -191,14 +204,14 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	 * To scan modules registry
 	 */
 	void scanModulesHealth() {
-		// setup action for main-module activity
-		actionsFactory.startMainAction(this);
+		// activate main module action
+		activateMainModuleAction();
 
 		log.info("Scanning modules.");
-		actionsFactory.executeAtomicModuleAction(this, "metrics-check", () -> iterateRegisteredModules(), false);
+		actionsFactory.executeAtomicModuleAction(this,"metrics-check",() -> iterateRegisteredModules(ACTIVITY_LABEL),false);
+
 		if (!isActive() || Objects.isNull(runnerFuture)) {
-			log.debug("Scaning is stopped.");
-			// service is stopped
+			log.debug("Scanning is stopped.");
 			return;
 		}
 		log.debug("Rescheduling service");

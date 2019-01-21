@@ -3,7 +3,6 @@
  */
 package oleg.sopilnyak.service.metric;
 
-import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 
 /**
@@ -11,26 +10,26 @@ import oleg.sopilnyak.module.model.ModuleAction;
  *
  * @see oleg.sopilnyak.module.metric.MetricsContainer
  */
-public interface ActionMetricsContainer extends MetricsContainer {
+public interface ActionMetricsContainer {
 	/**
 	 * To add metric about action state change
 	 *
 	 * @param action action
 	 */
-	void actionChanged(ModuleAction action);
+	void changed(ModuleAction action);
 
 	/**
-	 * To add metric about action finish
+	 * To add metric about action finish not successfully
 	 *
 	 * @param action action
-	 * @param t      exception
+	 * @param t      occurred exception
 	 */
-	void actionFinished(ModuleAction action, Throwable t);
+	void fail(ModuleAction action, Throwable t);
 
 	/**
-	 * To add metric about action finish
+	 * To add metric about action finish successfully
 	 *
 	 * @param action action
 	 */
-	void actionFinished(ModuleAction action);
+	void success(ModuleAction action);
 }

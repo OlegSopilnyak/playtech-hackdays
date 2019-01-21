@@ -11,7 +11,6 @@ import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
-import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -63,21 +62,30 @@ public abstract class ModuleServiceAdapter implements Module {
 		if (active) {
 			return;
 		}
-		// setup action for main-module activity
-		actionsFactory.startMainAction(this);
+		// start main-action activity
+		activateMainModuleAction();
 
+		healthCondition = INIT;
+		// register module in registry
 		if (this instanceof ModulesRegistry){
 			// used other technic for registration
 		}else {
 			registry.add(this);
 		}
-		initAsService();
-		active = true;
-		healthCondition = INIT;
 
-		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
-		action.setState(ModuleAction.State.PROGRESS);
-		((ActionMetricsContainer)metricsContainer).actionChanged(action);
+		// concrete-module-related init
+		ModuleAction result = actionsFactory.executeAtomicModuleAction(this, "init-module", ()->initAsService(), false);
+
+		final ModuleActionAdapter mainAction = (ModuleActionAdapter) getMainAction();
+		if (result.getState() == ModuleAction.State.FAIL){
+			metricsContainer.action().fail(mainAction, lastThrow);
+		}else {
+			// module is active
+			active = true;
+			// running main action
+			mainAction.setState(ModuleAction.State.PROGRESS);
+			metricsContainer.action().changed(mainAction);
+		}
 	}
 
 	/**
@@ -88,8 +96,8 @@ public abstract class ModuleServiceAdapter implements Module {
 			return;
 		}
 
-		// setup action for main-module activity
-		actionsFactory.startMainAction(this);
+		// start main-action activity
+		activateMainModuleAction();
 
 		active = false;
 		if (this instanceof ModulesRegistry){
@@ -97,11 +105,13 @@ public abstract class ModuleServiceAdapter implements Module {
 		}else {
 			registry.remove(this);
 		}
-		shutdownAsService();
 
-		final ModuleActionAdapter action = (ModuleActionAdapter) getMainAction();
-		action.setState(healthCondition == FAIL ? ModuleAction.State.FAIL : ModuleAction.State.SUCCESS);
-		((ActionMetricsContainer)metricsContainer).actionFinished(action);
+
+		// concrete-module-related shutdown
+		actionsFactory.executeAtomicModuleAction(this, "shutdown-module", ()->shutdownAsService(), false);
+
+		// finish main-action activity
+		finishModuleAction(healthCondition != FAIL);
 	}
 
 	/**
@@ -203,6 +213,16 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	/**
+	 * To get instance of last thrown exception
+	 *
+	 * @return exception or nul if wouldn't
+	 */
+	@Override
+	public Throwable lastThrown() {
+		return lastThrow;
+	}
+
+	/**
 	 * To check is module allows to be restarted
 	 *
 	 * @return true if module can restart
@@ -220,7 +240,7 @@ public abstract class ModuleServiceAdapter implements Module {
 		if (!canRestart()) {
 			return;
 		}
-		if (active) {
+		if (isActive()) {
 			shutdownModule();
 		}
 		initialSetUp();
@@ -246,10 +266,10 @@ public abstract class ModuleServiceAdapter implements Module {
 		if (changed.isEmpty()) {
 			return;
 		}
-		// setup action for main-module activity
-		actionsFactory.startMainAction(this);
+		activateMainModuleAction();
 
 		changed.forEach((k, v) -> configurationItemChanged(k, v));
+
 		restart();
 	}
 
@@ -264,6 +284,14 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	// protected methods - should be redefined in children
+	protected void activateMainModuleAction(){
+		// setup action for main-module activity
+		actionsFactory.startMainAction(this);
+	}
+
+	protected void finishModuleAction(boolean success){
+		actionsFactory.finishMainAction(this , success);
+	}
 
 	/**
 	 * Allocate module's resources and get module ready to work

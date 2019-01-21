@@ -13,11 +13,11 @@ import oleg.sopilnyak.module.model.action.SuccessModuleAction;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
-import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
 
 /**
  * Service: Factory of module actions
@@ -57,7 +57,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription("Main action of " + module.getDescription());
-		((ActionMetricsContainer) module.getMetricsContainer()).actionChanged(action);
+		module.getMetricsContainer().action().changed(action);
 		return action;
 	}
 
@@ -70,13 +70,13 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public ModuleAction createModuleRegularAction(Module module, String name) {
-		log.debug("Creating regular '{}' action for module {}", name, module.primaryKey());
+		log.debug("Creating regular '{}' action for module '{}'", name, module.primaryKey());
 		final ModuleRegularAction action = new ModuleRegularAction(module, name);
 		action.setParent(module.getMainAction());
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription(name + " action of " + module.getDescription());
-		((ActionMetricsContainer) module.getMetricsContainer()).actionChanged(action);
+		module.getMetricsContainer().action().changed(action);
 		return action;
 	}
 
@@ -91,6 +91,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
+		final Instant mark = timeService.now();
 		final ModuleAction action;
 		current.set(action = createModuleRegularAction(module, actionName));
 
@@ -98,7 +99,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 
 		adapter.setState(ModuleAction.State.PROGRESS);
-		((ActionMetricsContainer) module.getMetricsContainer()).actionChanged(action);
+		module.getMetricsContainer().action().changed(action);
 
 		try {
 			executable.run();
@@ -106,8 +107,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		} catch (Throwable t) {
 			log.error("Cannot execute action {}", action.getName(), t);
 
-			adapter.setState(ModuleAction.State.FAIL);
-			((ActionMetricsContainer) module.getMetricsContainer()).actionFinished(action, t);
+			module.getMetricsContainer().action().fail(action, t);
 			module.healthGoLow(t);
 
 			if (rethrow) {
@@ -119,8 +119,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		}
 
 		log.debug("Finished execution of {}", action.getName());
-		adapter.setState(ModuleAction.State.SUCCESS);
-		((ActionMetricsContainer) module.getMetricsContainer()).actionFinished(action);
+		module.getMetricsContainer().action().success(action);
 		return new SuccessModuleAction(action);
 	}
 
@@ -141,6 +140,27 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public void startMainAction(Module module) {
-		current.set(module.getMainAction());
+		final ModuleAction mainAction = module.getMainAction();
+		if (mainAction != current.get()) {
+			current.set(mainAction);
+		}
+		module.getMetricsContainer().action().changed(mainAction);
+	}
+
+	/**
+	 * To finish main action
+	 *
+	 * @param module  owner of action
+	 * @param success flag is it done good
+	 */
+	@Override
+	public void finishMainAction(Module module, boolean success) {
+		current.set(null);
+		final ModuleAction mainAction = module.getMainAction();
+		if (success) {
+			module.getMetricsContainer().action().success(mainAction);
+		}else {
+			module.getMetricsContainer().action().fail(mainAction, module.lastThrown());
+		}
 	}
 }

@@ -3,6 +3,10 @@
  */
 package oleg.sopilnyak.module.metric;
 
+import oleg.sopilnyak.service.metric.ActionMetricsContainer;
+import oleg.sopilnyak.service.metric.DurationMetricsContainer;
+import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
+
 import java.util.Collection;
 
 /**
@@ -34,5 +38,27 @@ public interface MetricsContainer {
 	 * @return metrics snapshot
 	 */
 	Collection<ModuleMetric> metrics();
+
+	/**
+	 * To get reference to action-metrics container
+	 *
+	 * @return reference
+	 */
+	ActionMetricsContainer action();
+
+	/**
+	 * To get reference to health-metrics container
+	 *
+	 * @return reference
+	 */
+	HeartBeatMetricContainer health();
+
+
+	/**
+	 * To get reference to duration-metrics container
+	 *
+	 * @return reference
+	 */
+	DurationMetricsContainer duration();
 
 }
