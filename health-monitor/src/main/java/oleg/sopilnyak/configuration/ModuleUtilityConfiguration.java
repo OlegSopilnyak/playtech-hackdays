@@ -8,8 +8,10 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Layout;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -67,6 +69,7 @@ class ModuleUtilityConfiguration {
 	}
 
 	@Bean
+	@Scope( ConfigurableBeanFactory.SCOPE_PROTOTYPE )
 	public Layout<ILoggingEvent> getLayout(){
 		PatternLayout layout = new PatternLayout();
 		layout.setPattern("[%thread] %-5level %logger{50} - %msg%n");

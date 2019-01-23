@@ -13,6 +13,7 @@ import java.time.Instant;
 class ActionChangedMetric extends ModuleMetricAdapter {
 	public ActionChangedMetric(ModuleAction action, Instant now) {
 		super(action, now);
+//		BeanUtils.copyProperties(action, this);
 	}
 
 	/**

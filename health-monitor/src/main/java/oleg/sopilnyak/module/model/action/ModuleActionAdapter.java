@@ -40,11 +40,6 @@ public class ModuleActionAdapter implements ModuleAction {
 		this(module, null, name);
 	}
 
-	public void setStarted(Instant started) {
-		this.started = started;
-		this.duration = 0L;
-	}
-
 	public String valueAsString() {
 		return "action :" + name
 				+ " id :" + id

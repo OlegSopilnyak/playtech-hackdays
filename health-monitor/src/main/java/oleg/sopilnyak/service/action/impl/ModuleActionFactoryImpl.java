@@ -8,16 +8,15 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.FailModuleAction;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
-import oleg.sopilnyak.module.model.action.ModuleActionExceptionWrapper;
+import oleg.sopilnyak.module.model.action.ModuleActionRuntimeException;
 import oleg.sopilnyak.module.model.action.SuccessModuleAction;
-import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Service: Factory of module actions
@@ -31,8 +30,6 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 
 	@Autowired
 	private UniqueIdGenerator idGenerator;
-	@Autowired
-	private TimeService timeService;
 
 	public void setUp() {
 		try {
@@ -72,7 +69,8 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction createModuleRegularAction(Module module, String name) {
 		log.debug("Creating regular '{}' action for module '{}'", name, module.primaryKey());
 		final ModuleRegularAction action = new ModuleRegularAction(module, name);
-		action.setParent(module.getMainAction());
+		final ModuleAction parent = current.get();
+		action.setParent(Objects.isNull(parent) ?module.getMainAction() : parent);
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription(name + " action of " + module.getDescription());
@@ -91,14 +89,12 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
-		final Instant mark = timeService.now();
-		final ModuleAction action;
-		current.set(action = createModuleRegularAction(module, actionName));
+		final ModuleActionAdapter action;
+		current.set(action = (ModuleActionAdapter) createModuleRegularAction(module, actionName));
 
 		log.debug("Executing  for action {}", action.getName());
-		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 
-		adapter.setState(ModuleAction.State.PROGRESS);
+		action.setState(ModuleAction.State.PROGRESS);
 		module.getMetricsContainer().action().changed(action);
 
 		try {
@@ -111,7 +107,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 			module.healthGoLow(t);
 
 			if (rethrow) {
-				throw new ModuleActionExceptionWrapper("Fail in " + action.getName(), t);
+				throw new ModuleActionRuntimeException(action, "Fail in " + action.getName(), t);
 			}
 			return new FailModuleAction(action, t);
 		} finally {
@@ -144,7 +140,9 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		if (mainAction != current.get()) {
 			current.set(mainAction);
 		}
-		module.getMetricsContainer().action().changed(mainAction);
+		if (mainAction.getState() == ModuleAction.State.PROGRESS) {
+			module.getMetricsContainer().action().changed(mainAction);
+		}
 	}
 
 	/**

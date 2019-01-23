@@ -121,7 +121,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 		log.debug("Initiating service...");
 		final Module previous = modules.putIfAbsent(this.primaryKey(), this);
 		log.debug("Registered '{}' is '{}'", this.primaryKey(), Objects.isNull(previous));
-		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), 100, TimeUnit.MILLISECONDS);
+		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), 500, TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -179,17 +179,17 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	protected void inspectModule(String label, ModuleAction action, Module module) {
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
-		log.info("Scan module '{}'", modulePK);
 		if (Stream.of(ignoredModules).anyMatch(ignorance -> !StringUtils.isEmpty(ignorance) && modulePK.startsWith(ignorance))) {
 			log.debug("Module '{}' is ignored.", modulePK);
 			return;
 		}
+		log.info("Scan module '{}'", modulePK);
 		// get health state of module
 		module.getMetricsContainer().health().heartBeat(action, module);
 		// collect and save all metrics of module
 		AtomicInteger counter = new AtomicInteger(1);
 		module.metrics().stream()
-				.peek(metric -> log.debug("{} metric {}", counter.getAndIncrement(), metric.name()))
+				.peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.name()))
 				.filter(m -> isActive())
 				.forEach(metric -> store(metric));
 
@@ -207,7 +207,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 		// activate main module action
 		activateMainModuleAction();
 
-		log.info("Scanning modules.");
+		log.debug("Scanning modules.");
 		actionsFactory.executeAtomicModuleAction(this,"metrics-check",() -> iterateRegisteredModules(ACTIVITY_LABEL),false);
 
 		if (!isActive() || Objects.isNull(runnerFuture)) {

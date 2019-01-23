@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
@@ -87,11 +88,16 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		final Instant mark = timeService.now();
 		switch (action.getState()) {
 			case INIT:
+				adapter.setStarted(null);
 				adapter.setDuration(-1L);
 				break;
 			case PROGRESS:
-				adapter.setStarted(mark);
-				adapter.setDuration(0L);
+				if (Objects.isNull(action.getStarted())){
+					adapter.setStarted(mark);
+					adapter.setDuration(0L);
+				}else {
+					adapter.setDuration(timeService.duration(action.getStarted()));
+				}
 				break;
 
 		}
@@ -110,6 +116,9 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.FAIL);
 		add(new ActionExceptionMetric(action, timeService.now(), t));
+		// initialize the action
+		adapter.setState(ModuleAction.State.INIT);
+		changed(adapter);
 	}
 
 	/**
@@ -123,6 +132,9 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.SUCCESS);
 		add(new ActionChangedMetric(action, timeService.now()));
+		// initialize the action
+		adapter.setState(ModuleAction.State.INIT);
+		changed(adapter);
 	}
 
 	/**

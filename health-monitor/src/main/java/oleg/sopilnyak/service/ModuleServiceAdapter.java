@@ -10,6 +10,7 @@ import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
+import oleg.sopilnyak.module.model.action.ResultModuleAction;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,26 +63,31 @@ public abstract class ModuleServiceAdapter implements Module {
 		if (active) {
 			return;
 		}
-		// start main-action activity
-		activateMainModuleAction();
 
 		healthCondition = INIT;
 		// register module in registry
-		if (this instanceof ModulesRegistry){
-			// used other technic for registration
-		}else {
+		if (this instanceof ModulesRegistry) {
+			// used other technique for registration
+		} else {
 			registry.add(this);
 		}
 
-		// concrete-module-related init
-		ModuleAction result = actionsFactory.executeAtomicModuleAction(this, "init-module", ()->initAsService(), false);
-
+		// start main-action activity
 		final ModuleActionAdapter mainAction = (ModuleActionAdapter) getMainAction();
-		if (result.getState() == ModuleAction.State.FAIL){
-			metricsContainer.action().fail(mainAction, lastThrow);
-		}else {
-			// module is active
-			active = true;
+		activateMainModuleAction();
+		// module is active
+		active = true;
+
+		// concrete-module-related init
+		final String actionName = "init-module";
+		final ResultModuleAction result = (ResultModuleAction) actionsFactory
+				.executeAtomicModuleAction(this, actionName, () -> initAsService(), false);
+
+		if (result.getState() == ModuleAction.State.FAIL) {
+			metricsContainer.action().fail(mainAction, result.getCause());
+			// module couldn't start properly
+			active = false;
+		} else {
 			// running main action
 			mainAction.setState(ModuleAction.State.PROGRESS);
 			metricsContainer.action().changed(mainAction);
@@ -100,15 +106,16 @@ public abstract class ModuleServiceAdapter implements Module {
 		activateMainModuleAction();
 
 		active = false;
-		if (this instanceof ModulesRegistry){
+		if (this instanceof ModulesRegistry) {
 			// used other technic for registration
-		}else {
+		} else {
 			registry.remove(this);
 		}
 
 
 		// concrete-module-related shutdown
-		actionsFactory.executeAtomicModuleAction(this, "shutdown-module", ()->shutdownAsService(), false);
+		final String actionName = "shutdown-module";
+		actionsFactory.executeAtomicModuleAction(this, actionName, () -> shutdownAsService(), false);
 
 		// finish main-action activity
 		finishModuleAction(healthCondition != FAIL);
@@ -127,7 +134,7 @@ public abstract class ModuleServiceAdapter implements Module {
 				if (Objects.isNull(moduleMainAction)) {
 					moduleMainAction = actionsFactory.createModuleMainAction(this);
 				}
-			}finally {
+			} finally {
 				mainActionLock.unlock();
 			}
 		}
@@ -284,26 +291,24 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	// protected methods - should be redefined in children
-	protected void activateMainModuleAction(){
+	protected void activateMainModuleAction() {
 		// setup action for main-module activity
 		actionsFactory.startMainAction(this);
 	}
 
-	protected void finishModuleAction(boolean success){
-		actionsFactory.finishMainAction(this , success);
+	protected void finishModuleAction(boolean success) {
+		actionsFactory.finishMainAction(this, success);
 	}
 
 	/**
 	 * Allocate module's resources and get module ready to work
 	 */
-	protected void initAsService() {
-	}
+	protected void initAsService() {}
 
 	/**
 	 * Free allocated resources
 	 */
-	protected void shutdownAsService() {
-	}
+	protected void shutdownAsService() {}
 
 	/**
 	 * Notify about changes of configuration property
@@ -311,7 +316,6 @@ public abstract class ModuleServiceAdapter implements Module {
 	 * @param itemName  name of property
 	 * @param itemValue new value of property
 	 */
-	protected void configurationItemChanged(String itemName, VariableItem itemValue) {
-	}
+	protected void configurationItemChanged(String itemName, VariableItem itemValue) {}
 
 }

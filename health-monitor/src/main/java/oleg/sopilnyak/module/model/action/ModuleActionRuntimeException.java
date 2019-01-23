@@ -3,10 +3,13 @@
  */
 package oleg.sopilnyak.module.model.action;
 
+import oleg.sopilnyak.module.model.ModuleAction;
+
 /**
  * Exception: Wrapper to rethrow exception during action's execution
  */
-public class ModuleActionExceptionWrapper extends RuntimeException{
+public class ModuleActionRuntimeException extends RuntimeException{
+	private final ModuleAction action;
 	/**
 	 * Constructs a new runtime exception with the specified detail message and
 	 * cause.  <p>Note that the detail message associated with
@@ -21,7 +24,12 @@ public class ModuleActionExceptionWrapper extends RuntimeException{
 	 *                unknown.)
 	 * @since 1.4
 	 */
-	public ModuleActionExceptionWrapper(String message, Throwable cause) {
+	public ModuleActionRuntimeException(ModuleAction action, String message, Throwable cause) {
 		super(message, cause);
+		this.action = action;
+	}
+
+	public ModuleAction getAction() {
+		return action;
 	}
 }
