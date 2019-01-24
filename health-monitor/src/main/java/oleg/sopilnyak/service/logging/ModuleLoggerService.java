@@ -10,6 +10,33 @@ import oleg.sopilnyak.module.Module;
  * Service: service to manage slf4j logging support
  */
 public interface ModuleLoggerService extends Module {
+	// The name of properties package
+	String PACKAGE = "module.service.logger";
+	// The level of severity
+	String LEVEL_NAME = "level";
+	int LEVEL_DEFAULT = Level.INFO_INT;
+	// The pattern for logger output
+	String PATTERN_NAME = "layoutPattern";
+	String PATTERN_DEFAULT = "[%thread] %-5level %logger{50} - %msg%n";
+
+	/**
+	 * Make canonical name of 'level' property
+	 *
+	 * @return full name
+	 */
+	default String levelName() {
+		return PACKAGE + "." + LEVEL_NAME;
+	}
+
+	/**
+	 * Make canonical name of 'layoutPattern' property
+	 *
+	 * @return full name
+	 */
+	default String patternName() {
+		return PACKAGE + "." + PATTERN_NAME;
+	}
+
 	/**
 	 * To setup severity level of logging
 	 *
@@ -23,6 +50,7 @@ public interface ModuleLoggerService extends Module {
 	 * @param layoutPattern
 	 */
 	void setLayoutPattern(String layoutPattern);
+
 	/**
 	 * To get the value of module's system
 	 *

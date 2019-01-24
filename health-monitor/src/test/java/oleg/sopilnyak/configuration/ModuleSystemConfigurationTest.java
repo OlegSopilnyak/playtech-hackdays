@@ -1,9 +1,11 @@
 package oleg.sopilnyak.configuration;
 
+import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.metric.storage.SelectCriteria;
 import oleg.sopilnyak.module.metric.storage.StoredMetric;
+import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
@@ -13,6 +15,8 @@ import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -23,10 +27,14 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyMap;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {ModuleSystemConfiguration.class, ModuleSystemConfigurationTest.Config.class})
@@ -108,6 +116,12 @@ public class ModuleSystemConfigurationTest {
 		@Bean
 		public ModuleConfigurationStorage getModuleConfigurationStorage() {
 			ModuleConfigurationStorage storage = mock(ModuleConfigurationStorage.class);
+			when(storage.getUpdatedVariables(any(Module.class), anyMap())).thenAnswer(new Answer<Map<String, VariableItem>>() {
+				@Override
+				public Map<String, VariableItem> answer(InvocationOnMock invocation) throws Throwable {
+					return (Map<String, VariableItem>) invocation.getArguments()[1];
+				}
+			});
 			return storage;
 		}
 	}

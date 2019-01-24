@@ -12,9 +12,12 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.module.model.action.ResultModuleAction;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +31,8 @@ import static oleg.sopilnyak.module.model.ModuleHealthCondition.*;
  * Adapter for periodical actions service
  */
 public abstract class ModuleServiceAdapter implements Module {
+	public static final String INIT_MODULE_ACTION_NAME = "init-module";
+	public static final String CONFIGURE_MODULE_ACTION_NAME = "configure-module";
 	// main action of module
 	private volatile ModuleAction moduleMainAction;
 
@@ -52,6 +57,9 @@ public abstract class ModuleServiceAdapter implements Module {
 	// service of time
 	@Autowired
 	protected TimeService timeService;
+	// storage of all modules configurations
+	@Autowired
+	protected ModuleConfigurationStorage configurationStorage;
 	// lock for access to mainAction
 	private final Lock mainActionLock = new ReentrantLock();
 
@@ -59,7 +67,8 @@ public abstract class ModuleServiceAdapter implements Module {
 	/**
 	 * Action after module is built
 	 */
-	public void initialSetUp() {
+	@Override
+	public void moduleStart() {
 		if (active) {
 			return;
 		}
@@ -78,10 +87,20 @@ public abstract class ModuleServiceAdapter implements Module {
 		// module is active
 		active = true;
 
+		ResultModuleAction result;
+		// setup module's configuration
+		result = (ResultModuleAction)actionsFactory
+				.executeAtomicModuleAction(this, CONFIGURE_MODULE_ACTION_NAME, () -> setupModuleConfiguration(), false);
+		if (result.getState() == ModuleAction.State.FAIL) {
+			metricsContainer.action().fail(mainAction, result.getCause());
+			// module couldn't configured properly
+			active = false;
+			return;
+		}
+
 		// concrete-module-related init
-		final String actionName = "init-module";
-		final ResultModuleAction result = (ResultModuleAction) actionsFactory
-				.executeAtomicModuleAction(this, actionName, () -> initAsService(), false);
+		result = (ResultModuleAction) actionsFactory
+				.executeAtomicModuleAction(this, INIT_MODULE_ACTION_NAME, () -> initAsService(), false);
 
 		if (result.getState() == ModuleAction.State.FAIL) {
 			metricsContainer.action().fail(mainAction, result.getCause());
@@ -97,7 +116,8 @@ public abstract class ModuleServiceAdapter implements Module {
 	/**
 	 * Actions before module shut down
 	 */
-	public void shutdownModule() {
+	@Override
+	public void moduleStop() {
 		if (!active) {
 			return;
 		}
@@ -211,7 +231,7 @@ public abstract class ModuleServiceAdapter implements Module {
 					healthCondition = FAIL;
 					break;
 				case FAIL:
-					shutdownModule();
+					moduleStop();
 					break;
 			}
 		} finally {
@@ -240,20 +260,6 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	/**
-	 * To restart module
-	 */
-	@Override
-	public void restart() {
-		if (!canRestart()) {
-			return;
-		}
-		if (isActive()) {
-			shutdownModule();
-		}
-		initialSetUp();
-	}
-
-	/**
 	 * To get current configuration of module
 	 *
 	 * @return configuration as map
@@ -275,9 +281,12 @@ public abstract class ModuleServiceAdapter implements Module {
 		}
 		activateMainModuleAction();
 
-		changed.forEach((k, v) -> configurationItemChanged(k, v));
+		final boolean changedModule[] = new boolean[]{false};
+		changed.forEach((k, v) -> {changedModule[0] = changedModule[0] || configurationItemChanged(k, v);});
 
-		restart();
+		if (changedModule[0]) {
+			restart();
+		}
 	}
 
 	/**
@@ -290,6 +299,19 @@ public abstract class ModuleServiceAdapter implements Module {
 		return metricsContainer;
 	}
 
+	/**
+	 * To get configuration variable by name
+	 *
+	 * @param varName variable's name
+	 * @return value or null if not exists or module is not active
+	 */
+	public VariableItem configurationVariableOf(String varName){
+		if (!isActive() || StringUtils.isEmpty(varName)) {
+			// service is not active or itemName is wrong
+			return null;
+		}
+		return moduleConfiguration.get(varName);
+	}
 	// protected methods - should be redefined in children
 	protected void activateMainModuleAction() {
 		// setup action for main-module activity
@@ -303,19 +325,34 @@ public abstract class ModuleServiceAdapter implements Module {
 	/**
 	 * Allocate module's resources and get module ready to work
 	 */
-	protected void initAsService() {}
+	protected void initAsService() {
+	}
 
 	/**
 	 * Free allocated resources
 	 */
-	protected void shutdownAsService() {}
+	protected void shutdownAsService() {
+	}
 
 	/**
 	 * Notify about changes of configuration property
 	 *
 	 * @param itemName  name of property
 	 * @param itemValue new value of property
+	 * @return true if made change
 	 */
-	protected void configurationItemChanged(String itemName, VariableItem itemValue) {}
+	protected boolean configurationItemChanged(String itemName, VariableItem itemValue) {
+		return false;
+	}
 
+	// private methods
+	void setupModuleConfiguration(){
+		final Instant mark = timeService.now();
+		final ModuleAction action = actionsFactory.currentAction();
+		configurationStorage
+				.getUpdatedVariables(this, moduleConfiguration)
+				.forEach((k,v)->configurationItemChanged(k, v));
+		final String modulePK = primaryKey();
+		getMetricsContainer().duration().simple("Init Configuration", action, timeService.now(), modulePK, timeService.duration(mark));
+	}
 }

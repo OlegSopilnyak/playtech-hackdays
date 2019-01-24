@@ -1,7 +1,7 @@
 /**
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.logging;
+package oleg.sopilnyak.service.logging.impl;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -19,6 +19,8 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.ModuleServiceAdapter;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.dto.VariableItemDto;
+import oleg.sopilnyak.service.logging.ModuleLoggerService;
 import oleg.sopilnyak.service.metric.impl.ModuleMetricAdapter;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.slf4j.LoggerFactory;
@@ -34,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Service: appender for slf4j logging framework
  */
 @Slf4j
-public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements ModuleLoggerService {
+public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implements ModuleLoggerService {
 
 	@Autowired
 	private ModuleActionFactory actionFactory;
@@ -48,22 +50,38 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements Mo
 	@Autowired
 	private AutowireCapableBeanFactory autowireCapableBeanFactory;
 
+	// configurable attributes
+	private int levelSeverity = LEVEL_DEFAULT;
+	private String layoutPattern = PATTERN_DEFAULT;
+
 	// instance to delegate calls module-service calls
 	private final ModuleServiceAdapter delegate = new ServiceDelegate();
 	private final AtomicBoolean delegateInstalled = new AtomicBoolean(false);
+
+	public ModuleSlf4jLogAppender() {
+		getConfiguration().put(levelName(), new VariableItemDto(LEVEL_NAME, LEVEL_DEFAULT));
+		getConfiguration().put(patternName(), new VariableItemDto(PATTERN_NAME, PATTERN_DEFAULT));
+	}
+
+	/**
+	 * To start module activity
+	 */
+	@Override
+	public void moduleStart() {
+		if (!delegateInstalled.get()) {
+			log.info("Preparing delegate...");
+			delegateInstalled.getAndSet(true);
+			autowireCapableBeanFactory.autowireBean(delegate);
+		}
+		delegate.moduleStart();
+		registerAppender();
+	}
 
 	/**
 	 * To register appender after built
 	 */
 	public void registerAppender() {
 		log.info("Starting module.");
-		if (!delegateInstalled.get()){
-			log.info("Preparing delegate...");
-			delegateInstalled.getAndSet(true);
-			autowireCapableBeanFactory.autowireBean(delegate);
-		}
-		delegate.initialSetUp();
-
 		Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
 
 		LoggerContext loggerContext = rootLogger.getLoggerContext();
@@ -80,11 +98,19 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements Mo
 	}
 
 	/**
+	 * To stop module activity
+	 */
+	@Override
+	public void moduleStop() {
+		unRegisterAppender();
+		delegate.moduleStop();
+	}
+
+	/**
 	 * To unregister appender before will destroyed
 	 */
 	public void unRegisterAppender() {
 		log.info("Stopping module.");
-		delegate.shutdownModule();
 
 		Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
 		eventLayout.start();
@@ -119,11 +145,11 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements Mo
 	/**
 	 * To setup value of layout's pattern
 	 *
-	 * @param layoutPattern
+	 * @param layoutPattern  pattern for appender layout
 	 */
 	@Override
 	public void setLayoutPattern(String layoutPattern) {
-		((PatternLayout)eventLayout).setPattern(layoutPattern);
+		((PatternLayout) eventLayout).setPattern(layoutPattern);
 	}
 
 	/**
@@ -185,17 +211,6 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements Mo
 	}
 
 	/**
-	 * To restart module
-	 */
-	@Override
-	public void restart() {
-		if (isActive()){
-			unRegisterAppender();
-		}
-		registerAppender();
-	}
-
-	/**
 	 * To get root action of module
 	 *
 	 * @return instance
@@ -233,6 +248,32 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements Mo
 	@Override
 	public void configurationChanged(Map<String, VariableItem> changed) {
 		delegate.configurationChanged(changed);
+	}
+
+	// private methods
+	boolean configurationItemChanged(String itemName, VariableItem itemValue) {
+		final VariableItem configurationVariable;
+		if (Objects.isNull(configurationVariable = delegate.configurationVariableOf(itemName))) {
+			log.warn("No accessible variable '{}' in configuration.", itemName);
+			return false;
+		}
+		// check for level
+		if (itemName.equals(levelName())) {
+			levelSeverity = itemValue.get(Integer.class).intValue();
+			log.debug("Changed variable 'levelSeverity' to {}", levelSeverity);
+			configurationVariable.set(levelSeverity);
+			serSeverityLevel(Level.toLevel(levelSeverity));
+			return true;
+		}
+		// check for layoutPattern
+		if (itemName.equals(patternName())) {
+			layoutPattern = itemValue.get(String.class);
+			log.debug("Changed variable 'layoutPattern' to {}", layoutPattern);
+			configurationVariable.set(layoutPattern);
+			setLayoutPattern(layoutPattern);
+			return true;
+		}
+		return false;
 	}
 
 	// inner classes
@@ -274,7 +315,8 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements Mo
 					'}';
 		}
 	}
-	static class ServiceDelegate  extends ModuleServiceAdapter implements ModuleLoggerService{
+
+	class ServiceDelegate extends ModuleServiceAdapter implements ModuleLoggerService {
 
 		/**
 		 * To setup severity level of logging
@@ -282,14 +324,38 @@ public class ModuleLogAppender extends AppenderBase<ILoggingEvent> implements Mo
 		 * @param level new value of level
 		 */
 		@Override
-		public void serSeverityLevel(Level level) {}
+		public void serSeverityLevel(Level level) {
+			throw new IllegalStateException("Not realized here.");
+		}
 
 		/**
 		 * To setup value of layout's pattern
 		 *
-		 * @param layoutPattern
+		 * @param layoutPattern pattern for appender layout
 		 */
 		@Override
-		public void setLayoutPattern(String layoutPattern) {}
+		public void setLayoutPattern(String layoutPattern) {
+			throw new IllegalStateException("Not realized here.");
+		}
+
+		/**
+		 * To restart module
+		 */
+		@Override
+		public void restart() {
+			ModuleSlf4jLogAppender.this.restart();
+		}
+
+		/**
+		 * Notify about change in configuration variable
+		 *
+		 * @param itemName  name of property
+		 * @param itemValue new value of property
+		 * @return true if made change
+		 */
+		@Override
+		protected boolean configurationItemChanged(String itemName, VariableItem itemValue) {
+			return ModuleSlf4jLogAppender.this.configurationItemChanged(itemName, itemValue);
+		}
 	}
 }

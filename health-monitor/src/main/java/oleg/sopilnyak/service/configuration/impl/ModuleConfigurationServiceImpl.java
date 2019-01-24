@@ -10,7 +10,6 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.registry.RegistryModulesIteratorAdapter;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -39,10 +38,6 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	// queue of updates
 	private final BlockingQueue<Collection<String>> storageChangesQueue = new LinkedBlockingQueue<>(1000);
 
-	// active storage of configurations
-	@Autowired
-	private ModuleConfigurationStorage storage;
-
 	/**
 	 * Allocate module's resources and get module ready to work
 	 */
@@ -50,7 +45,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	protected void initAsService() {
 		log.debug("Initiating service...");
 		registry.add(this);
-		storage.addConfigurationListener(storageListener);
+		configurationStorage.addConfigurationListener(storageListener);
 		runnerFuture = activityRunner.schedule(() -> scanModulesConfiguration(), 50, TimeUnit.MILLISECONDS);
 	}
 
@@ -62,7 +57,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 		log.debug("Stopping service...");
 		notifyFuture = stopFuture(notifyFuture);
 		runnerFuture = stopFuture(runnerFuture);
-		storage.removeConfigurationListener(storageListener);
+		configurationStorage.removeConfigurationListener(storageListener);
 		registry.remove(this);
 	}
 
@@ -77,7 +72,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
 		log.debug("Scan module {}", modulePK);
-		final Map<String, VariableItem> config = storage.getUpdatedVariables(module, module.getConfiguration());
+		final Map<String, VariableItem> config = configurationStorage.getUpdatedVariables(module, module.getConfiguration());
 		if (config.isEmpty()) {
 			getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
 			log.debug("Nothing to update properties for {}", modulePK);

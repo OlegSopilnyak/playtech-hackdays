@@ -145,28 +145,27 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	 * @param itemValue new value of property
 	 */
 	@Override
-	protected void configurationItemChanged(String itemName, VariableItem itemValue) {
-		if (!isActive() || StringUtils.isEmpty(itemName)) {
-			// service is not active or itemName is wrong
-			return;
-		}
-		final VariableItem configurationVariable = moduleConfiguration.get(itemName);
-		if (Objects.isNull(configurationVariable)) {
-			log.warn("No variable '{}' in configuration of module.", itemName);
-			return;
+	protected boolean configurationItemChanged(String itemName, VariableItem itemValue) {
+		final VariableItem configurationVariable;
+		if (Objects.isNull(configurationVariable = configurationVariableOf(itemName))) {
+			log.warn("No accessible variable '{}' in configuration.", itemName);
+			return false;
 		}
 		// check for delay
 		if (itemName.equals(delayName())) {
 			delay = itemValue.get(Integer.class).longValue();
 			log.debug("Changed variable 'delay' to {}", delay);
 			configurationVariable.set(delay);
+			return true;
 		}
 		// check for ignoredModules
 		if (itemName.equals(ignoreModulesName())) {
 			ignoredModules = itemValue.get(String.class).split(",");
 			log.debug("Changed variable 'ignoredModules' to {}", Arrays.asList(ignoredModules));
 			configurationVariable.set(String.join(",", ignoredModules));
+			return true;
 		}
+		return false;
 	}
 
 	/**
@@ -208,7 +207,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 		activateMainModuleAction();
 
 		log.debug("Scanning modules.");
-		actionsFactory.executeAtomicModuleAction(this,"metrics-check",() -> iterateRegisteredModules(ACTIVITY_LABEL),false);
+		actionsFactory.executeAtomicModuleAction(this, "metrics-check", () -> iterateRegisteredModules(ACTIVITY_LABEL), false);
 
 		if (!isActive() || Objects.isNull(runnerFuture)) {
 			log.debug("Scanning is stopped.");

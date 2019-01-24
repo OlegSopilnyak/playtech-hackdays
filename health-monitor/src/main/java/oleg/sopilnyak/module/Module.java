@@ -16,11 +16,42 @@ import java.util.LinkedList;
  */
 public interface Module extends ModuleBasics, ModuleConfigurable {
 	/**
+	 * To start module activity
+	 */
+	void moduleStart();
+
+	/**
+	 * To stop module activity
+	 */
+	void moduleStop();
+
+	/**
 	 * To check is module active (is working)
 	 *
 	 * @return true if module is working
 	 */
 	boolean isActive();
+
+	/**
+	 * To check is module allows to be restarted
+	 *
+	 * @return true if module can restart
+	 */
+	boolean canRestart();
+
+	/**
+	 * To restart module
+	 */
+	default void restart() {
+		if (!canRestart()) {
+			return;
+		}
+		if (isActive()) {
+			moduleStop();
+		}
+		moduleStart();
+	}
+
 
 	/**
 	 * To get the registry condition of module for the moment
@@ -49,18 +80,6 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 	void healthGoUp();
 
 	/**
-	 * To check is module allows to be restarted
-	 *
-	 * @return true if module can restart
-	 */
-	boolean canRestart();
-
-	/**
-	 * To restart module
-	 */
-	void restart();
-
-	/**
 	 * To get root action of module
 	 *
 	 * @return instance
@@ -80,9 +99,8 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 	 * @return metrics snapshot
 	 */
 	default Collection<ModuleMetric> metrics() {
-		final MetricsContainer metricsContainer = getMetricsContainer();
-		final Collection<ModuleMetric> metrics = new LinkedList<>(metricsContainer.metrics());
-		metricsContainer.clear();
+		final Collection<ModuleMetric> metrics = new LinkedList<>(getMetricsContainer().metrics());
+		getMetricsContainer().clear();
 		return metrics;
 	}
 

@@ -29,7 +29,7 @@ class TotalDurationMetric extends ModuleMetricAdapter {
 	 */
 	@Override
 	public String name() {
-		return "total-duration of " + label + " for " + modules + " modules";
+		return "total-duration of '" + label + "' for " + modules + " modules";
 	}
 
 	/**
