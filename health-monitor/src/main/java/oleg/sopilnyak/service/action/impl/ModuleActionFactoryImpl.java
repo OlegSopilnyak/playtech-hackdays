@@ -50,7 +50,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction createModuleMainAction(Module module) {
 		log.debug("Creating main action for module {}", module.primaryKey());
 		final ModuleMainAction action = new ModuleMainAction(module);
-		action.setName(module.getSystemId() + "-" + module.getModuleId() + ":Main");
+		action.setName("[main->" + module.getSystemId() + "->" + module.getModuleId() + "]");
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription("Main action of " + module.getDescription());
@@ -70,7 +70,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		log.debug("Creating regular '{}' action for module '{}'", name, module.primaryKey());
 		final ModuleRegularAction action = new ModuleRegularAction(module, name);
 		final ModuleAction parent = current.get();
-		action.setParent(Objects.isNull(parent) ?module.getMainAction() : parent);
+		action.setParent(Objects.isNull(parent) ? module.getMainAction() : parent);
 		action.setId(idGenerator.generate());
 		action.setHostName(hostName);
 		action.setDescription(name + " action of " + module.getDescription());
@@ -157,7 +157,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		final ModuleAction mainAction = module.getMainAction();
 		if (success) {
 			module.getMetricsContainer().action().success(mainAction);
-		}else {
+		} else {
 			module.getMetricsContainer().action().fail(mainAction, module.lastThrown());
 		}
 	}

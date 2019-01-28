@@ -6,6 +6,7 @@ package oleg.sopilnyak.configuration;
 import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Layout;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -28,7 +29,7 @@ class ModuleUtilityConfiguration {
 	/**
 	 * Service: service to work with time
 	 *
-	 * @return instant
+	 * @return singleton
 	 */
 	@Bean
 	public TimeService getTimeService() {
@@ -48,11 +49,21 @@ class ModuleUtilityConfiguration {
 	/**
 	 * Service: service to generate unique IDs
 	 *
-	 * @return instant
+	 * @return singleton
 	 */
 	@Bean
 	public UniqueIdGenerator getUniqueIdGenerator(){
 		return () -> UUID.randomUUID().toString();
+	}
+
+	/**
+	 * Service: to transform data to JSON
+	 *
+	 * @return singleton
+	 */
+	@Bean
+	public ObjectMapper getObjectMapper(){
+		return new ObjectMapper();
 	}
 
 	/**
