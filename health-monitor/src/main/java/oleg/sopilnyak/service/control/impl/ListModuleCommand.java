@@ -3,13 +3,22 @@
  */
 package oleg.sopilnyak.service.control.impl;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.service.control.CommandResult;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Command: print list of modules information
+ */
+@Slf4j
 public class ListModuleCommand extends AbstractModuleCommand {
 	/**
 	 * To execute command for registry
@@ -22,9 +31,9 @@ public class ListModuleCommand extends AbstractModuleCommand {
 		Result result = new Result();
 		result.setState(CommandResult.State.PROCESS);
 		try {
-			final List<String> modules = registry.registered().stream()
-					.map(m -> m.primaryKey())
-					.filter(pk->isEnabled(pk, parameters))
+			final List<ModuleInfo> modules = registry.registered().stream()
+					.map(m -> toInfo(m))
+					.filter(info ->isEnabled(info.getModulePK(), parameters))
 					.collect(Collectors.toList());
 			result.setData(modules);
 			result.setState(CommandResult.State.SUCCESS);
@@ -57,12 +66,35 @@ public class ListModuleCommand extends AbstractModuleCommand {
 	}
 
 	// private methods
-	private boolean isEnabled(String modulePK, Object[] parameters) {
+	static boolean isEnabled(String modulePK, Object[] parameters) {
 		// todo check is modulePK correlated with parameters
 		return true;
 	}
+	static ModuleInfo toInfo(Module module){
+		return ModuleInfo.builder()
+				.modulePK(module.primaryKey())
+				.active(module.isActive())
+				.condition(module.getCondition())
+				.description(module.getDescription())
+				.build();
+	}
 
 	// inner classes
+	@Data
+	@AllArgsConstructor
+	@Builder
+	static class ModuleInfo{
+		static final String FORMAT = "%-25s Active: %-5b Condition: %-10s Description: %-20.20s";
+		private String modulePK;
+		private boolean active;
+		private ModuleHealthCondition condition;
+		private String description;
+
+		@Override
+		public String toString() {
+			return String.format(FORMAT, modulePK, active, condition, description).trim();
+		}
+	}
 	@Data
 	class Result implements CommandResult {
 		public Result() {
@@ -81,7 +113,7 @@ public class ListModuleCommand extends AbstractModuleCommand {
 		public String dataAsTTY() {
 			StringBuilder builder = new StringBuilder("Modules:\n").append("-------------\n");
 			if (Objects.nonNull(data)) {
-				((List<String>) data).forEach(pk -> builder.append(pk).append("\n"));
+				((List<ModuleInfo>) data).forEach(info -> builder.append(info).append("\n"));
 			}
 			return builder.toString();
 		}
@@ -94,7 +126,7 @@ public class ListModuleCommand extends AbstractModuleCommand {
 		@Override
 		public String dataAsJSON() {
 			try {
-				return jsonMapper.writeValueAsString(data);
+				return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
 			} catch (Throwable t) {
 				return "{\"status\": \"failed :" + t.getMessage() + "\"}";
 			}

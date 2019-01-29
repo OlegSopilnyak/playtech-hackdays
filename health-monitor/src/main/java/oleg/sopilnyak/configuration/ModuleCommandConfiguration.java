@@ -33,6 +33,12 @@ public class ModuleCommandConfiguration {
 		return new ListModuleCommand();
 	}
 
+	/**
+	 * Factory of commands
+	 *
+	 * @return singleton
+	 */
+	@Bean(autowire = Autowire.BY_TYPE)
 	public ModuleCommandFactoryImpl makeModuleCommandFactory(){
 		final Map<ModuleCommand.Type, Class<? extends ModuleCommand>> commandsStore = new ConcurrentHashMap<>();
 		commandsStore.put(ModuleCommand.Type.LIST, ListModuleCommand.class);
