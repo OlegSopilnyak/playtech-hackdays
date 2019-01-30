@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+import static oleg.sopilnyak.service.control.model.ModuleCommandState.SUCCESS;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -51,23 +52,80 @@ public class ListModuleCommandTest {
 		CommandResult result = command.execute();
 
 		assertNotNull(result);
-		assertEquals(CommandResult.State.SUCCESS, result.getState());
+		assertEquals(SUCCESS, result.getState());
 		String tty = result.dataAsTTY();
 		assertFalse(StringUtils.isEmpty(tty));
 		String json = result.dataAsJSON();
 		assertFalse(StringUtils.isEmpty(json));
 	}
+
+	@Test
+	public void testExecuteParameterNoModule(){
+
+		CommandResult result = command.execute("test");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+		assertEquals(0, ((List)result.getData()).size());
+	}
+
+	@Test
+	public void testExecuteParameterOneModule(){
+
+		CommandResult result = command.execute("1:2*");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+		assertEquals(1, ((List)result.getData()).size());
+	}
+
+	@Test
+	public void testExecuteParameterTwoModules(){
+
+		CommandResult result = command.execute("1:2:");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+		assertEquals(2, ((List)result.getData()).size());
+	}
+
+	@Test
+	public void testExecuteParameterFourModules(){
+
+		CommandResult result = command.execute("1:2:", "*", "1:22");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+		assertEquals(4, ((List)result.getData()).size());
+	}
+
 	@Test
 	public void testModuleInfo(){
 		String modulePK = "Test:Module:2";
 		String description = "Test module.";
-		ListModuleCommand.ModuleInfo info = ListModuleCommand.ModuleInfo.builder()
+		ListModuleCommand.ShortModuleInfo info = ListModuleCommand.ShortModuleInfo.builder()
 				.modulePK(modulePK)
 				.active(true)
 				.condition(ModuleHealthCondition.AVERAGE)
 				.description(description)
 				.build();
-		String str = info.toString();
+		String str = info.toTTY();
 		assertNotNull(str);
 		assertTrue(str.startsWith(modulePK));
 		assertTrue(str.endsWith(description));

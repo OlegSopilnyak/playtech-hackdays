@@ -5,19 +5,22 @@ package oleg.sopilnyak.service.control.impl;
 
 import oleg.sopilnyak.service.control.ModuleCommand;
 import oleg.sopilnyak.service.control.ModuleCommandFactory;
+import oleg.sopilnyak.service.control.model.ModuleCommandType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Factory: of modules control commands
  */
 public class ModuleCommandFactoryImpl implements ModuleCommandFactory {
-	private final Map<ModuleCommand.Type, Class<? extends ModuleCommand>> commandsStore;
+	private final Map<ModuleCommandType, Class<? extends ModuleCommand>> commandsStore;
 
-	public ModuleCommandFactoryImpl(Map<ModuleCommand.Type, Class<? extends ModuleCommand>> commandsStore) {
+	public ModuleCommandFactoryImpl(Map<ModuleCommandType, Class<? extends ModuleCommand>> commandsStore) {
 		this.commandsStore = commandsStore;
 	}
 
@@ -31,8 +34,18 @@ public class ModuleCommandFactoryImpl implements ModuleCommandFactory {
 	 * @return instance
 	 */
 	@Override
-	public ModuleCommand create(ModuleCommand.Type type) {
+	public ModuleCommand create(ModuleCommandType type) {
 		final Class<? extends ModuleCommand> clazz = commandsStore.get(type);
 		return Objects.isNull(clazz) ? null : spring.getBean(clazz);
+	}
+
+	/**
+	 * To get collection of available commands
+	 *
+	 * @return commands set of the factory
+	 */
+	@Override
+	public Collection<String> availableCommands() {
+		return commandsStore.keySet().stream().map(type->type.name().toLowerCase()).sorted().collect(Collectors.toList());
 	}
 }

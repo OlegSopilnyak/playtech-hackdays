@@ -3,6 +3,8 @@
  */
 package oleg.sopilnyak.service.control;
 
+import oleg.sopilnyak.service.control.model.ModuleCommandType;
+
 /**
  * Command: parent of command to communicate with modules registry
  */
@@ -20,7 +22,7 @@ public interface ModuleCommand {
 	 *
 	 * @return value
 	 */
-	Type type();
+	ModuleCommandType type();
 
 	/**
 	 * To get the name of command
@@ -34,7 +36,4 @@ public interface ModuleCommand {
 	/**
 	 * Types of commands
 	 */
-	enum Type {
-		LIST,START,STOP,DETAILS, OTHER
-	};
 }

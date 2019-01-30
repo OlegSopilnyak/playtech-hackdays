@@ -6,6 +6,8 @@ package oleg.sopilnyak.configuration;
 import oleg.sopilnyak.service.control.ModuleCommand;
 import oleg.sopilnyak.service.control.impl.ListModuleCommand;
 import oleg.sopilnyak.service.control.impl.ModuleCommandFactoryImpl;
+import oleg.sopilnyak.service.control.impl.StatusModuleCommand;
+import oleg.sopilnyak.service.control.model.ModuleCommandType;
 import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
@@ -40,8 +42,9 @@ public class ModuleCommandConfiguration {
 	 */
 	@Bean(autowire = Autowire.BY_TYPE)
 	public ModuleCommandFactoryImpl makeModuleCommandFactory(){
-		final Map<ModuleCommand.Type, Class<? extends ModuleCommand>> commandsStore = new ConcurrentHashMap<>();
-		commandsStore.put(ModuleCommand.Type.LIST, ListModuleCommand.class);
+		final Map<ModuleCommandType, Class<? extends ModuleCommand>> commandsStore = new ConcurrentHashMap<>();
+		commandsStore.put(ModuleCommandType.LIST, ListModuleCommand.class);
+		commandsStore.put(ModuleCommandType.STATUS, StatusModuleCommand.class);
 		return new ModuleCommandFactoryImpl(commandsStore);
 	}
 }

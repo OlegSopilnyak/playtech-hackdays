@@ -3,6 +3,8 @@
  */
 package oleg.sopilnyak.service.control;
 
+import oleg.sopilnyak.service.control.model.ModuleCommandState;
+
 /**
  * Result: type-result of command's execution
  */
@@ -12,9 +14,9 @@ public interface CommandResult {
 	 * To get current state of result
 	 *
 	 * @return current state
-	 * @see State
+	 * @see ModuleCommandState
 	 */
-	State getState();
+	ModuleCommandState getState();
 
 	/**
 	 * To get result's data
@@ -36,8 +38,4 @@ public interface CommandResult {
 	 * @return data as json string
 	 */
 	String dataAsJSON();
-
-	enum State{
-		INIT, START, PROCESS, SUCCESS, FAIL
-	}
 }

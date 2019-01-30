@@ -3,56 +3,35 @@
  */
 package oleg.sopilnyak.service.control.impl;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
-import oleg.sopilnyak.service.control.CommandResult;
+import oleg.sopilnyak.service.control.model.AbstractCommandResult;
+import oleg.sopilnyak.service.control.model.ListModulesCommandAdapter;
+import oleg.sopilnyak.service.control.model.ModuleCommandType;
+import oleg.sopilnyak.service.control.model.ModuleInfo;
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+
+import static oleg.sopilnyak.service.control.model.ModuleCommandType.LIST;
 
 /**
- * Command: print list of modules information
+ * Command: get list of modules information
  */
 @Slf4j
-public class ListModuleCommand extends AbstractModuleCommand {
-	/**
-	 * To execute command for registry
-	 *
-	 * @param parameters parameters for command
-	 * @return Execution result
-	 */
-	@Override
-	public CommandResult execute(Object... parameters) {
-		Result result = new Result();
-		result.setState(CommandResult.State.PROCESS);
-		try {
-			final List<ModuleInfo> modules = registry.registered().stream()
-					.map(m -> toInfo(m))
-					.filter(info ->isEnabled(info.getModulePK(), parameters))
-					.collect(Collectors.toList());
-			result.setData(modules);
-			result.setState(CommandResult.State.SUCCESS);
-		} catch (Throwable t) {
-			result.setState(CommandResult.State.FAIL);
-			result.setData(t);
-		}
-		return result;
-	}
-
-
+public class ListModuleCommand extends ListModulesCommandAdapter {
 	/**
 	 * To get the type of command
 	 *
 	 * @return value
 	 */
 	@Override
-	public Type type() {
-		return Type.LIST;
+	public ModuleCommandType type() {
+		return LIST;
 	}
 
 	/**
@@ -62,16 +41,38 @@ public class ListModuleCommand extends AbstractModuleCommand {
 	 */
 	@Override
 	public String name() {
-		return "list";
+		return type().name().toLowerCase();
 	}
 
-	// private methods
-	static boolean isEnabled(String modulePK, Object[] parameters) {
-		// todo check is modulePK correlated with parameters
-		return true;
+	/**
+	 * To make command result instance
+	 *
+	 * @return instance
+	 */
+	@Override
+	protected AbstractCommandResult makeResult() {
+		return new Result();
 	}
-	static ModuleInfo toInfo(Module module){
-		return ModuleInfo.builder()
+
+	/**
+	 * To get command-related logger
+	 *
+	 * @return logger instance
+	 */
+	@Override
+	protected Logger getLogger() {
+		return log;
+	}
+
+	/**
+	 * To process module and transform to ModuleInfo for further display
+	 *
+	 * @param module to process by command and transform to info
+	 * @return module to info transformation
+	 */
+	@Override
+	protected ModuleInfo processAndTransform(Module module) {
+		return ShortModuleInfo.builder()
 				.modulePK(module.primaryKey())
 				.active(module.isActive())
 				.condition(module.getCondition())
@@ -79,31 +80,23 @@ public class ListModuleCommand extends AbstractModuleCommand {
 				.build();
 	}
 
+	// private methods
 	// inner classes
-	@Data
-	@AllArgsConstructor
-	@Builder
-	static class ModuleInfo{
+	static class ShortModuleInfo extends ModuleInfo {
 		static final String FORMAT = "%-25s Active: %-5b Condition: %-10s Description: %-20.20s";
-		private String modulePK;
-		private boolean active;
-		private ModuleHealthCondition condition;
-		private String description;
+		@Builder
+		public ShortModuleInfo(String modulePK, boolean active, ModuleHealthCondition condition, String description) {
+			super(modulePK, active, condition, description);
+		}
 
 		@Override
-		public String toString() {
+		public String toTTY(){
 			return String.format(FORMAT, modulePK, active, condition, description).trim();
 		}
 	}
+
 	@Data
-	class Result implements CommandResult {
-		public Result() {
-			state = State.INIT;
-		}
-
-		private State state;
-		private Object data;
-
+	class Result extends AbstractCommandResult {
 		/**
 		 * To get result's data as string for console output
 		 *
@@ -111,9 +104,12 @@ public class ListModuleCommand extends AbstractModuleCommand {
 		 */
 		@Override
 		public String dataAsTTY() {
-			StringBuilder builder = new StringBuilder("Modules:\n").append("-------------\n");
-			if (Objects.nonNull(data)) {
-				((List<ModuleInfo>) data).forEach(info -> builder.append(info).append("\n"));
+			final List<ModuleInfo> modules = (List<ModuleInfo>) data;
+			StringBuilder builder = new StringBuilder("Modules selected: ")
+					.append(modules == null ? 0 : modules.size())
+					.append("\n").append("-------------\n");
+			if (Objects.nonNull(modules)) {
+				modules.forEach(info -> builder.append(info.toTTY()).append("\n"));
 			}
 			return builder.toString();
 		}
@@ -128,7 +124,7 @@ public class ListModuleCommand extends AbstractModuleCommand {
 			try {
 				return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
 			} catch (Throwable t) {
-				return "{\"status\": \"failed :" + t.getMessage() + "\"}";
+				return "{\"status\": \"failed :" + t.getClass().getSimpleName() + " - " + t.getMessage() + "\"}";
 			}
 		}
 	}

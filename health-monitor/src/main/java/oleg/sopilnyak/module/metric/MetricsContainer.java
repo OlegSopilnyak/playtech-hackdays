@@ -28,6 +28,13 @@ public interface MetricsContainer {
 	void add(Collection<ModuleMetric> metrics);
 
 	/**
+	 * The quantity of unprocessed metrics
+	 *
+	 * @return metrics in container
+	 */
+	int unProcessed();
+
+	/**
 	 * To clear container
 	 */
 	void clear();

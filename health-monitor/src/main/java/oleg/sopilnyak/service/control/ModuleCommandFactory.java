@@ -3,6 +3,10 @@
  */
 package oleg.sopilnyak.service.control;
 
+import oleg.sopilnyak.service.control.model.ModuleCommandType;
+
+import java.util.Collection;
+
 /**
  * Service: factory of command
  */
@@ -13,5 +17,12 @@ public interface ModuleCommandFactory {
 	 * @param type type of command
 	 * @return instance
 	 */
-	ModuleCommand create(ModuleCommand.Type type);
+	ModuleCommand create(ModuleCommandType type);
+
+	/**
+	 * To get collection of available commands
+	 *
+	 * @return commands set of the factory
+	 */
+	Collection<String> availableCommands();
 }

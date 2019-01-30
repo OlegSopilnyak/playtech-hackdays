@@ -50,6 +50,16 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	}
 
 	/**
+	 * The quantity of unprocessed metrics
+	 *
+	 * @return metrics in container
+	 */
+	@Override
+	public int unProcessed() {
+		return metrics.size();
+	}
+
+	/**
 	 * To clear container
 	 */
 	@Override
