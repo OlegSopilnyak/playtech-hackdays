@@ -7,16 +7,19 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
-import oleg.sopilnyak.service.control.CommandResult;
+import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.control.model.AbstractCommandResult;
-import oleg.sopilnyak.service.control.model.AbstractModuleCommand;
+import oleg.sopilnyak.service.control.model.ListModulesCommandAdapter;
 import oleg.sopilnyak.service.control.model.ModuleCommandType;
 import oleg.sopilnyak.service.control.model.ModuleInfo;
+import org.slf4j.Logger;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static oleg.sopilnyak.service.control.model.ModuleCommandType.STATUS;
@@ -25,19 +28,7 @@ import static oleg.sopilnyak.service.control.model.ModuleCommandType.STATUS;
  * Command: get status of modules
  */
 @Slf4j
-public class StatusModuleCommand extends AbstractModuleCommand {
-	/**
-	 * To execute command for registry
-	 *
-	 * @param parameters parameters for command
-	 * @return Execution result
-	 */
-	@Override
-	public CommandResult execute(Object... parameters) {
-		Result result = new Result();
-		return result;
-	}
-
+public class StatusModuleCommand extends ListModulesCommandAdapter {
 	/**
 	 * To get the type of command
 	 *
@@ -58,22 +49,73 @@ public class StatusModuleCommand extends AbstractModuleCommand {
 		return type().name().toLowerCase();
 	}
 
-	// private methods
+	/**
+	 * To make command result instance
+	 *
+	 * @return instance
+	 */
+	@Override
+	protected AbstractCommandResult makeResult() {
+		return new Result();
+	}
 
+	/**
+	 * To get command-related logger
+	 *
+	 * @return logger instance
+	 */
+	@Override
+	protected Logger getLogger() {
+		return log;
+	}
+
+	/**
+	 * To process module and transform to ModuleInfo for further display
+	 *
+	 * @param module to process by command and transform to info
+	 * @return module to info transformation
+	 */
+	@Override
+	protected ModuleInfo processAndTransform(Module module) {
+		return LongModuleInfo.builder()
+				.modulePK(module.primaryKey())
+				.active(module.isActive())
+				.condition(module.getCondition())
+				.description(module.getDescription())
+				.mainAction(toInfo(module.getMainAction()))
+				.configuration(module.getConfiguration())
+				.build();
+	}
+
+	// private methods
+	ModuleActionInfo toInfo(ModuleAction action){
+		return ModuleActionInfo.builder()
+				.name(action.getName())
+				.host(action.getHostName())
+				.started(action.getStarted())
+				.duration(action.getDuration())
+				.state(action.getState())
+				.build();
+	}
 	// inner classes
+	@Data
 	static class LongModuleInfo extends ModuleInfo {
 		@Builder
-		public LongModuleInfo(String modulePK, boolean active, ModuleHealthCondition condition, String description, ModuleActionInfo mainAction) {
+		public LongModuleInfo(String modulePK, boolean active, ModuleHealthCondition condition, String description,
+							  ModuleActionInfo mainAction, Map<String, VariableItem> configuration) {
 			super(modulePK, active, condition, description);
 			this.mainAction = mainAction;
+			this.configuration = configuration;
 		}
 
-		static final String FORMAT = "Module - %s\nActive - %b\nCondition - %s\nMain:Action - %s\nDescription - %s\n";
+		static final String FORMAT = "Module - %s\nActive - %b\nCondition - %s\n" +
+				"Main:Action - %s\nDescription - %s\n-------\nConfiguration - %s\n====================\n";
 		private ModuleActionInfo mainAction;
+		private Map<String, VariableItem> configuration;
 
 		@Override
-		public String toTTY(){
-			return String.format(FORMAT, modulePK, active, condition, mainAction.toTTY(), description).trim();
+		public String toTTY() {
+			return String.format(FORMAT, modulePK, active, condition, mainAction.toTTY(), description, configuration).trim();
 		}
 	}
 
@@ -81,7 +123,7 @@ public class StatusModuleCommand extends AbstractModuleCommand {
 	@AllArgsConstructor
 	@Builder
 	static class ModuleActionInfo {
-		static final String FORMAT = "%s Host: %b Started: %s Duration: %s State: %s";
+		static final String FORMAT = "%s Host: %s Started: %s Duration: %s State: %s";
 		private String name;
 		private String host;
 		private Instant started;
@@ -93,7 +135,6 @@ public class StatusModuleCommand extends AbstractModuleCommand {
 		}
 	}
 
-	@Data
 	class Result extends AbstractCommandResult {
 		/**
 		 * To get result's data as string for console output
@@ -102,7 +143,10 @@ public class StatusModuleCommand extends AbstractModuleCommand {
 		 */
 		@Override
 		public String dataAsTTY() {
-			StringBuilder builder = new StringBuilder("-------------\n");
+			final List<ModuleInfo> modules = (List<ModuleInfo>) data;
+			StringBuilder builder = new StringBuilder("Modules selected: ")
+					.append(modules == null ? 0 : modules.size())
+					.append("\n").append("-------------\n");
 			if (Objects.nonNull(data)) {
 				((List<ModuleInfo>) data).forEach(info -> builder.append(info.toTTY()).append("\n"));
 			}

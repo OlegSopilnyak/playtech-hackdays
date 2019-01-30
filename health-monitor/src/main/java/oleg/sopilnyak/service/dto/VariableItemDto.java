@@ -3,6 +3,8 @@
  */
 package oleg.sopilnyak.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategiesFactory;
 import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategy;
@@ -16,9 +18,13 @@ import java.util.Objects;
  * @see oleg.sopilnyak.module.model.VariableItem
  */
 public class VariableItemDto implements VariableItem, Serializable {
+	@JsonProperty("type")
 	private Type type;
+	@JsonProperty("name")
 	private String name;
+	@JsonIgnore
 	private transient VariableTypeStrategy strategy;
+	@JsonProperty("value")
 	private String valueAsString;
 
 	/**
@@ -117,6 +123,14 @@ public class VariableItemDto implements VariableItem, Serializable {
 	@Override
 	public VariableTypeStrategy strategy() {
 		return strategy;
+	}
+
+	@Override
+	public String toString() {
+		return "VariableItem{" +
+				"'" + name + '\'' +
+				": '" + valueAsString + '\'' +
+				'}';
 	}
 
 	// private methods
