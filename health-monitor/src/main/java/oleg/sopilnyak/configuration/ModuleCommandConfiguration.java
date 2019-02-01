@@ -4,9 +4,7 @@
 package oleg.sopilnyak.configuration;
 
 import oleg.sopilnyak.service.control.ModuleCommand;
-import oleg.sopilnyak.service.control.impl.ListModuleCommand;
-import oleg.sopilnyak.service.control.impl.ModuleCommandFactoryImpl;
-import oleg.sopilnyak.service.control.impl.StatusModuleCommand;
+import oleg.sopilnyak.service.control.impl.*;
 import oleg.sopilnyak.service.control.model.ModuleCommandType;
 import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -25,14 +23,58 @@ public class ModuleCommandConfiguration {
 
 
 	/**
-	 * List modules command
+	 * To list modules command
 	 *
 	 * @return prototype
 	 */
 	@Bean(autowire = Autowire.BY_TYPE)
-	@Scope( ConfigurableBeanFactory.SCOPE_PROTOTYPE )
-	public ListModuleCommand makeListModuleCommand(){
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	public ListModuleCommand makeListModuleCommand() {
 		return new ListModuleCommand();
+	}
+
+	/**
+	 * To get status of modules command
+	 *
+	 * @return prototype
+	 */
+	@Bean(autowire = Autowire.BY_TYPE)
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	public StatusModuleCommand makeStatusModuleCommand() {
+		return new StatusModuleCommand();
+	}
+
+	/**
+	 * To start modules command
+	 *
+	 * @return prototype
+	 */
+	@Bean(autowire = Autowire.BY_TYPE)
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	public StartModuleCommand makeStartModuleCommand() {
+		return new StartModuleCommand();
+	}
+
+	/**
+	 * To stop modules command
+	 *
+	 * @return prototype
+	 */
+	@Bean(autowire = Autowire.BY_TYPE)
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	public StopModuleCommand makeStopModuleCommand() {
+		return new StopModuleCommand();
+	}
+
+	/**
+	 * To restart modules command
+	 *
+	 * @return prototype
+	 */
+	@Bean(autowire = Autowire.BY_TYPE)
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	public RestartModuleCommand makeRestartModuleCommand() {
+		return new RestartModuleCommand();
 	}
 
 	/**
@@ -41,10 +83,13 @@ public class ModuleCommandConfiguration {
 	 * @return singleton
 	 */
 	@Bean(autowire = Autowire.BY_TYPE)
-	public ModuleCommandFactoryImpl makeModuleCommandFactory(){
+	public ModuleCommandFactoryImpl makeModuleCommandFactory() {
 		final Map<ModuleCommandType, Class<? extends ModuleCommand>> commandsStore = new ConcurrentHashMap<>();
 		commandsStore.put(ModuleCommandType.LIST, ListModuleCommand.class);
 		commandsStore.put(ModuleCommandType.STATUS, StatusModuleCommand.class);
+		commandsStore.put(ModuleCommandType.START, StartModuleCommand.class);
+		commandsStore.put(ModuleCommandType.STOP, StopModuleCommand.class);
+		commandsStore.put(ModuleCommandType.RESTART, RestartModuleCommand.class);
 		return new ModuleCommandFactoryImpl(commandsStore);
 	}
 }

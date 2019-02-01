@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Scope;
  * Configuration: main configuration for modules system
  */
 @Configuration
-@Import({ModuleUtilityConfiguration.class})
+@Import({ModuleUtilityConfiguration.class, ModuleCommandConfiguration.class})
 public class ModuleSystemConfiguration {
 
 	/**

@@ -20,6 +20,7 @@ public abstract class AbstractModuleCommand implements ModuleCommand {
 	protected ModulesRegistry registry;
 	@Autowired
 	protected ObjectMapper jsonMapper;
+
 	/**
 	 * To execute command for registry
 	 *
@@ -32,9 +33,19 @@ public abstract class AbstractModuleCommand implements ModuleCommand {
 	}
 
 	/**
+	 * To get the name of command
+	 *
+	 * @return command's name
+	 */
+	@Override
+	public String name() {
+		return type().name().toLowerCase();
+	}
+
+	/**
 	 * To check is module enabled for processing
 	 *
-	 * @param modulePK primary-key of module
+	 * @param modulePK   primary-key of module
 	 * @param parameters array of suffixes
 	 * @return true if primary-key starts with one of suffixes
 	 */

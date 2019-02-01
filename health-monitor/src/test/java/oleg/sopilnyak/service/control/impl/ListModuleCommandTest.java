@@ -4,6 +4,7 @@
 package oleg.sopilnyak.service.control.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.service.control.CommandResult;
@@ -29,7 +30,7 @@ import static org.mockito.Mockito.*;
 public class ListModuleCommandTest {
 
 	@Spy
-	private ObjectMapper mapper = new ObjectMapper();
+	private ObjectMapper mapper = new ModuleUtilityConfiguration().getObjectMapper();
 	@Mock
 	private ModulesRegistry registry;
 	@InjectMocks

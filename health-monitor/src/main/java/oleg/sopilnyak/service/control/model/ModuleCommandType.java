@@ -7,5 +7,5 @@ package oleg.sopilnyak.service.control.model;
  * Enumeration: the set of available command types
  */
 public enum ModuleCommandType {
-	LIST,START,STOP,STATUS,HELP
+	LIST, START, STOP, RESTART, STATUS, HELP
 }

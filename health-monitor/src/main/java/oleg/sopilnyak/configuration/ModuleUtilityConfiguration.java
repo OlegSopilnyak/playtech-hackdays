@@ -6,7 +6,10 @@ package oleg.sopilnyak.configuration;
 import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Layout;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.VisibilityChecker;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -25,7 +28,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
  * Configuration: configuration services utility for modules system
  */
 @Configuration
-class ModuleUtilityConfiguration {
+public class ModuleUtilityConfiguration {
 	/**
 	 * Service: service to work with time
 	 *
@@ -63,7 +66,18 @@ class ModuleUtilityConfiguration {
 	 */
 	@Bean
 	public ObjectMapper getObjectMapper(){
-		return new ObjectMapper();
+		final ObjectMapper mapper = new ObjectMapper()
+				.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+				.enableDefaultTypingAsProperty(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE, "$type")
+		;
+		VisibilityChecker checker = mapper.getSerializationConfig()
+				.getDefaultVisibilityChecker()
+				.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
+				.withCreatorVisibility(JsonAutoDetect.Visibility.NONE)
+				.withIsGetterVisibility(JsonAutoDetect.Visibility.NONE)
+				.withSetterVisibility(JsonAutoDetect.Visibility.NONE);
+		mapper.setVisibility(checker);
+		return mapper;
 	}
 
 	/**

@@ -1,41 +1,33 @@
 /**
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.control.impl;
+package oleg.sopilnyak.service.control.model;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
-import oleg.sopilnyak.service.control.model.*;
-import org.slf4j.Logger;
 
-import static oleg.sopilnyak.service.control.model.ModuleCommandType.LIST;
+import java.util.List;
+import java.util.Objects;
 
 /**
- * Command: get list of modules information
+ * Command: try to start modules
  */
-@Slf4j
-public class ListModuleCommand extends ListModulesCommandAdapter {
-	/**
-	 * To get the type of command
-	 *
-	 * @return value
-	 */
-	@Override
-	public ModuleCommandType type() {
-		return LIST;
-	}
+public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapter {
+
+	// protected methods
 
 	/**
-	 * To get the name of command
+	 * To check is module enabled for processing
 	 *
-	 * @return command's name
+	 * @param modulePK   primary-key of module
+	 * @param parameters array of suffixes
+	 * @return true if primary-key starts with one of suffixes
 	 */
 	@Override
-	public String name() {
-		return type().name().toLowerCase();
+	protected boolean isEnabled(String modulePK, Object[] parameters) {
+		return (parameters == null || parameters.length != 1) ? false : modulePK.startsWith((String) parameters[0]);
 	}
 
 	/**
@@ -48,15 +40,6 @@ public class ListModuleCommand extends ListModulesCommandAdapter {
 		return new Result();
 	}
 
-	/**
-	 * To get command-related logger
-	 *
-	 * @return logger instance
-	 */
-	@Override
-	protected Logger getLogger() {
-		return log;
-	}
 
 	/**
 	 * To process module and transform to ModuleInfo for further display
@@ -66,31 +49,56 @@ public class ListModuleCommand extends ListModulesCommandAdapter {
 	 */
 	@Override
 	protected ModuleInfo processAndTransform(Module module) {
+		final String message = processModule(module);
 		return ShortModuleInfo.builder()
 				.modulePK(module.primaryKey())
 				.active(module.isActive())
 				.condition(module.getCondition())
-				.description(module.getDescription())
+				.description(message)
 				.build();
 	}
 
-	// private methods
+	/**
+	 * To process module and return result message
+	 *
+	 * @param module to be processed
+	 * @return result message
+	 */
+	protected abstract String processModule(Module module);
+
 	// inner classes
 	static class ShortModuleInfo extends ModuleInfo {
 		static final String FORMAT = "%-25s Active: %-5b Condition: %-10s Description: %-20.20s";
+
 		@Builder
 		public ShortModuleInfo(String modulePK, boolean active, ModuleHealthCondition condition, String description) {
 			super(modulePK, active, condition, description);
 		}
 
 		@Override
-		public String toTTY(){
+		public String toTTY() {
 			return String.format(FORMAT, modulePK, active, condition, description).trim();
 		}
 	}
 
 	@Data
-	class Result extends ListModulesCommandResultAdapter {
+	class Result extends AbstractCommandResult {
+		/**
+		 * To get result's data as string for console output
+		 *
+		 * @return data as tty string
+		 */
+		@Override
+		public String dataAsTTY() {
+			final List<ModuleInfo> modules = (List<ModuleInfo>) data;
+			StringBuilder builder = new StringBuilder("Modules selected: ")
+					.append(modules == null ? 0 : modules.size())
+					.append("\n").append("-------------\n");
+			if (Objects.nonNull(modules)) {
+				modules.forEach(info -> builder.append(info.toTTY()).append("\n"));
+			}
+			return builder.toString();
+		}
 
 		/**
 		 * To get result's data as string for JS communication

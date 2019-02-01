@@ -6,11 +6,8 @@ package oleg.sopilnyak.service.control.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
-import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
-import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.control.CommandResult;
-import oleg.sopilnyak.service.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.junit.After;
 import org.junit.Before;
@@ -22,24 +19,21 @@ import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.util.StringUtils;
 
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static oleg.sopilnyak.service.control.model.ModuleCommandState.SUCCESS;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StatusModuleCommandTest {
+public class RestartModuleCommandTest {
 	@Spy
 	private ObjectMapper mapper = new ModuleUtilityConfiguration().getObjectMapper();
 	@Mock
 	private ModulesRegistry registry;
 	@InjectMocks
-	private StatusModuleCommand command = new StatusModuleCommand();
+	private RestartModuleCommand command = new RestartModuleCommand();
 
 	private int counter = 0;
 
@@ -54,9 +48,8 @@ public class StatusModuleCommandTest {
 		reset(registry);
 		counter = 0;
 	}
-
 	@Test
-	public void testExecuteNoParameters() {
+	public void testExecuteNoParameters(){
 
 		CommandResult result = command.execute();
 
@@ -121,8 +114,9 @@ public class StatusModuleCommandTest {
 		assertFalse(StringUtils.isEmpty(tty));
 		String json = result.dataAsJSON();
 		assertFalse(StringUtils.isEmpty(json));
-		assertEquals(4, ((List)result.getData()).size());
+		assertEquals(0, ((List)result.getData()).size());
 	}
+
 	// private methods
 	private List<Module> makeModules() {
 		List<Module> modules = new ArrayList<>();
@@ -140,29 +134,6 @@ public class StatusModuleCommandTest {
 		when(module.isActive()).thenReturn(active);
 		when(module.getCondition()).thenReturn(condition);
 		when(module.getDescription()).thenReturn(description);
-		Map<String, VariableItem> config = config();
-		when(module.getConfiguration()).thenReturn(config);
-		ModuleAction action = action(module);
-		when(module.getMainAction()).thenReturn(action);
 		return module;
-	}
-
-	private ModuleAction action(Module module) {
-		ModuleAction action = mock(ModuleAction.class);
-		when(action.getName()).thenReturn("[main-action]");
-		when(action.getHostName()).thenReturn("favorite-host.com");
-		when(action.getStarted()).thenReturn(Instant.now());
-		when(action.getDuration()).thenReturn(counter * 1000L);
-		when(action.getState()).thenReturn(ModuleAction.State.PROGRESS);
-		return action;
-	}
-
-	private Map<String, VariableItem> config() {
-		Map<String, VariableItem> config = new HashMap<>();
-		if (counter++ % 2 == 0) {
-			config.put("1.2.3." + counter, new VariableItemDto("demo", counter));
-			config.put("3.4.5." + counter, new VariableItemDto("demo2", counter));
-		}
-		return config;
 	}
 }

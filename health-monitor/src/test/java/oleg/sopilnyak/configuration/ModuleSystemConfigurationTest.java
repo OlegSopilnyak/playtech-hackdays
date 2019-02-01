@@ -9,6 +9,12 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.control.ModuleCommand;
+import oleg.sopilnyak.service.control.ModuleCommandFactory;
+import oleg.sopilnyak.service.control.impl.ListModuleCommand;
+import oleg.sopilnyak.service.control.impl.RestartModuleCommand;
+import oleg.sopilnyak.service.control.impl.StartModuleCommand;
+import oleg.sopilnyak.service.control.impl.StopModuleCommand;
 import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import oleg.sopilnyak.service.metric.DurationMetricsContainer;
 import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
@@ -30,6 +36,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
@@ -66,6 +73,29 @@ public class ModuleSystemConfigurationTest {
 	@Test
 	public void getHealthModuleService() {
 		assertNotNull(context.getBean(ModulesRegistry.class));
+	}
+
+	@Test
+	public void getModuleCommandFactory(){
+		assertNotNull(context.getBean(ModuleCommandFactory.class));
+	}
+
+	@Test
+	public void commandPrototypesTest() {
+		ModuleCommand command = context.getBean(ListModuleCommand.class);
+		assertNotEquals(command, context.getBean(ListModuleCommand.class));
+
+		command = context.getBean(StartModuleCommand.class);
+		assertNotEquals(command, context.getBean(StartModuleCommand.class));
+
+		command = context.getBean(StartModuleCommand.class);
+		assertNotEquals(command, context.getBean(StopModuleCommand.class));
+
+		command = context.getBean(StopModuleCommand.class);
+		assertNotEquals(command, context.getBean(StartModuleCommand.class));
+
+		command = context.getBean(RestartModuleCommand.class);
+		assertNotEquals(command, context.getBean(RestartModuleCommand.class));
 	}
 
 	@Test

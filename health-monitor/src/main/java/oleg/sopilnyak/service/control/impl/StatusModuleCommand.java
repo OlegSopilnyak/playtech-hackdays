@@ -11,16 +11,11 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.control.model.AbstractCommandResult;
-import oleg.sopilnyak.service.control.model.ListModulesCommandAdapter;
-import oleg.sopilnyak.service.control.model.ModuleCommandType;
-import oleg.sopilnyak.service.control.model.ModuleInfo;
+import oleg.sopilnyak.service.control.model.*;
 import org.slf4j.Logger;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static oleg.sopilnyak.service.control.model.ModuleCommandType.STATUS;
 
@@ -135,23 +130,7 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 		}
 	}
 
-	class Result extends AbstractCommandResult {
-		/**
-		 * To get result's data as string for console output
-		 *
-		 * @return data as tty string
-		 */
-		@Override
-		public String dataAsTTY() {
-			final List<ModuleInfo> modules = (List<ModuleInfo>) data;
-			StringBuilder builder = new StringBuilder("Modules selected: ")
-					.append(modules == null ? 0 : modules.size())
-					.append("\n").append("-------------\n");
-			if (Objects.nonNull(data)) {
-				((List<ModuleInfo>) data).forEach(info -> builder.append(info.toTTY()).append("\n"));
-			}
-			return builder.toString();
-		}
+	class Result extends ListModulesCommandResultAdapter {
 
 		/**
 		 * To get result's data as string for JS communication

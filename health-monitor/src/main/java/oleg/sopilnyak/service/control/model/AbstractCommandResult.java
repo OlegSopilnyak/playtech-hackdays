@@ -8,6 +8,9 @@ import oleg.sopilnyak.service.control.CommandResult;
 
 import static oleg.sopilnyak.service.control.model.ModuleCommandState.INIT;
 
+/**
+ * Result: type-result of command's execution with state and raw data
+ */
 @Data
 public abstract class AbstractCommandResult implements CommandResult {
 	protected ModuleCommandState state;
