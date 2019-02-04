@@ -21,8 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Configuration
 public class ModuleCommandConfiguration {
-
-
 	/**
 	 * To list modules command
 	 *
@@ -85,7 +83,7 @@ public class ModuleCommandConfiguration {
 	 */
 	@Bean(autowire = Autowire.BY_TYPE)
 	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-	@DependsOn("getModuleConfigurationService")
+	@DependsOn("module.configurationService")
 	public ChangeConfigurationModuleCommand makeChangeConfigurationModuleCommand() {
 		return new ChangeConfigurationModuleCommand();
 	}

@@ -54,7 +54,7 @@ public class ModuleSystemConfiguration {
 	 * @return singleton
 	 * @see oleg.sopilnyak.service.configuration.ModuleConfigurationService
 	 */
-	@Bean(autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
+	@Bean(name = "module.configurationService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
 	public ModuleConfigurationServiceImpl getModuleConfigurationService() {
 		return new ModuleConfigurationServiceImpl();
 	}
@@ -65,7 +65,7 @@ public class ModuleSystemConfiguration {
 	 * @return singleton
 	 * @see oleg.sopilnyak.service.registry.ModulesRegistry
 	 */
-	@Bean(autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
+	@Bean(name = "module.healthCheckService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
 	public HealthModuleService getHealthModuleService() {
 		return new HealthModuleService();
 	}
@@ -76,7 +76,7 @@ public class ModuleSystemConfiguration {
 	 * @return singleton
 	 * @see oleg.sopilnyak.service.logging.ModuleLoggerService
 	 */
-	@Bean(autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
+	@Bean(name = "module.slf4LoggerService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
 	public ModuleSlf4jLogAppender getModuleLogAppender() {
 		return new ModuleSlf4jLogAppender();
 	}
