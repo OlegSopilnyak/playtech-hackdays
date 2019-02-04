@@ -23,6 +23,14 @@ public interface ModuleConfigurationStorage {
 	Map<String, VariableItem> getUpdatedVariables(Module module, Map<String, VariableItem> currentConfiguration);
 
 	/**
+	 * To update configuration of module
+	 *
+	 * @param module target module
+	 * @param configuration new configuration
+	 */
+	void updateConfiguration(Module module, Map<String, VariableItem> configuration);
+
+	/**
 	 * To add modules configuration change listener
 	 *
 	 * @param listener listener of changes
@@ -34,6 +42,7 @@ public interface ModuleConfigurationStorage {
 	 * @param listener listener of changes
 	 */
 	void removeConfigurationListener(ConfigurationListener listener);
+
 	// inner classes
 
 	/**

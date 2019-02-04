@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Scope;
 
 import java.util.Map;
@@ -78,6 +79,18 @@ public class ModuleCommandConfiguration {
 	}
 
 	/**
+	 * To change module's configuration command
+	 *
+	 * @return prototype
+	 */
+	@Bean(autowire = Autowire.BY_TYPE)
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	@DependsOn("getModuleConfigurationService")
+	public ChangeConfigurationModuleCommand makeChangeConfigurationModuleCommand() {
+		return new ChangeConfigurationModuleCommand();
+	}
+
+	/**
 	 * Factory of commands
 	 *
 	 * @return singleton
@@ -90,6 +103,7 @@ public class ModuleCommandConfiguration {
 		commandsStore.put(ModuleCommandType.START, StartModuleCommand.class);
 		commandsStore.put(ModuleCommandType.STOP, StopModuleCommand.class);
 		commandsStore.put(ModuleCommandType.RESTART, RestartModuleCommand.class);
+		commandsStore.put(ModuleCommandType.CHANGE, ChangeConfigurationModuleCommand.class);
 		return new ModuleCommandFactoryImpl(commandsStore);
 	}
 }

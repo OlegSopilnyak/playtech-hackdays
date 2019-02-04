@@ -27,7 +27,7 @@ public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapt
 	 */
 	@Override
 	protected boolean isEnabled(String modulePK, Object[] parameters) {
-		return (parameters == null || parameters.length != 1) && modulePK.startsWith((String) parameters[0]);
+		return !(parameters == null || parameters.length != 1) && modulePK.startsWith((String) parameters[0]);
 	}
 
 	/**

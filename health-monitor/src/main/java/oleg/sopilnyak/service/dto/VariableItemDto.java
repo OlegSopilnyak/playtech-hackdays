@@ -14,7 +14,8 @@ import java.util.Date;
 import java.util.Objects;
 
 /**
- * Type configured variable item
+ * Type: configured variable item
+ *
  * @see oleg.sopilnyak.module.model.VariableItem
  */
 public class VariableItemDto implements VariableItem, Serializable {
@@ -29,39 +30,58 @@ public class VariableItemDto implements VariableItem, Serializable {
 
 	/**
 	 * Constructor for String type
-	 * @param name name of variable
+	 *
+	 * @param name  name of variable
 	 * @param value value of variable
 	 */
-	public VariableItemDto(String name, String value){
+	public VariableItemDto(String name, String value) {
 		this(Type.STRING, name, VariableTypeStrategiesFactory.get(Type.STRING));
 		this.valueAsString = strategy.asString(value);
 	}
+
 	/**
 	 * Constructor for Integer type
-	 * @param name name of variable
+	 *
+	 * @param name  name of variable
 	 * @param value value of variable
 	 */
-	public VariableItemDto(String name, Integer value){
+	public VariableItemDto(String name, Integer value) {
 		this(Type.INTEGER, name, VariableTypeStrategiesFactory.get(Type.INTEGER));
 		this.valueAsString = strategy.asString(value);
 	}
+
 	/**
 	 * Constructor for Double type
-	 * @param name name of variable
+	 *
+	 * @param name  name of variable
 	 * @param value value of variable
 	 */
-	public VariableItemDto(String name, Double value){
+	public VariableItemDto(String name, Double value) {
 		this(Type.DOUBLE, name, VariableTypeStrategiesFactory.get(Type.DOUBLE));
 		this.valueAsString = strategy.asString(value);
 	}
+
 	/**
 	 * Constructor for Date type
-	 * @param name name of variable
+	 *
+	 * @param name  name of variable
 	 * @param value value of variable
 	 */
-	public VariableItemDto(String name, Date value){
+	public VariableItemDto(String name, Date value) {
 		this(Type.TIME_STAMP, name, VariableTypeStrategiesFactory.get(Type.TIME_STAMP));
 		this.valueAsString = strategy.asString(value);
+	}
+
+	/**
+	 * Constructor for exists VariableItem and string
+	 *
+	 * @param item            to be copied
+	 * @param moduleItemValue new value of item
+	 */
+	public VariableItemDto(VariableItem item, String moduleItemValue) {
+		this(item.type(), item.name(), item.strategy());
+		strategy.convert(moduleItemValue);
+		this.valueAsString = moduleItemValue;
 	}
 
 	/**

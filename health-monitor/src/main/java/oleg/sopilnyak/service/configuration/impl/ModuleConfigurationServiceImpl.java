@@ -44,7 +44,6 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	@Override
 	protected void initAsService() {
 		log.debug("Initiating service...");
-		registry.add(this);
 		configurationStorage.addConfigurationListener(storageListener);
 		runnerFuture = activityRunner.schedule(() -> scanModulesConfiguration(), 50, TimeUnit.MILLISECONDS);
 	}

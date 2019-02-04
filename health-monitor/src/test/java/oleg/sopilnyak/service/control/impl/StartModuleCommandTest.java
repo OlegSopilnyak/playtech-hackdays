@@ -4,10 +4,12 @@
 package oleg.sopilnyak.service.control.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import oleg.sopilnyak.configuration.ModuleCommandConfiguration;
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.service.control.CommandResult;
+import oleg.sopilnyak.service.control.ModuleCommand;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.junit.After;
 import org.junit.Before;
@@ -33,7 +35,8 @@ public class StartModuleCommandTest {
 	@Mock
 	private ModulesRegistry registry;
 	@InjectMocks
-	private StartModuleCommand command = new StartModuleCommand();
+	private ModuleCommand command = new ModuleCommandConfiguration().makeStartModuleCommand();
+	;
 
 	private int counter = 0;
 
@@ -48,8 +51,9 @@ public class StartModuleCommandTest {
 		reset(registry);
 		counter = 0;
 	}
+
 	@Test
-	public void testExecuteNoParameters(){
+	public void testExecuteNoParameters() {
 
 		CommandResult result = command.execute();
 
@@ -62,7 +66,7 @@ public class StartModuleCommandTest {
 	}
 
 	@Test
-	public void testExecuteParameterNoModule(){
+	public void testExecuteParameterNoModule() {
 
 		CommandResult result = command.execute("test");
 
@@ -72,11 +76,11 @@ public class StartModuleCommandTest {
 		assertFalse(StringUtils.isEmpty(tty));
 		String json = result.dataAsJSON();
 		assertFalse(StringUtils.isEmpty(json));
-		assertEquals(0, ((List)result.getData()).size());
+		assertEquals(0, ((List) result.getData()).size());
 	}
 
 	@Test
-	public void testExecuteParameterOneModule(){
+	public void testExecuteParameterOneModule() {
 
 		CommandResult result = command.execute("1:2*");
 
@@ -86,11 +90,11 @@ public class StartModuleCommandTest {
 		assertFalse(StringUtils.isEmpty(tty));
 		String json = result.dataAsJSON();
 		assertFalse(StringUtils.isEmpty(json));
-		assertEquals(1, ((List)result.getData()).size());
+		assertEquals(1, ((List) result.getData()).size());
 	}
 
 	@Test
-	public void testExecuteParameterTwoModules(){
+	public void testExecuteParameterTwoModules() {
 
 		CommandResult result = command.execute("1:2:");
 
@@ -100,11 +104,11 @@ public class StartModuleCommandTest {
 		assertFalse(StringUtils.isEmpty(tty));
 		String json = result.dataAsJSON();
 		assertFalse(StringUtils.isEmpty(json));
-		assertEquals(2, ((List)result.getData()).size());
+		assertEquals(2, ((List) result.getData()).size());
 	}
 
 	@Test
-	public void testExecuteParameterFourModules(){
+	public void testExecuteParameterFourModules() {
 
 		CommandResult result = command.execute("1:2:", "*", "1:22");
 
@@ -114,7 +118,7 @@ public class StartModuleCommandTest {
 		assertFalse(StringUtils.isEmpty(tty));
 		String json = result.dataAsJSON();
 		assertFalse(StringUtils.isEmpty(json));
-		assertEquals(0, ((List)result.getData()).size());
+		assertEquals(0, ((List) result.getData()).size());
 	}
 
 	// private methods
