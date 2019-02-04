@@ -3,15 +3,21 @@
  */
 package oleg.sopilnyak.service.control.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.control.model.*;
+import oleg.sopilnyak.service.control.model.ModuleCommandType;
+import oleg.sopilnyak.service.control.model.ModuleInfoAdapter;
+import oleg.sopilnyak.service.control.model.command.ListModulesCommandAdapter;
+import oleg.sopilnyak.service.control.model.result.CommandResultAdapter;
+import oleg.sopilnyak.service.control.model.result.ListModulesCommandResultAdapter;
 import org.slf4j.Logger;
 
 import java.time.Instant;
@@ -35,22 +41,12 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 	}
 
 	/**
-	 * To get the name of command
-	 *
-	 * @return command's name
-	 */
-	@Override
-	public String name() {
-		return type().name().toLowerCase();
-	}
-
-	/**
 	 * To make command result instance
 	 *
 	 * @return instance
 	 */
 	@Override
-	protected AbstractCommandResult makeResult() {
+	protected CommandResultAdapter makeResult() {
 		return new Result();
 	}
 
@@ -71,7 +67,7 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 	 * @return module to info transformation
 	 */
 	@Override
-	protected ModuleInfo processAndTransform(Module module) {
+	protected ModuleInfoAdapter processAndTransform(Module module) {
 		return LongModuleInfo.builder()
 				.modulePK(module.primaryKey())
 				.active(module.isActive())
@@ -94,7 +90,13 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 	}
 	// inner classes
 	@Data
-	static class LongModuleInfo extends ModuleInfo {
+	@EqualsAndHashCode(callSuper = true, doNotUseGetters = true)
+	static class LongModuleInfo extends ModuleInfoAdapter {
+		static final String FORMAT = "Module - %s\nActive - %b\nCondition - %s\n" +
+				"Main:Action - %s\nDescription - %s\n-------\nConfiguration - %s\n====================\n";
+		private final ModuleActionInfo mainAction;
+		private final Map<String, VariableItem> configuration;
+
 		@Builder
 		public LongModuleInfo(String modulePK, boolean active, ModuleHealthCondition condition, String description,
 							  ModuleActionInfo mainAction, Map<String, VariableItem> configuration) {
@@ -102,11 +104,6 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 			this.mainAction = mainAction;
 			this.configuration = configuration;
 		}
-
-		static final String FORMAT = "Module - %s\nActive - %b\nCondition - %s\n" +
-				"Main:Action - %s\nDescription - %s\n-------\nConfiguration - %s\n====================\n";
-		private ModuleActionInfo mainAction;
-		private Map<String, VariableItem> configuration;
 
 		@Override
 		public String toTTY() {
@@ -131,19 +128,14 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 	}
 
 	class Result extends ListModulesCommandResultAdapter {
-
 		/**
-		 * To get result's data as string for JS communication
+		 * To get access to external JSON mapper
 		 *
-		 * @return data as json string
+		 * @return instance
 		 */
 		@Override
-		public String dataAsJSON() {
-			try {
-				return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
-			} catch (Throwable t) {
-				return "{\"status\": \"failed :" + t.getClass().getSimpleName() + " - " + t.getMessage() + "\"}";
-			}
+		protected ObjectMapper getMapper() {
+			return jsonMapper;
 		}
 	}
 

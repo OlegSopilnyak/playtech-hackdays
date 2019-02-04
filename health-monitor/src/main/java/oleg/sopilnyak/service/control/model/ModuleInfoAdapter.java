@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.control.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 
 import java.io.Serializable;
@@ -14,7 +15,8 @@ import java.io.Serializable;
  */
 @Data
 @AllArgsConstructor
-public class ModuleInfo implements Serializable {
+@EqualsAndHashCode(doNotUseGetters = true)
+public abstract class ModuleInfoAdapter implements Serializable {
 	protected String modulePK;
 	protected boolean active;
 	protected ModuleHealthCondition condition;

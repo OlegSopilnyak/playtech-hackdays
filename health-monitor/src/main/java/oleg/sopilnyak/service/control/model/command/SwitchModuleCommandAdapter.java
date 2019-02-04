@@ -1,18 +1,18 @@
 /**
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.control.model;
+package oleg.sopilnyak.service.control.model.command;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
-import lombok.Data;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
-
-import java.util.List;
-import java.util.Objects;
+import oleg.sopilnyak.service.control.model.ModuleInfoAdapter;
+import oleg.sopilnyak.service.control.model.result.CommandResultAdapter;
+import oleg.sopilnyak.service.control.model.result.ListModulesCommandResultAdapter;
 
 /**
- * Command: try to start modules
+ * Command: parent of any commands which try to switch modules
  */
 public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapter {
 
@@ -27,7 +27,7 @@ public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapt
 	 */
 	@Override
 	protected boolean isEnabled(String modulePK, Object[] parameters) {
-		return (parameters == null || parameters.length != 1) ? false : modulePK.startsWith((String) parameters[0]);
+		return (parameters == null || parameters.length != 1) && modulePK.startsWith((String) parameters[0]);
 	}
 
 	/**
@@ -36,7 +36,7 @@ public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapt
 	 * @return instance
 	 */
 	@Override
-	protected AbstractCommandResult makeResult() {
+	protected CommandResultAdapter makeResult() {
 		return new Result();
 	}
 
@@ -48,7 +48,7 @@ public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapt
 	 * @return module to info transformation
 	 */
 	@Override
-	protected ModuleInfo processAndTransform(Module module) {
+	protected ModuleInfoAdapter processAndTransform(Module module) {
 		final String message = processModule(module);
 		return ShortModuleInfo.builder()
 				.modulePK(module.primaryKey())
@@ -67,7 +67,7 @@ public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapt
 	protected abstract String processModule(Module module);
 
 	// inner classes
-	static class ShortModuleInfo extends ModuleInfo {
+	static class ShortModuleInfo extends ModuleInfoAdapter {
 		static final String FORMAT = "%-25s Active: %-5b Condition: %-10s Description: %-20.20s";
 
 		@Builder
@@ -81,37 +81,15 @@ public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapt
 		}
 	}
 
-	@Data
-	class Result extends AbstractCommandResult {
+	class Result extends ListModulesCommandResultAdapter {
 		/**
-		 * To get result's data as string for console output
+		 * To get access to external JSON mapper
 		 *
-		 * @return data as tty string
+		 * @return instance
 		 */
 		@Override
-		public String dataAsTTY() {
-			final List<ModuleInfo> modules = (List<ModuleInfo>) data;
-			StringBuilder builder = new StringBuilder("Modules selected: ")
-					.append(modules == null ? 0 : modules.size())
-					.append("\n").append("-------------\n");
-			if (Objects.nonNull(modules)) {
-				modules.forEach(info -> builder.append(info.toTTY()).append("\n"));
-			}
-			return builder.toString();
-		}
-
-		/**
-		 * To get result's data as string for JS communication
-		 *
-		 * @return data as json string
-		 */
-		@Override
-		public String dataAsJSON() {
-			try {
-				return jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
-			} catch (Throwable t) {
-				return "{\"status\": \"failed :" + t.getClass().getSimpleName() + " - " + t.getMessage() + "\"}";
-			}
+		protected ObjectMapper getMapper() {
+			return jsonMapper;
 		}
 	}
 }

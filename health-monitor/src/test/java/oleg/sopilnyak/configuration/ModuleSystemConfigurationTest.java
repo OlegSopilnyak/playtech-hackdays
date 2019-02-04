@@ -100,7 +100,7 @@ public class ModuleSystemConfigurationTest {
 
 	@Test
 	public void testDuring5seconds() throws InterruptedException {
-		TimeUnit.SECONDS.sleep(10);
+		TimeUnit.SECONDS.sleep(5);
 	}
 	// inner class- configuration
 	@Configuration

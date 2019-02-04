@@ -6,7 +6,7 @@ package oleg.sopilnyak.service.control.impl;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.service.control.model.ModuleCommandType;
-import oleg.sopilnyak.service.control.model.SwitchModuleCommandAdapter;
+import oleg.sopilnyak.service.control.model.command.SwitchModuleCommandAdapter;
 import org.slf4j.Logger;
 
 import static oleg.sopilnyak.service.control.model.ModuleCommandType.RESTART;

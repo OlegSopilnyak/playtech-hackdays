@@ -18,6 +18,13 @@ public interface ModuleCommand {
 	CommandResult execute(Object... parameters);
 
 	/**
+	 * To get description of command for help
+	 *
+	 * @return value
+	 */
+	String description();
+
+	/**
 	 * To get the type of command
 	 *
 	 * @return value
@@ -29,11 +36,18 @@ public interface ModuleCommand {
 	 *
 	 * @return command's name
 	 */
-	String name();
-
-	// inner classes
+	default String name(){
+		return type().name().toLowerCase();
+	}
 
 	/**
-	 * Types of commands
+	 * To test is parameters contains 'help'
+	 *
+	 * @param parameters parameters passed to execute command
+	 * @return true if needs command's help
 	 */
+	default boolean isCommandHelp(Object... parameters){
+		return parameters != null && parameters.length == 1 && ("help".equals(parameters[0]) || "?".equals(parameters[0]));
+	}
+
 }
