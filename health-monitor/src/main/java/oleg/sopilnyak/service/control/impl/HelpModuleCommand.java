@@ -14,10 +14,10 @@ import oleg.sopilnyak.service.control.ModuleCommandFactory;
 import oleg.sopilnyak.service.control.model.ModuleCommandState;
 import oleg.sopilnyak.service.control.model.ModuleCommandType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import static oleg.sopilnyak.service.control.model.ModuleCommandState.PROCESS;
@@ -34,6 +34,17 @@ public class HelpModuleCommand implements ModuleCommand {
 	private ObjectMapper jsonMapper;
 	@Autowired
 	private ModuleCommandFactory commandsFactory;
+	// map of commands helps
+	private static final Map<ModuleCommandType, String[]> detailedHelp = new LinkedHashMap<>();
+
+	/**
+	 * Constructor to register helps for commands
+	 *
+	 * @param detailedHelp
+	 */
+	public HelpModuleCommand(Map<ModuleCommandType, String[]> detailedHelp) {
+		HelpModuleCommand.detailedHelp.putAll(detailedHelp);
+	}
 
 	/**
 	 * To execute command for registry
@@ -77,8 +88,33 @@ public class HelpModuleCommand implements ModuleCommand {
 		if (Objects.isNull(parameters) || parameters.length == 0) {
 			log.debug("The list of commands");
 			listCommands(explanation);
+		}else{
+			final String command = (String) parameters[0];
+			log.debug("Making help for '{}' command", command);
+			particularCommandHelp(command, explanation);
 		}
 		return explanation.toArray(new Command[0]);
+	}
+
+	private void particularCommandHelp(String command, List<Command> explanation) {
+		final ModuleCommandType type = restoreByName(command);
+		if (Objects.nonNull(type)){
+			final String[] help = detailedHelp.get(type);
+			if (Objects.isNull(help)){
+				log.error("No detailed help for command-type '{}'", type);
+				return;
+			}
+			log.debug("Prepare detailed information.");
+			final AtomicBoolean firstTime = new AtomicBoolean(true);
+			Stream.of(help).forEach((line)->{
+				if (firstTime.get()){
+					explanation.add(Command.builder().name(command.toLowerCase()).description(line).build());
+					firstTime.getAndSet(false);
+				}else {
+					explanation.add(Command.builder().name("").description(line).build());
+				}
+			});
+		}
 	}
 
 	private void listCommands(List<Command> explanation) {
@@ -120,15 +156,27 @@ public class HelpModuleCommand implements ModuleCommand {
 		 */
 		@Override
 		public String dataAsTTY() {
-			final StringBuilder builder = new StringBuilder("The list of available commands\n").append("-----------\n");
-			Stream.of((Command[]) data).forEach(cmd -> {
-				builder.append(cmd.name).append("\t").append(cmd.description).append("\n");
+			final Command[] details = (Command[]) data;
+			if (details.length == 0){
+				return "Nothing to show";
+			}
+			final boolean command = isCommandHelp((Command[]) data);
+			final StringBuilder builder = command ?
+					new StringBuilder()
+					:new StringBuilder("The list of available commands\n").append("-----------\n")
+
+					;
+			Stream.of(details).forEach(detail -> {
+				builder.append(detail.name).append("\t").append(detail.description).append("\n");
 			});
-			builder
-					.append("-----------\n")
-					.append("\nTo get more information about command, use\n$<command> help\nwhere <command> is modules command you need help about.\n");
+			if (!command) {
+				builder
+						.append("-----------\n")
+						.append("\nTo get more information about command, use\n$<command> help\nwhere <command> is modules command you need help about.\n");
+			}
 			return builder.toString();
 		}
+
 
 		/**
 		 * To get result's data as string for JS communication
@@ -142,6 +190,10 @@ public class HelpModuleCommand implements ModuleCommand {
 			} catch (Throwable t) {
 				return "{\"status\": \"failed :" + t.getClass().getSimpleName() + " - " + t.getMessage() + "\"}";
 			}
+		}
+		// private methods
+		private boolean isCommandHelp(Command[] details){
+			return Stream.of(details).anyMatch(detail-> StringUtils.isEmpty(detail.getName()));
 		}
 	}
 

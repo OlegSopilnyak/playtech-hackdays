@@ -4,10 +4,12 @@
 package oleg.sopilnyak.service.control.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import oleg.sopilnyak.configuration.ModuleCommandConfiguration;
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.service.control.CommandResult;
+import oleg.sopilnyak.service.control.ModuleCommand;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.junit.After;
 import org.junit.Before;
@@ -17,6 +19,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -32,22 +36,40 @@ public class StopModuleCommandTest {
 	private ObjectMapper mapper = new ModuleUtilityConfiguration().getObjectMapper();
 	@Mock
 	private ModulesRegistry registry;
-	@InjectMocks
-	private StopModuleCommand command = new StopModuleCommand();
+	@Mock
+	private ObjectFactory<HelpModuleCommand> helpCommandFactory;
 
-	private int counter = 0;
+	private HelpModuleCommand help = new ModuleCommandConfiguration().makeHelpModuleCommand();
+	@InjectMocks
+	private ModuleCommand command = new StopModuleCommand();
+
 
 	@Before
 	public void setUp() throws Exception {
 		List<Module> modules = makeModules();
 		when(registry.registered()).thenReturn(modules);
+		when(helpCommandFactory.getObject()).thenReturn(help);
+		ReflectionTestUtils.setField(help, "jsonMapper", mapper);
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		reset(registry);
-		counter = 0;
 	}
+
+	@Test
+	public void testExecuteHelp() {
+
+		CommandResult result = command.execute("help");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+	}
+
 	@Test
 	public void testExecuteNoParameters(){
 

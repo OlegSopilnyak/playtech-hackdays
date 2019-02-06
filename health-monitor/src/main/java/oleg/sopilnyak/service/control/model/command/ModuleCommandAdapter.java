@@ -7,16 +7,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.service.control.CommandResult;
 import oleg.sopilnyak.service.control.ModuleCommand;
+import oleg.sopilnyak.service.control.impl.HelpModuleCommand;
 import oleg.sopilnyak.service.control.model.ModuleInfoAdapter;
 import oleg.sopilnyak.service.control.model.result.CommandResultAdapter;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.function.Function;
 import java.util.stream.Stream;
-
-import static oleg.sopilnyak.service.control.model.ModuleCommandState.SUCCESS;
 
 /**
  * Command: abstract parent of module command to communicate with modules registry
@@ -27,6 +27,8 @@ public abstract class ModuleCommandAdapter implements ModuleCommand {
 	protected ModulesRegistry registry;
 	@Autowired
 	protected ObjectMapper jsonMapper;
+	@Autowired
+	private ObjectFactory<HelpModuleCommand> helpCommandFactory;
 
 	/**
 	 * To execute command for registry
@@ -105,10 +107,7 @@ public abstract class ModuleCommandAdapter implements ModuleCommand {
 	 * @see #description()
 	 */
 	protected CommandResult describeTheCommand() {
-		final CommandResultAdapter result = makeResult();
-		result.setState(SUCCESS);
-		result.setData(description());
-		return result;
+		return helpCommandFactory.getObject().execute(name());
 	}
 
 }

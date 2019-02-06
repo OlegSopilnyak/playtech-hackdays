@@ -71,4 +71,76 @@ public class HelpModuleCommandTest {
 		String json = result.dataAsJSON();
 		assertFalse(StringUtils.isEmpty(json));
 	}
+
+	@Test
+	public void testingCommandList(){
+		CommandResult result = command.execute("list");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+	}
+
+	@Test
+	public void testingCommandHelp(){
+		CommandResult result = command.execute("help");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+	}
+
+	@Test
+	public void testingCommandRestart(){
+		CommandResult result = command.execute("restart");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+	}
+
+	@Test
+	public void testingCommandStart(){
+		CommandResult result = command.execute("start");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+	}
+
+	@Test
+	public void testingCommandStop(){
+		CommandResult result = command.execute("stop");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+	}
+
+	@Test
+	public void testingCommandStatus(){
+		CommandResult result = command.execute("status");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
+	}
 }

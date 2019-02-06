@@ -19,6 +19,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -34,6 +36,10 @@ public class StartModuleCommandTest {
 	private ObjectMapper mapper = new ModuleUtilityConfiguration().getObjectMapper();
 	@Mock
 	private ModulesRegistry registry;
+	@Mock
+	private ObjectFactory<HelpModuleCommand> helpCommandFactory;
+
+	private HelpModuleCommand help = new ModuleCommandConfiguration().makeHelpModuleCommand();
 	@InjectMocks
 	private ModuleCommand command = new ModuleCommandConfiguration().makeStartModuleCommand();
 
@@ -42,11 +48,26 @@ public class StartModuleCommandTest {
 	public void setUp() throws Exception {
 		List<Module> modules = makeModules();
 		when(registry.registered()).thenReturn(modules);
+		when(helpCommandFactory.getObject()).thenReturn(help);
+		ReflectionTestUtils.setField(help, "jsonMapper", mapper);
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		reset(registry);
+	}
+
+	@Test
+	public void testExecuteHelp() {
+
+		CommandResult result = command.execute("help");
+
+		assertNotNull(result);
+		assertEquals(SUCCESS, result.getState());
+		String tty = result.dataAsTTY();
+		assertFalse(StringUtils.isEmpty(tty));
+		String json = result.dataAsJSON();
+		assertFalse(StringUtils.isEmpty(json));
 	}
 
 	@Test

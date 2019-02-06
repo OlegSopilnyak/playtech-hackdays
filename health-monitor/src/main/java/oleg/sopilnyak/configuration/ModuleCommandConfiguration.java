@@ -99,7 +99,51 @@ public class ModuleCommandConfiguration {
 	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 	@DependsOn("makeModuleCommandFactory")
 	public HelpModuleCommand makeHelpModuleCommand() {
-		return new HelpModuleCommand();
+		final Map<ModuleCommandType, String[]> detailedHelp = new LinkedHashMap<>();
+		detailedHelp.put(LIST, new String[]{
+				"[prefix1] [prefix2]"
+				,"prefix1 and prefix2 are prefixes of modules which"
+				,"will included to command's result."
+				,"if no options, all modules will be shown."
+		});
+		detailedHelp.put(STATUS, new String[]{
+				"[prefix1] [prefix2]"
+				,"prefix1 and prefix2 are prefixes of modules which"
+				,"will included to command's result."
+				,"if no options, all modules will be shown."
+		});
+		detailedHelp.put(CHANGE, new String[]{
+				"<module> <item-name> <item-value>"
+				,"module: module's primaryKey value"
+				,"item-name: the name of item in module's configuration"
+				,"item-value: new value item in module's configuration"
+		});
+		detailedHelp.put(START, new String[]{
+				"[prefix1] [prefix2]"
+				,"prefix1 and prefix2 are prefixes of modules which"
+				,"will included to command's result."
+				,"if no options, all modules will be started."
+		});
+		detailedHelp.put(STOP, new String[]{
+				"[prefix1] [prefix2]"
+				,"prefix1 and prefix2 are prefixes of modules which"
+				,"will included to command's result."
+				,"if no options, all modules will be stopped."
+		});
+		detailedHelp.put(RESTART, new String[]{
+				"[prefix1] [prefix2]"
+				,"prefix1 and prefix2 are prefixes of modules which"
+				,"will included to command's result."
+				,"if no options, all modules will be restarted."
+		});
+		detailedHelp.put(HELP, new String[]{
+				"[command]"
+				,"command: if we need help by command usage."
+				,"in case of no options, the list of commands will be returned."
+		});
+
+
+		return new HelpModuleCommand(detailedHelp);
 	}
 
 	/**
