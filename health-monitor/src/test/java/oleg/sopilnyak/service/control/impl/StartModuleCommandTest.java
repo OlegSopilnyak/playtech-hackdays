@@ -36,9 +36,7 @@ public class StartModuleCommandTest {
 	private ModulesRegistry registry;
 	@InjectMocks
 	private ModuleCommand command = new ModuleCommandConfiguration().makeStartModuleCommand();
-	;
 
-	private int counter = 0;
 
 	@Before
 	public void setUp() throws Exception {
@@ -49,7 +47,6 @@ public class StartModuleCommandTest {
 	@After
 	public void tearDown() throws Exception {
 		reset(registry);
-		counter = 0;
 	}
 
 	@Test

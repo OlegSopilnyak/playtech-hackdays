@@ -27,7 +27,16 @@ public class StopModuleCommand extends SwitchModuleCommandAdapter {
 		return STOP;
 	}
 
-	// protected methods
+	/**
+	 * To get description of command for help
+	 *
+	 * @return value
+	 */
+	@Override
+	public String description() {
+		return "Command to stop module(s).";
+	}
+// protected methods
 	/**
 	 * To get command-related logger
 	 *

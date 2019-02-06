@@ -41,6 +41,16 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 	}
 
 	/**
+	 * To get description of command for help
+	 *
+	 * @return value
+	 */
+	@Override
+	public String description() {
+		return "Command to get broad status of module(s).";
+	}
+
+	/**
 	 * To make command result instance
 	 *
 	 * @return instance

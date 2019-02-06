@@ -47,6 +47,16 @@ public class ChangeConfigurationModuleCommand extends ModuleCommandAdapter {
 	}
 
 	/**
+	 * To get description of command for help
+	 *
+	 * @return value
+	 */
+	@Override
+	public String description() {
+		return "Command to change configuration of module(s)";
+	}
+
+	/**
 	 * To process module and transform to ModuleInfo for further displaying
 	 *
 	 * @param module to process by command and transform to info

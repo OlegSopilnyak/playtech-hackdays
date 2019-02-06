@@ -33,6 +33,16 @@ public class ListModuleCommand extends ListModulesCommandAdapter {
 	}
 
 	/**
+	 * To get description of command for help
+	 *
+	 * @return value
+	 */
+	@Override
+	public String description() {
+		return "Command to show the list of registered modules.";
+	}
+
+	/**
 	 * To make command result instance
 	 *
 	 * @return instance

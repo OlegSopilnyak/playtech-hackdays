@@ -27,7 +27,16 @@ public class RestartModuleCommand extends SwitchModuleCommandAdapter {
 		return RESTART;
 	}
 
-	// protected methods
+	/**
+	 * To get description of command for help
+	 *
+	 * @return value
+	 */
+	@Override
+	public String description() {
+		return "Command to restart module(s).";
+	}
+// protected methods
 	/**
 	 * To get command-related logger
 	 *

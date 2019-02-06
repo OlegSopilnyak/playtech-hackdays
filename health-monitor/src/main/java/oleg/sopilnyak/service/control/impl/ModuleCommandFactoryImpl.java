@@ -46,6 +46,6 @@ public class ModuleCommandFactoryImpl implements ModuleCommandFactory {
 	 */
 	@Override
 	public Collection<String> availableCommands() {
-		return commandsStore.keySet().stream().map(type->type.name().toLowerCase()).sorted().collect(Collectors.toList());
+		return commandsStore.keySet().stream().map(type->type.name().toLowerCase()).collect(Collectors.toList());
 	}
 }

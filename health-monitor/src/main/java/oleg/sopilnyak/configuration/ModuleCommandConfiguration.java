@@ -13,8 +13,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Scope;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
+import static oleg.sopilnyak.service.control.model.ModuleCommandType.*;
 
 /**
  * Configuration: configuration for modules system control commands
@@ -89,19 +91,32 @@ public class ModuleCommandConfiguration {
 	}
 
 	/**
+	 * To change module's configuration command
+	 *
+	 * @return prototype
+	 */
+	@Bean(autowire = Autowire.BY_TYPE)
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	@DependsOn("makeModuleCommandFactory")
+	public HelpModuleCommand makeHelpModuleCommand() {
+		return new HelpModuleCommand();
+	}
+
+	/**
 	 * Factory of commands
 	 *
 	 * @return singleton
 	 */
 	@Bean(autowire = Autowire.BY_TYPE)
 	public ModuleCommandFactoryImpl makeModuleCommandFactory() {
-		final Map<ModuleCommandType, Class<? extends ModuleCommand>> commandsStore = new ConcurrentHashMap<>();
-		commandsStore.put(ModuleCommandType.LIST, ListModuleCommand.class);
-		commandsStore.put(ModuleCommandType.STATUS, StatusModuleCommand.class);
-		commandsStore.put(ModuleCommandType.START, StartModuleCommand.class);
-		commandsStore.put(ModuleCommandType.STOP, StopModuleCommand.class);
-		commandsStore.put(ModuleCommandType.RESTART, RestartModuleCommand.class);
-		commandsStore.put(ModuleCommandType.CHANGE, ChangeConfigurationModuleCommand.class);
+		final Map<ModuleCommandType, Class<? extends ModuleCommand>> commandsStore = new LinkedHashMap<>();
+		commandsStore.put(LIST, ListModuleCommand.class);
+		commandsStore.put(STATUS, StatusModuleCommand.class);
+		commandsStore.put(CHANGE, ChangeConfigurationModuleCommand.class);
+		commandsStore.put(START, StartModuleCommand.class);
+		commandsStore.put(STOP, StopModuleCommand.class);
+		commandsStore.put(RESTART, RestartModuleCommand.class);
+		commandsStore.put(HELP, HelpModuleCommand.class);
 		return new ModuleCommandFactoryImpl(commandsStore);
 	}
 }
