@@ -10,27 +10,19 @@ import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategy;
  *
  * @see VariableTypeStrategy
  */
-public class IntegerVariableTypeStrategy implements VariableTypeStrategy {
+public class IntegerVariableTypeStrategy extends NumberVariableTypeStrategy {
 	@Override
 	public String asString(Object value) {
 		if (value instanceof Number) {
-			return value.toString();
+			return Integer.toString(((Number)value).intValue());
 		}
 		throw new IllegalArgumentException("The value is not an Integer '" + value + "'");
 	}
 
 	@Override
-	public <T> T convert(Class<T> type, String stringValue) {
-		if (Number.class.isAssignableFrom(type)) {
-			return (T) convert(stringValue);
-		}
-		throw new IllegalArgumentException("The value is not converted to '" + type.getCanonicalName() + "'");
-	}
-
-	@Override
 	public Number convert(String stringValue) {
 		try {
-			return Integer.valueOf(stringValue);
+			return Double.valueOf(stringValue).intValue();
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Wrong digits format '" + stringValue + "'");
 		}

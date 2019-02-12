@@ -20,7 +20,7 @@ public class StringVariableTypeStrategy implements VariableTypeStrategy {
 
     @Override
     public <T> T convert(Class<T> type, String stringValue) {
-        if (type == String.class) {
+        if (String.class == type) {
             return (T) convert(stringValue);
         }
         throw new IllegalArgumentException("The value is not converted to '"+type.getCanonicalName()+"'");

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) Oleg Sopilnyak 2018
  */
 package oleg.sopilnyak.module.model.typestrategy.impl;
@@ -9,7 +9,7 @@ import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategy;
  * Strategy for Double
  * @see  VariableTypeStrategy
  */
-public class DoubleVariableTypeStrategy implements VariableTypeStrategy {
+public class DoubleVariableTypeStrategy extends NumberVariableTypeStrategy {
     @Override
     public String asString(Object value) {
         if (value instanceof  Number){
@@ -19,17 +19,9 @@ public class DoubleVariableTypeStrategy implements VariableTypeStrategy {
     }
 
     @Override
-    public <T> T convert(Class<T> type, String stringValue) {
-        if (Number.class.isAssignableFrom(type)) {
-            return (T) convert(stringValue);
-        }
-        throw new IllegalArgumentException("The value is not converted to '"+type.getCanonicalName()+"'");
-    }
-
-    @Override
     public Object convert(String stringValue) {
         try {
-            return Double.valueOf(stringValue);
+            return Double.valueOf(stringValue).doubleValue();
         }catch(NumberFormatException e){
             throw new IllegalArgumentException("Wrong digits format '"+stringValue+"'");
         }

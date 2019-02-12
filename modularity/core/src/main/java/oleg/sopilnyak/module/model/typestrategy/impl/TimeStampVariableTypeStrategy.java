@@ -22,7 +22,7 @@ public class TimeStampVariableTypeStrategy implements VariableTypeStrategy {
         if (value instanceof Date) {
             return dateConverter.format((Date) value);
         }
-        throw new IllegalArgumentException("The value is not a Double '" + value + "'");
+        throw new IllegalArgumentException("The value is not a Date '" + value + "'");
     }
 
     @Override
