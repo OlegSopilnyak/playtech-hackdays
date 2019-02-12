@@ -36,17 +36,7 @@ public class ModuleUtilityConfiguration {
 	 */
 	@Bean
 	public TimeService getTimeService() {
-		return new TimeService() {
-			@Override
-			public Instant now() {
-				return Instant.now();
-			}
-
-			@Override
-			public Long duration(Instant start) {
-				return Objects.isNull(start) ? -1L : Duration.between(start, now()).toMillis();
-			}
-		};
+		return new TimeServiceImpl();
 	}
 
 	/**
@@ -56,7 +46,7 @@ public class ModuleUtilityConfiguration {
 	 */
 	@Bean
 	public UniqueIdGenerator getUniqueIdGenerator(){
-		return () -> UUID.randomUUID().toString();
+		return new UniqueIdGeneratorImpl();
 	}
 
 	/**
@@ -99,5 +89,40 @@ public class ModuleUtilityConfiguration {
 		PatternLayout layout = new PatternLayout();
 		layout.setPattern("[%thread] %-5level %logger{50} - %msg%n");
 		return layout;
+	}
+	// inner classes
+	private static class TimeServiceImpl implements TimeService{
+		/**
+		 * To get current date-time
+		 *
+		 * @return current
+		 */
+		@Override
+		public Instant now() {
+			return Instant.now();
+		}
+
+		/**
+		 * To calculate duration between started and now in milliseconds
+		 *
+		 * @param start time of begin
+		 * @return duration value
+		 */
+		@Override
+		public Long duration(Instant start) {
+			return Objects.isNull(start) ? -1L : Duration.between(start, now()).toMillis();
+		}
+	}
+	private static class UniqueIdGeneratorImpl implements UniqueIdGenerator{
+
+		/**
+		 * To generate unique id
+		 *
+		 * @return unique id
+		 */
+		@Override
+		public String generate() {
+			return UUID.randomUUID().toString();
+		}
 	}
 }
