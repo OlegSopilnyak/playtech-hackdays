@@ -1,0 +1,4 @@
+group = 'oleg.sopilnyak'
+version = '0.6-SNAPSHOT'
+description = 'Commands to manage Registered Modules States'
+

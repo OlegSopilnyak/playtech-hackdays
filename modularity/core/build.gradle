@@ -1,0 +1,9 @@
+group = 'oleg.sopilnyak'
+version = '0.6-SNAPSHOT'
+description = 'Core classes and Services of Modules System'
+
+dependencies {
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.+'
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.+'
+        compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.+'
+}

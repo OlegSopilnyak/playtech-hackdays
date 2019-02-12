@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<configuration>
+
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>
+				%-5level %d{yyyy-MM-dd HH:mm:ss.SSS} [%-30.30logger{30}] %X{requestId, DISPLAY_EVAL} [%X{client, DISPLAY_CLIENT}] [%X{logType, DISPLAY_LOGTYPE}]  %msg%n                        
+			</pattern>
+		</encoder>
+	</appender> 
+
+	<logger name="org.springframework" level="info"/>
+	<logger name="com.veristream.visitorsystem" level="info"/>
+	<logger name="org.hibernate" level="info" />
+	<logger name="org.springframework.web.socket" level="error" />
+	<logger name="org.springframework.security.saml" level="info" />
+	<logger name="org.apache.http" level="info" />
+	<logger name="org.springframework.web.client" level="info" />
+
+
+	<root level="info">
+		<appender-ref ref="STDOUT" />
+	</root>
+
+</configuration>
