@@ -3,3 +3,5 @@ nb-configuration.xml
 nbproject/
 .idea/
 *.iml
+/modularity/.nb-gradle/
+/modularity/core/build/
