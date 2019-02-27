@@ -10,7 +10,7 @@ import oleg.sopilnyak.commands.impl.HelpModuleCommand;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.commands.model.result.CommandResultAdapter;
 import oleg.sopilnyak.module.Module;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 public abstract class ModuleCommandAdapter implements ModuleCommand {
 
 	@Autowired
-	protected ModulesRegistry registry;
+	protected ModulesRegistryService registry;
 	@Autowired
 	protected ObjectMapper jsonMapper;
 	@Autowired

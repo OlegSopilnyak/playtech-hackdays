@@ -11,7 +11,7 @@ import java.util.Collection;
 /**
  * Service to register-unregister modules, scan registry of module
  */
-public interface ModulesRegistry extends Module {
+public interface ModulesRegistryService extends Module {
 	// The name of properties package
 	String PACKAGE = "module.service.heartbeat";
 	// HeartBeat delay for Modules Registry

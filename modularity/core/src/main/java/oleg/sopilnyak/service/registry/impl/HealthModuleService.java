@@ -10,9 +10,9 @@ import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.RegistryModulesIteratorAdapter;
 import oleg.sopilnyak.service.dto.VariableItemDto;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
-import oleg.sopilnyak.service.registry.RegistryModulesIteratorAdapter;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * Service for register modules and check their registry condition
  */
 @Slf4j
-public class HealthModuleService extends RegistryModulesIteratorAdapter implements ModulesRegistry {
+public class HealthModuleService extends RegistryModulesIteratorAdapter implements ModulesRegistryService {
 	private static final String ACTIVITY_LABEL = "HealthCheck";
 	// future of scheduled activities
 	private volatile ScheduledFuture runnerFuture;
@@ -121,7 +121,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 		log.debug("Initiating service...");
 		final Module previous = modules.putIfAbsent(this.primaryKey(), this);
 		log.debug("Registered '{}' is '{}'", this.primaryKey(), Objects.isNull(previous));
-		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), 500, TimeUnit.MILLISECONDS);
+		runnerFuture = activityRunner.schedule(this::scanModulesHealth, 500, TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -190,7 +190,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 		module.metrics().stream()
 				.peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.name()))
 				.filter(m -> isActive())
-				.forEach(metric -> store(metric));
+				.forEach(this::store);
 
 		// save metric about module health check duration
 		getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
@@ -214,7 +214,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 			return;
 		}
 		log.debug("Rescheduling service");
-		runnerFuture = activityRunner.schedule(() -> scanModulesHealth(), delay, TimeUnit.MILLISECONDS);
+		runnerFuture = activityRunner.schedule(this::scanModulesHealth, delay, TimeUnit.MILLISECONDS);
 	}
 
 	/**

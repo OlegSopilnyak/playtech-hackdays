@@ -22,7 +22,7 @@ import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.dto.VariableItemDto;
 import oleg.sopilnyak.service.logging.ModuleLoggerService;
 import oleg.sopilnyak.service.metric.ModuleMetricAdapter;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -43,7 +43,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	@Autowired
 	private Layout<ILoggingEvent> eventLayout;
 	@Autowired
-	private ModulesRegistry modulesRegistry;
+	private ModulesRegistryService modulesRegistry;
 	@Autowired
 	private TimeService timeService;
 

@@ -1,11 +1,10 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2018
  */
-package oleg.sopilnyak.service.registry;
+package oleg.sopilnyak.service;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.ModuleServiceAdapter;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;

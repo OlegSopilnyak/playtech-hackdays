@@ -6,7 +6,7 @@ import oleg.sopilnyak.commands.impl.ListModuleCommand;
 import oleg.sopilnyak.commands.impl.RestartModuleCommand;
 import oleg.sopilnyak.commands.impl.StartModuleCommand;
 import oleg.sopilnyak.commands.impl.StopModuleCommand;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,8 +57,8 @@ public class ModuleCommandConfigurationTest {
 	static class TestConfiguration{
 
 		@Bean
-		public ModulesRegistry mockModulesRegistry(){
-			ModulesRegistry registry = mock(ModulesRegistry.class);
+		public ModulesRegistryService mockModulesRegistry(){
+			ModulesRegistryService registry = mock(ModulesRegistryService.class);
 			return registry;
 		}
 	}

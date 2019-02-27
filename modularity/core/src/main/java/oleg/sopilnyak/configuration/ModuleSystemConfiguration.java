@@ -10,6 +10,7 @@ import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl;
 import oleg.sopilnyak.service.logging.impl.ModuleSlf4jLogAppender;
 import oleg.sopilnyak.service.metric.impl.MetricsContainerImpl;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import oleg.sopilnyak.service.registry.impl.HealthModuleService;
 import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -66,7 +67,7 @@ public class ModuleSystemConfiguration {
 	 * Service: service for modules health check, and registry
 	 *
 	 * @return singleton
-	 * @see oleg.sopilnyak.service.registry.ModulesRegistry
+	 * @see ModulesRegistryService
 	 */
 	@Bean(name = "module.healthCheckService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
 	public HealthModuleService getHealthModuleService() {

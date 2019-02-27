@@ -13,7 +13,7 @@ import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.module.model.action.ResultModuleAction;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
@@ -47,7 +47,7 @@ public abstract class ModuleServiceAdapter implements Module {
 	protected ScheduledExecutorService activityRunner;
 	// the registry of modules
 	@Autowired(required = false)
-	protected ModulesRegistry registry;
+	protected ModulesRegistryService registry;
 	// the factory of actions
 	@Autowired
 	protected ModuleActionFactory actionsFactory;
@@ -75,7 +75,7 @@ public abstract class ModuleServiceAdapter implements Module {
 
 		healthCondition = INIT;
 		// register module in registry
-		if (!(this instanceof ModulesRegistry)) {
+		if (!(this instanceof ModulesRegistryService)) {
 			registry.add(this);
 		}
 
@@ -88,7 +88,7 @@ public abstract class ModuleServiceAdapter implements Module {
 		ResultModuleAction result;
 		// setup module's configuration
 		result = (ResultModuleAction)actionsFactory
-				.executeAtomicModuleAction(this, CONFIGURE_MODULE_ACTION_NAME, () -> setupModuleConfiguration(), false);
+				.executeAtomicModuleAction(this, CONFIGURE_MODULE_ACTION_NAME, this::setupModuleConfiguration, false);
 		if (result.getState() == ModuleAction.State.FAIL) {
 			metricsContainer.action().fail(mainAction, result.getCause());
 			// module couldn't configured properly
@@ -98,7 +98,7 @@ public abstract class ModuleServiceAdapter implements Module {
 
 		// concrete-module-related init
 		result = (ResultModuleAction) actionsFactory
-				.executeAtomicModuleAction(this, INIT_MODULE_ACTION_NAME, () -> initAsService(), false);
+				.executeAtomicModuleAction(this, INIT_MODULE_ACTION_NAME, this::initAsService, false);
 
 		if (result.getState() == ModuleAction.State.FAIL) {
 			metricsContainer.action().fail(mainAction, result.getCause());
@@ -124,14 +124,14 @@ public abstract class ModuleServiceAdapter implements Module {
 		activateMainModuleAction();
 
 		active = false;
-		if (!(this instanceof ModulesRegistry)) {
+		if (!(this instanceof ModulesRegistryService)) {
 			registry.remove(this);
 		}
 
 
 		// concrete-module-related shutdown
 		final String actionName = "shutdown-module";
-		actionsFactory.executeAtomicModuleAction(this, actionName, () -> shutdownAsService(), false);
+		actionsFactory.executeAtomicModuleAction(this, actionName, this::shutdownAsService, false);
 
 		// finish main-action activity
 		finishModuleAction(healthCondition != FAIL);
@@ -278,7 +278,7 @@ public abstract class ModuleServiceAdapter implements Module {
 		activateMainModuleAction();
 
 		final boolean[] changedModule = new boolean[]{false};
-		changed.forEach((k, v) -> {changedModule[0] = changedModule[0] || configurationItemChanged(k, v);});
+		changed.forEach((k, v) -> changedModule[0] = changedModule[0] || configurationItemChanged(k, v));
 
 		if (changedModule[0]) {
 			restart();

@@ -7,9 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.RegistryModulesIteratorAdapter;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.registry.RegistryModulesIteratorAdapter;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -45,7 +45,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	protected void initAsService() {
 		log.debug("Initiating service...");
 		configurationStorage.addConfigurationListener(storageListener);
-		runnerFuture = activityRunner.schedule(() -> scanModulesConfiguration(), 50, TimeUnit.MILLISECONDS);
+		runnerFuture = activityRunner.schedule(this::scanModulesConfiguration, 50, TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -94,7 +94,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	void runNotificationProcessing(Collection<String> modules) {
 		storageChangesQueue.offer(modules);
 		if (Objects.isNull(notifyFuture) || notifyFuture.isDone()) {
-			notifyFuture = activityRunner.schedule(() -> scheduleScan(), 50, TimeUnit.MILLISECONDS);
+			notifyFuture = activityRunner.schedule(this::scheduleScan, 50, TimeUnit.MILLISECONDS);
 		} else {
 			waitForFutureDone(notifyFuture);
 			try {
@@ -102,7 +102,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 			} catch (InterruptedException e) {
 				log.debug("Cannot get item from queue.", e);
 			}
-			notifyFuture = activityRunner.schedule(() -> scheduleScan(), 50, TimeUnit.MILLISECONDS);
+			notifyFuture = activityRunner.schedule(this::scheduleScan, 50, TimeUnit.MILLISECONDS);
 		}
 	}
 
@@ -115,7 +115,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 			return;
 		}
 		waitForFutureDone(runnerFuture);
-		runnerFuture = activityRunner.schedule(() -> scanModulesConfiguration(), 50, TimeUnit.MILLISECONDS);
+		runnerFuture = activityRunner.schedule(this::scanModulesConfiguration, 50, TimeUnit.MILLISECONDS);
 	}
 
 	void waitForFutureDone(ScheduledFuture future) {

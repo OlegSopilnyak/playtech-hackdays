@@ -13,7 +13,7 @@ import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.dto.VariableItemDto;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +41,7 @@ public class StatusModuleCommandTest {
 	@Spy
 	private ObjectMapper mapper = new ModuleUtilityConfiguration().getObjectMapper();
 	@Mock
-	private ModulesRegistry registry;
+	private ModulesRegistryService registry;
 	@Mock
 	private ObjectFactory<HelpModuleCommand> helpCommandFactory;
 

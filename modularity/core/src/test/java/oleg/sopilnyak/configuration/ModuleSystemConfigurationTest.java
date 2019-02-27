@@ -12,7 +12,7 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.invocation.InvocationOnMock;
@@ -65,7 +65,7 @@ public class ModuleSystemConfigurationTest {
 
 	@Test
 	public void getHealthModuleService() {
-		assertNotNull(context.getBean(ModulesRegistry.class));
+		assertNotNull(context.getBean(ModulesRegistryService.class));
 	}
 
 	@Test

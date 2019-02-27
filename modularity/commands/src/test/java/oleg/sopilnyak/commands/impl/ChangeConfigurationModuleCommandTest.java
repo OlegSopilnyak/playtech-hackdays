@@ -14,7 +14,7 @@ import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.dto.VariableItemDto;
-import oleg.sopilnyak.service.registry.ModulesRegistry;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +42,7 @@ public class ChangeConfigurationModuleCommandTest {
 	@Spy
 	private ObjectMapper mapper = new ModuleUtilityConfiguration().getObjectMapper();
 	@Mock
-	private ModulesRegistry registry;
+	private ModulesRegistryService registry;
 	@Mock
 	private ModuleConfigurationStorage storage;
 	@Mock
@@ -54,7 +54,7 @@ public class ChangeConfigurationModuleCommandTest {
 	private ModuleCommand command = new ModuleCommandConfiguration().makeChangeConfigurationModuleCommand();
 
 	@Before
-	public void setUp() throws Exception {
+	public void setUp() {
 		List<Module> modules = makeModules();
 		when(registry.registered()).thenReturn(modules);
 		when(registry.getRegistered("1:2:3")).thenReturn(modules.get(0));
@@ -67,7 +67,7 @@ public class ChangeConfigurationModuleCommandTest {
 	}
 
 	@After
-	public void tearDown() throws Exception {
+	public void tearDown(){
 		reset(registry);
 	}
 
