@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.metric;
+package oleg.sopilnyak.module.metric;
 
 import oleg.sopilnyak.module.model.ModuleAction;
 

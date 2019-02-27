@@ -5,13 +5,13 @@ package oleg.sopilnyak.service.action.impl;
 
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.metric.ActionMetricsContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.ModuleActionRuntimeException;
 import oleg.sopilnyak.module.model.action.ResultModuleAction;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.dto.ModuleDto;
-import oleg.sopilnyak.service.metric.ActionMetricsContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

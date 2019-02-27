@@ -21,7 +21,7 @@ import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.dto.VariableItemDto;
 import oleg.sopilnyak.service.logging.ModuleLoggerService;
-import oleg.sopilnyak.service.metric.impl.ModuleMetricAdapter;
+import oleg.sopilnyak.service.metric.ModuleMetricAdapter;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

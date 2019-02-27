@@ -4,15 +4,12 @@
 package oleg.sopilnyak.service.metric.impl;
 
 import oleg.sopilnyak.module.Module;
-import oleg.sopilnyak.module.metric.MetricsContainer;
-import oleg.sopilnyak.module.metric.ModuleMetric;
+import oleg.sopilnyak.module.metric.*;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.service.TimeService;
-import oleg.sopilnyak.service.metric.ActionMetricsContainer;
-import oleg.sopilnyak.service.metric.DurationMetricsContainer;
-import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
+import oleg.sopilnyak.service.metric.ModuleMetricAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.PrintWriter;

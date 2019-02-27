@@ -3,10 +3,6 @@
  */
 package oleg.sopilnyak.module.metric;
 
-import oleg.sopilnyak.service.metric.ActionMetricsContainer;
-import oleg.sopilnyak.service.metric.DurationMetricsContainer;
-import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
-
 import java.util.Collection;
 
 /**

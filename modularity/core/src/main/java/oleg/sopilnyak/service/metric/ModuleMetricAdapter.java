@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2018
  */
-package oleg.sopilnyak.service.metric.impl;
+package oleg.sopilnyak.service.metric;
 
 import lombok.Data;
 import oleg.sopilnyak.module.metric.ModuleMetric;

@@ -3,6 +3,9 @@
  */
 package oleg.sopilnyak.configuration;
 
+import oleg.sopilnyak.module.metric.ActionMetricsContainer;
+import oleg.sopilnyak.module.metric.DurationMetricsContainer;
+import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl;
 import oleg.sopilnyak.service.logging.impl.ModuleSlf4jLogAppender;
@@ -27,9 +30,9 @@ public class ModuleSystemConfiguration {
 	 *
 	 * @return prototype
 	 * @see oleg.sopilnyak.module.metric.MetricsContainer
-	 * @see oleg.sopilnyak.service.metric.ActionMetricsContainer
-	 * @see oleg.sopilnyak.service.metric.HeartBeatMetricContainer
-	 * @see oleg.sopilnyak.service.metric.DurationMetricsContainer
+	 * @see ActionMetricsContainer
+	 * @see HeartBeatMetricContainer
+	 * @see DurationMetricsContainer
 	 */
 	@Bean(autowire = Autowire.BY_TYPE)
 	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)

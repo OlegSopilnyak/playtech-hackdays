@@ -1,6 +1,9 @@
 package oleg.sopilnyak.configuration;
 
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.metric.ActionMetricsContainer;
+import oleg.sopilnyak.module.metric.DurationMetricsContainer;
+import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.metric.storage.SelectCriteria;
@@ -9,9 +12,6 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.metric.ActionMetricsContainer;
-import oleg.sopilnyak.service.metric.DurationMetricsContainer;
-import oleg.sopilnyak.service.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.registry.ModulesRegistry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
