@@ -3,6 +3,7 @@
  */
 package oleg.sopilnyak.service.action.impl;
 
+import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
@@ -23,7 +24,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 import java.net.InetAddress;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -41,7 +41,7 @@ public class ModuleActionFactoryImplTest {
     private String hostName;
 
     @Spy
-    private UniqueIdGenerator generator = () -> UUID.randomUUID().toString();
+    private UniqueIdGenerator generator = new ModuleUtilityConfiguration().getUniqueIdGenerator();
 
     @InjectMocks
     private ModuleActionFactoryImpl factory = new ModuleActionFactoryImpl();
