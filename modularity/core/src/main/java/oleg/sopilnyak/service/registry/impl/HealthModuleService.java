@@ -41,7 +41,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	private ModuleMetricStorage metricStorage;
 
 	public HealthModuleService() {
-		registry = this;
+		super.registry = this;
 		moduleConfiguration.put(delayName(), new VariableItemDto(DELAY_NAME, DELAY_DEFAULT));
 		moduleConfiguration.put(ignoreModulesName(), new VariableItemDto(IGNORE_MODULE_NAME, IGNORE_MODULE_DEFAULT));
 	}
@@ -54,11 +54,11 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	@Override
 	public void add(final Module module) {
 		assert module != null;
-		// activate main module action
-		activateMainModuleAction();
-
-		log.debug("Registering '{}'", module.primaryKey());
 		if (module != this) {
+			// activate main module action
+			activateMainModuleAction();
+
+			log.debug("Registering '{}'", module.primaryKey());
 			modules.putIfAbsent(module.primaryKey(), module);
 		}
 	}
@@ -71,11 +71,11 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	@Override
 	public void remove(final Module module) {
 		assert module != null;
-		// activate main module action
-		activateMainModuleAction();
-
-		log.debug("Unregistering '{}'", module.primaryKey());
 		if (module != this) {
+			// activate main module action
+			activateMainModuleAction();
+
+			log.debug("Unregistering '{}'", module.primaryKey());
 			modules.remove(module.primaryKey());
 		}
 	}
@@ -118,9 +118,11 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
 	 */
 	@Override
 	protected void initAsService() {
-		log.debug("Initiating service...");
-		final Module previous = modules.putIfAbsent(this.primaryKey(), this);
-		log.debug("Registered '{}' is '{}'", this.primaryKey(), Objects.isNull(previous));
+		if (log.isDebugEnabled()) {
+			log.debug("Initiating service...");
+			final Module previous = modules.putIfAbsent(this.primaryKey(), this);
+			log.debug("Registered '{}' is '{}'", this.primaryKey(), Objects.isNull(previous));
+		}
 		runnerFuture = activityRunner.schedule(this::scanModulesHealth, 500, TimeUnit.MILLISECONDS);
 	}
 
