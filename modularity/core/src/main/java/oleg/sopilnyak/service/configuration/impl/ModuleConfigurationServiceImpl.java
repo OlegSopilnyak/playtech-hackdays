@@ -43,6 +43,10 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	 */
 	@Override
 	protected void initAsService() {
+		if (active){
+			log.debug("Service initiated already...");
+			return;
+		}
 		log.debug("Initiating service...");
 		configurationStorage.addConfigurationListener(storageListener);
 		runnerFuture = activityRunner.schedule(this::scanModulesConfiguration, 50, TimeUnit.MILLISECONDS);
@@ -53,11 +57,14 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	 */
 	@Override
 	protected void shutdownAsService() {
+		if (!active){
+			log.debug("Service stopped already...");
+			return;
+		}
 		log.debug("Stopping service...");
 		notifyFuture = stopFuture(notifyFuture);
 		runnerFuture = stopFuture(runnerFuture);
 		configurationStorage.removeConfigurationListener(storageListener);
-		registry.remove(this);
 	}
 
 	/**
