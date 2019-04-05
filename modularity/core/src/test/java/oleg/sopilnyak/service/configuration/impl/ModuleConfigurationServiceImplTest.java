@@ -32,9 +32,11 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -163,21 +165,70 @@ public class ModuleConfigurationServiceImplTest {
 
 	@Test
 	public void scanModulesConfiguration() {
+		reset(timeService);
+
+		Map<String, VariableItem> config = new HashMap<>();
+		config.put("1.2.3.4.value", new VariableItemDto("value", 100));
+		when(module.getConfiguration()).thenReturn(config);
+		when(configurationStorage.getUpdatedVariables(module, config)).thenReturn(config).thenReturn(Collections.emptyMap());
+
+		when(registry.registered()).thenReturn(Collections.singletonList(module));
+
+		service.scanModulesConfiguration();
+
+		verify(actionsFactory, times(1)).executeAtomicModuleAction(eq(service), eq("configuration-check"), any(Runnable.class), eq(false));
+		verify(actionsFactory, times(2)).startMainAction(eq(service));
+		verify(actionsFactory, times(2)).currentAction();
+
+		verify(module, times(1)).getConfiguration();
+		verify(configurationStorage, times(1)).getUpdatedVariables(eq(module), eq(config));
+		// changing module configuration
+		verify(module, times(1)).configurationChanged(eq(config));
 	}
 
 	@Test
-	public void runNotificationProcessing() {
+	public void runNotificationProcessing() throws InterruptedException {
+		reset(actionsFactory);
+		String testModule="testModule";
+
+		service.runNotificationProcessing(Collections.singleton(testModule));
+
+		TimeUnit.MILLISECONDS.sleep(100);
+
+		verify(activityRunner, times(2)).schedule(any(Runnable.class), eq(50L), eq(TimeUnit.MILLISECONDS));
+		verify(actionsFactory, atLeastOnce()).startMainAction(eq(service));
 	}
 
 	@Test
 	public void scheduleScan() {
+		reset(actionsFactory);
+
+		String testModule = "testModule";
+
+		BlockingQueue<Collection<String>> storageChangesQueue = (BlockingQueue<Collection<String>>) ReflectionTestUtils.getField(service, "storageChangesQueue");
+		storageChangesQueue.add(Collections.singleton(testModule));
+
+		service.scheduleScan();
+
+		verify(activityRunner, times(1)).schedule(any(Runnable.class), eq(50L), eq(TimeUnit.MILLISECONDS));
+		verify(actionsFactory, times(1)).startMainAction(eq(service));
 	}
 
 	@Test
 	public void waitForFutureDone() {
+		service.waitForFutureDone(null);
+
+		ScheduledFuture future = activityRunner.schedule(()->System.out.println("test wait for"), 50, TimeUnit.MILLISECONDS);
+
+		service.waitForFutureDone(future);
 	}
 
 	@Test
 	public void stopFuture() {
+		service.stopFuture(null);
+
+		ScheduledFuture future = activityRunner.schedule(()->System.out.println("test stop"), 50, TimeUnit.MILLISECONDS);
+
+		service.stopFuture(future);
 	}
 }

@@ -126,6 +126,9 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	}
 
 	void waitForFutureDone(ScheduledFuture future) {
+		if (Objects.isNull(future)){
+			return;
+		}
 		while (!future.isDone()) {
 			try {
 				TimeUnit.MILLISECONDS.sleep(200);
