@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -32,14 +33,21 @@ import static oleg.sopilnyak.module.model.ModuleHealthCondition.*;
  */
 public abstract class ModuleServiceAdapter implements Module {
 	public static final String INIT_MODULE_ACTION_NAME = "init-module";
+	public static final String SHUTDOWN_MODULE_ACTION_NAME = "shutdown-module";
 	public static final String CONFIGURE_MODULE_ACTION_NAME = "configure-module";
 	// main action of module
 	private volatile ModuleAction moduleMainAction;
 
+	// the lock for module's health-condition changes
+	private final Lock healthLock = new ReentrantLock();
+
 	protected volatile boolean active = false;
 	protected volatile ModuleHealthCondition healthCondition;
+
+	// last throwable value
 	protected volatile Throwable lastThrow;
-	private Lock healthLock = new ReentrantLock();
+
+	// current module's configuration map
 	protected final Map<String, VariableItem> moduleConfiguration = new ConcurrentHashMap<>();
 
 	// launcher of module's actions
@@ -73,22 +81,23 @@ public abstract class ModuleServiceAdapter implements Module {
 			return;
 		}
 
-		healthCondition = INIT;
+		this.healthCondition = INIT;
 		// register module in registry
 		if (!(this instanceof ModulesRegistryService)) {
 			registry.add(this);
 		}
 
 		// start main-action activity
-		final ModuleActionAdapter mainAction = (ModuleActionAdapter) getMainAction();
+		final ModuleActionAdapter mainAction = (ModuleActionAdapter) this.getMainAction();
+
+		// prepare main-action for the work
 		activateMainModuleAction();
 		// module is active
 		active = true;
 
 		ResultModuleAction result;
 		// setup module's configuration
-		result = (ResultModuleAction)actionsFactory
-				.executeAtomicModuleAction(this, CONFIGURE_MODULE_ACTION_NAME, this::setupModuleConfiguration, false);
+		result = executeAtomicAction(CONFIGURE_MODULE_ACTION_NAME, this::setupModuleConfiguration);
 		if (result.getState() == ModuleAction.State.FAIL) {
 			metricsContainer.action().fail(mainAction, result.getCause());
 			// module couldn't configured properly
@@ -97,18 +106,19 @@ public abstract class ModuleServiceAdapter implements Module {
 		}
 
 		// concrete-module-related init
-		result = (ResultModuleAction) actionsFactory
-				.executeAtomicModuleAction(this, INIT_MODULE_ACTION_NAME, this::initAsService, false);
+		result = executeAtomicAction(INIT_MODULE_ACTION_NAME, this::initAsService);
 
 		if (result.getState() == ModuleAction.State.FAIL) {
 			metricsContainer.action().fail(mainAction, result.getCause());
 			// module couldn't start properly
 			active = false;
-		} else {
-			// running main action
-			mainAction.setState(ModuleAction.State.PROGRESS);
-			metricsContainer.action().changed(mainAction);
+			return;
 		}
+
+		// running main action
+		mainAction.setState(ModuleAction.State.PROGRESS);
+		metricsContainer.action().changed(mainAction);
+
 	}
 
 	/**
@@ -130,8 +140,7 @@ public abstract class ModuleServiceAdapter implements Module {
 
 
 		// concrete-module-related shutdown
-		final String actionName = "shutdown-module";
-		actionsFactory.executeAtomicModuleAction(this, actionName, this::shutdownAsService, false);
+		executeAtomicAction(SHUTDOWN_MODULE_ACTION_NAME, this::shutdownAsService);
 
 		// finish main-action activity
 		finishModuleAction(healthCondition != FAIL);
@@ -277,10 +286,10 @@ public abstract class ModuleServiceAdapter implements Module {
 		}
 		activateMainModuleAction();
 
-		final boolean[] changedModule = new boolean[]{false};
-		changed.forEach((k, v) -> changedModule[0] = changedModule[0] || configurationItemChanged(k, v));
+		final AtomicBoolean changedModule = new AtomicBoolean(false);
+		changed.forEach((k, v) -> changedModule.getAndSet(changedModule.get() || configurationItemChanged(k, v)));
 
-		if (changedModule[0]) {
+		if (changedModule.get()) {
 			restart();
 		}
 	}
@@ -301,13 +310,14 @@ public abstract class ModuleServiceAdapter implements Module {
 	 * @param varName variable's name
 	 * @return value or null if not exists or module is not active
 	 */
-	public VariableItem configurationVariableOf(String varName){
+	public VariableItem configurationVariableOf(String varName) {
 		if (!isActive() || StringUtils.isEmpty(varName)) {
 			// service is not active or itemName is wrong
 			return null;
 		}
-		return moduleConfiguration.get(varName);
+		return getConfiguration().get(varName);
 	}
+
 	// protected methods - should be redefined in children
 	protected void activateMainModuleAction() {
 		// setup action for main-module activity
@@ -342,13 +352,17 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	// private methods
-	void setupModuleConfiguration(){
+	ResultModuleAction executeAtomicAction(String actionName, Runnable toRun) {
+		return (ResultModuleAction) actionsFactory.executeAtomicModuleAction(this, actionName, toRun, false);
+	}
+
+	void setupModuleConfiguration() {
 		final Instant mark = timeService.now();
+
+		configurationStorage.getUpdatedVariables(this, getConfiguration()).forEach((k, v) -> this.configurationItemChanged(k, v));
+
 		final ModuleAction action = actionsFactory.currentAction();
-		configurationStorage
-				.getUpdatedVariables(this, moduleConfiguration)
-				.forEach((k,v)->configurationItemChanged(k, v));
-		final String modulePK = primaryKey();
-		getMetricsContainer().duration().simple("Init Configuration", action, timeService.now(), modulePK, timeService.duration(mark));
+		final long operationDuration = timeService.duration(mark);
+		getMetricsContainer().duration().simple("Init Configuration", action, timeService.now(), this.primaryKey(), operationDuration);
 	}
 }

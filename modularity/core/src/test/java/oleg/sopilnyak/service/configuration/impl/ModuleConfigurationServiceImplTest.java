@@ -221,6 +221,9 @@ public class ModuleConfigurationServiceImplTest {
 		ScheduledFuture future = activityRunner.schedule(()->System.out.println("test wait for"), 50, TimeUnit.MILLISECONDS);
 
 		service.waitForFutureDone(future);
+
+		assertFalse(future.isCancelled());
+		assertTrue(future.isDone());
 	}
 
 	@Test
@@ -230,5 +233,8 @@ public class ModuleConfigurationServiceImplTest {
 		ScheduledFuture future = activityRunner.schedule(()->System.out.println("test stop"), 50, TimeUnit.MILLISECONDS);
 
 		service.stopFuture(future);
+
+		assertTrue(future.isCancelled());
+		assertTrue(future.isDone());
 	}
 }

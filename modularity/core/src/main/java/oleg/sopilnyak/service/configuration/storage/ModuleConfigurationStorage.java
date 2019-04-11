@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.configuration.storage;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.dto.ModuleDto;
 
 import java.util.Collection;
 import java.util.Map;
@@ -42,6 +43,12 @@ public interface ModuleConfigurationStorage {
 	 * @param listener listener of changes
 	 */
 	void removeConfigurationListener(ConfigurationListener listener);
+	/**
+	 * To get access to configurations store
+	 *
+	 * @return instance
+	 */
+	Repository getConfigurationRepository();
 
 	// inner classes
 
@@ -55,5 +62,34 @@ public interface ModuleConfigurationStorage {
 		 * @param modules modules which configuration was changed
 		 */
 		void changedModules(Collection<String> modules);
+	}
+	/**
+	 * Service, the store of modules' configurations
+	 */
+	interface Repository {
+
+		/**
+		 * To add items to exists configuration
+		 *
+		 * @param module module-owner of configuration
+		 * @param configuration configuration's items to add
+		 */
+		void expandConfiguration(ModuleDto module, Map<String, VariableItem> configuration);
+
+		/**
+		 * To replace items of exists module configuration
+		 *
+		 * @param module module-owner of configuration
+		 * @param configuration configuration's items to replace
+		 */
+		void replaceConfiguration(ModuleDto module, Map<String, VariableItem> configuration);
+
+		/**
+		 * To get configuration of module
+		 *
+		 * @param module the owner of configuration
+		 * @return stored module's configuration
+		 */
+		Map<String, VariableItem> getConfiguration(ModuleDto module);
 	}
 }
