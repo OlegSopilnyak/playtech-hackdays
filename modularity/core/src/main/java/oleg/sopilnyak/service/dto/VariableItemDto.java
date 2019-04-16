@@ -28,6 +28,9 @@ public class VariableItemDto implements VariableItem, Serializable {
 	@JsonProperty("value")
 	private String valueAsString;
 
+	public VariableItemDto() {
+	}
+
 	/**
 	 * Constructor for String type
 	 *
@@ -143,6 +146,21 @@ public class VariableItemDto implements VariableItem, Serializable {
 	@Override
 	public VariableTypeStrategy strategy() {
 		return strategy;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		VariableItemDto that = (VariableItemDto) o;
+		return type == that.type &&
+				name.equals(that.name) &&
+				valueAsString.equals(that.valueAsString);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(type, name, valueAsString);
 	}
 
 	@Override

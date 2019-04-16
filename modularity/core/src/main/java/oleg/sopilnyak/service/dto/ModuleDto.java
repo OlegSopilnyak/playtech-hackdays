@@ -4,12 +4,14 @@
 package oleg.sopilnyak.service.dto;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import oleg.sopilnyak.module.ModuleBasics;
 
 /**
  * Type to transport Module's properties
  */
 @Data
+@NoArgsConstructor
 public class ModuleDto implements ModuleBasics {
 	private String systemId;
 	private String moduleId;
