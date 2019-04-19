@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.configuration.impl;
+package oleg.sopilnyak.service.configuration.storage.impl;
 
 import oleg.sopilnyak.configuration.ModuleSystemConfiguration;
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;

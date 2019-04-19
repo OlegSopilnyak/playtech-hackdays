@@ -13,10 +13,12 @@ import oleg.sopilnyak.service.dto.ModuleDto;
 import oleg.sopilnyak.service.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -119,17 +121,17 @@ public class ModuleConfigurationStorageAdapterTest {
 
 		assertNotNull(updated);
 		assertEquals(1, updated.size());
-		assertNotEquals(moduleConfiguration.get("test.test"), updated.get("test.test"));
-		assertEquals(new Integer(100), updated.get("test.test").get(Integer.class));
+		Assert.assertNotEquals(moduleConfiguration.get("test.test"), updated.get("test.test"));
+		Assert.assertEquals(new Integer(100), updated.get("test.test").get(Integer.class));
 
 		verify(testConfiguration, times(1)).get(eq("1.1"));
 		verify(testConfiguration, times(1)).get(eq("test.test"));
 		verify(sharedQueue, times(1)).add(any(ExpandConfigurationEvent.class));
-		verify(sharedCache,times(1)).put(eq(testModule.primaryKey()), anyMap());
+		verify(sharedCache,times(1)).put(Matchers.eq(testModule.primaryKey()), anyMap());
 	}
 
 	@Test
-	public void updateConfiguration() {
+	public void updateConfiguration() throws InterruptedException {
 		Map<String, VariableItem> moduleConfiguration = new HashMap<>();
 		moduleConfiguration.putIfAbsent("1.1", new VariableItemDto("1", 200));
 		moduleConfiguration.putIfAbsent("test.test", new VariableItemDto("test", 300));
@@ -138,6 +140,9 @@ public class ModuleConfigurationStorageAdapterTest {
 		storage.addConfigurationListener(listener);
 
 		storage.updateConfiguration(testModule, moduleConfiguration);
+		TimeUnit.MILLISECONDS.sleep(50);
+
+		// check the results
 		storage.removeConfigurationListener(listener);
 
 		verify(sharedQueue, times(1)).add(any(ReplaceConfigurationEvent.class));
