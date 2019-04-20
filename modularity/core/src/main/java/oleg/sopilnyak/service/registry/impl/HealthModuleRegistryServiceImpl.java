@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * Service for register modules and check their registry condition
  */
 @Slf4j
-public class HealthModuleService extends RegistryModulesIteratorAdapter implements ModulesRegistryService {
+public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdapter implements ModulesRegistryService {
     private static final String ACTIVITY_LABEL = "HealthCheck";
     // future of scheduled activities
     private volatile ScheduledFuture runnerFuture;
@@ -40,7 +40,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
     @Autowired
     private ModuleMetricStorage metricStorage;
 
-    public HealthModuleService() {
+    public HealthModuleRegistryServiceImpl() {
         super.registry = this;
         moduleConfiguration.put(delayName(), new VariableItemDto(DELAY_NAME, DELAY_DEFAULT));
         moduleConfiguration.put(ignoreModulesName(), new VariableItemDto(IGNORE_MODULE_NAME, IGNORE_MODULE_DEFAULT));
@@ -193,8 +193,8 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
         AtomicInteger counter = new AtomicInteger(1);
         module.metrics().stream()
                 .peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.name()))
-                .filter(m -> isActive())
-                .forEach(this::store);
+                .filter(metric -> this.isActive())
+                .forEach(this::storeMetric);
 
         // save metric about module health check duration
         getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
@@ -226,7 +226,7 @@ public class HealthModuleService extends RegistryModulesIteratorAdapter implemen
      *
      * @param metric metric to be saved
      */
-    void store(ModuleMetric metric) {
+    void storeMetric(ModuleMetric metric) {
         log.debug("Storing metric '{}' of '{}'", metric.name(), metric.action().getModule().primaryKey());
         final ModuleAction action = metric.action();
         final String modulePK = action.getModule().primaryKey();

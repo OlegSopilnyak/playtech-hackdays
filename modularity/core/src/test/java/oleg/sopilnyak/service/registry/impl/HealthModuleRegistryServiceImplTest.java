@@ -45,7 +45,7 @@ import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HealthModuleServiceTest {
+public class HealthModuleRegistryServiceImplTest {
 
     @Mock
     private Module module;
@@ -72,7 +72,7 @@ public class HealthModuleServiceTest {
     @Mock
     private ModuleMetricStorage metricStorage;
     @InjectMocks
-    private HealthModuleService service = new HealthModuleService();
+    private HealthModuleRegistryServiceImpl service = new HealthModuleRegistryServiceImpl();
 
     @Before
     public void setUp() throws Exception {
@@ -245,7 +245,7 @@ public class HealthModuleServiceTest {
                 return "test-metric";
             }
         };
-        service.store(metric);
+        service.storeMetric(metric);
         String modulePK = mainAction.getModule().primaryKey();
         String host = mainAction.getHostName();
         Instant measured = metric.measured();

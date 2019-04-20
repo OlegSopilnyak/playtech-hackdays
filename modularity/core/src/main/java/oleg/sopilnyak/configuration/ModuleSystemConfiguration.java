@@ -10,8 +10,9 @@ import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.configuration.storage.impl.ModuleConfigurationServiceImpl;
 import oleg.sopilnyak.service.logging.impl.ModuleSlf4jLogAppender;
 import oleg.sopilnyak.service.metric.impl.MetricsContainerImpl;
+import oleg.sopilnyak.service.metric.impl.ModuleMetricsConfiguration;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
-import oleg.sopilnyak.service.registry.impl.HealthModuleService;
+import oleg.sopilnyak.service.registry.impl.HealthModuleRegistryServiceImpl;
 import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +24,7 @@ import org.springframework.context.annotation.Scope;
  * Configuration: main configuration for modules system
  */
 @Configuration
-@Import({ModuleUtilityConfiguration.class})
+@Import({ModuleUtilityConfiguration.class, ModuleMetricsConfiguration.class})
 public class ModuleSystemConfiguration {
 
 	/**
@@ -70,8 +71,8 @@ public class ModuleSystemConfiguration {
 	 * @see ModulesRegistryService
 	 */
 	@Bean(name = "module.healthCheckService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
-	public HealthModuleService getHealthModuleService() {
-		return new HealthModuleService();
+	public HealthModuleRegistryServiceImpl getHealthModuleService() {
+		return new HealthModuleRegistryServiceImpl();
 	}
 
 	/**

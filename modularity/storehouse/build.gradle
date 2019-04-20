@@ -1,7 +1,7 @@
-group = 'oleg.sopilnyak'
-version = '0.6-SNAPSHOT'
-description = 'Storage of durable data, like configurations and metrics'
+version '0.2-SNAPSHOT'
+description 'Storage of durable data, like configurations and metrics'
+
 dependencies {
-    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8', version: '2.9.3'
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8', version: '2.+'
 }
 

@@ -112,5 +112,6 @@ public class ModuleMetricStorageSimpleTestImpl implements ModuleMetricStorage {
 			log.error("Cannot store modules index.", e);
 		}
 	}
+	// inner classes
 
 }
