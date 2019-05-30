@@ -23,7 +23,9 @@ import java.util.stream.Collectors;
  * Service - container of metrics
  */
 public class MetricsContainerImpl implements MetricsContainer, ActionMetricsContainer, HeartBeatMetricContainer, DurationMetricsContainer {
+	// local container of metrics
 	private final Queue<ModuleMetric> metrics = new ConcurrentLinkedQueue<>();
+
 	@Autowired
 	private TimeService timeService;
 
@@ -143,7 +145,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		this.add(metric);
 		// initialize the action
 		adapter.setState(ModuleAction.State.INIT);
-		this.action().changed(adapter);
+		this.changed(adapter);
 	}
 
 	/**

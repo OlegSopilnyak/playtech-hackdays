@@ -17,20 +17,14 @@ import java.util.Objects;
  */
 @Data
 public abstract class ModuleMetricAdapter implements ModuleMetric {
+	// action-owner of metric
 	private final ModuleActionDto action;
+	// when metric was measured
 	private final Instant measured;
 
 	public ModuleMetricAdapter(ModuleAction action, Instant measured) {
 		this.action = new ModuleActionDto(action);
 		this.measured = measured;
-	}
-
-	@Override
-	public String toString() {
-		return "Metric<" + getClass().getSimpleName() + ">{" +
-				"action=" + action +
-				", measured=" + measured +
-				'}';
 	}
 
 	/**
@@ -39,7 +33,7 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	 * @return reference to action
 	 */
 	@Override
-	public ModuleAction action() {
+	public ModuleAction getAction() {
 		return action;
 	}
 
@@ -49,7 +43,7 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	 * @return the time
 	 */
 	@Override
-	public Instant measured() {
+	public Instant getMeasured() {
 		return measured;
 	}
 
@@ -61,12 +55,17 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	@Override
 	public String valuesAsString() {
 		final String concreteValue = concreteValue();
+		final ModuleActionDto action = new ModuleActionDto(getAction());
+
 		final StringBuilder valueBuilder = new StringBuilder("Metric ")
-				.append(name())
-				.append("[").append(measured).append("]")
-				.append(StringUtils.isEmpty(concreteValue) ? "" : " value: ")
-				.append(StringUtils.isEmpty(concreteValue) ? "" : concreteValue)
-				.append(" | in action ").append(action.valueAsString());
+				.append(getName())
+				.append(" [").append(getMeasured()).append("]");
+		// save extra value
+		if (!StringUtils.isEmpty(concreteValue)) {
+			valueBuilder.append(" value: ").append(concreteValue);
+		}
+		// save action's info
+		valueBuilder.append(" | in action ").append(action.valueAsString());
 		if (Objects.nonNull(action.getParent())) {
 			valueBuilder.append(", parent id: ").append(action.getParent().getId());
 		}
@@ -79,6 +78,15 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	 * @return concrete
 	 */
 	protected String concreteValue() {
-		return "none";
+		return "";
 	}
+
+	@Override
+	public String toString() {
+		return "Metric<" + getClass().getSimpleName() + ">{" +
+				"action=" + action +
+				", measured=" + measured +
+				'}';
+	}
+
 }

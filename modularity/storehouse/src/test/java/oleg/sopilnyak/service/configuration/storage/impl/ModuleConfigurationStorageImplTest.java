@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.configuration.storage.impl;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.configuration.storage.event.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.configuration.storage.event.ExpandConfigurationEvent;
@@ -22,28 +23,21 @@ import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
 import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.anyCollectionOf;
+import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ModuleConfigurationStorageAdapterTest {
+public class ModuleConfigurationStorageImplTest {
 
-	@Mock
-	private Logger logger;
-	@Mock
-	private ModuleConfigurationStorage.Repository repository;
 	@Mock
 	private ModulesRegistryService registry;
-	@Mock
-	private Module testModule;
-
 	// configuration for testModule
 	@Spy
 	private Map<String, VariableItem> testConfiguration = new HashMap<>();
@@ -54,11 +48,16 @@ public class ModuleConfigurationStorageAdapterTest {
 	private Map<String, Map<String, VariableItem>> sharedCache = new HashMap<>();
 	@Spy
 	private BlockingQueue<ConfigurationStorageEvent> sharedQueue = new ArrayBlockingQueue<>(100);
+	@Mock
+	private ConfigurationStorageRepository repository;
 	@InjectMocks
-	private ModuleConfigurationStorageAdapter storage = new TestModuleConfigurationStorage();
+	private ModuleConfigurationStorageImpl storage = new ModuleConfigurationStorageImpl();
+
+	@Mock
+	private Module testModule;
 
 	@Before
-	public void setUp() {
+	public void setUp() throws Exception {
 		when(registry.registered()).thenReturn(Collections.singleton(testModule));
 		when(testModule.getSystemId()).thenReturn("test");
 		when(testModule.getModuleId()).thenReturn("test");
@@ -74,7 +73,7 @@ public class ModuleConfigurationStorageAdapterTest {
 	}
 
 	@After
-	public void tearDown() {
+	public void tearDown() throws Exception {
 		storage.destroyStorage();
 		reset(registry, testModule);
 		sharedCache.clear();
@@ -82,11 +81,10 @@ public class ModuleConfigurationStorageAdapterTest {
 
 	@Test
 	public void initStorage() {
-		ScheduledFuture future = (ScheduledFuture) ReflectionTestUtils.getField(storage, "runnerFuture");
+		final ScheduledFuture future = storage.runnerFuture;
 		storage.destroyStorage();
 
-		assertNull(ReflectionTestUtils.getField(storage, "runnerFuture"));
-
+		assertNull(storage.runnerFuture);
 		assertTrue(future.isDone());
 
 		reset(sharedCache, runner, registry);
@@ -96,10 +94,8 @@ public class ModuleConfigurationStorageAdapterTest {
 
 		storage.initStorage();
 
-		future = (ScheduledFuture) ReflectionTestUtils.getField(storage, "runnerFuture");
-
-		assertNotNull(future);
-		assertFalse(future.isDone());
+		assertNotNull(storage.runnerFuture);
+		assertFalse(storage.runnerFuture.isDone());
 
 		verify(sharedCache, times(1)).isEmpty();
 		verify(runner, times(1)).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
@@ -109,6 +105,10 @@ public class ModuleConfigurationStorageAdapterTest {
 		verify(testModule, times(2)).getVersionId();
 		verify(testModule, times(2)).getDescription();
 		verify(sharedCache, times(1)).putIfAbsent(eq("test::test::test"), eq(testConfiguration));
+	}
+
+	@Test
+	public void destroyStorage() {
 	}
 
 	@Test
@@ -127,7 +127,7 @@ public class ModuleConfigurationStorageAdapterTest {
 		verify(testConfiguration, times(1)).get(eq("1.1"));
 		verify(testConfiguration, times(1)).get(eq("test.test"));
 		verify(sharedQueue, times(1)).add(any(ExpandConfigurationEvent.class));
-		verify(sharedCache,times(1)).put(Matchers.eq(testModule.primaryKey()), anyMap());
+		verify(sharedCache, times(1)).put(Matchers.eq(testModule.primaryKey()), anyMap());
 	}
 
 	@Test
@@ -150,12 +150,19 @@ public class ModuleConfigurationStorageAdapterTest {
 	}
 
 	@Test
-	public void processConfigurationEvents() {
-		// TODO cover storage events processing
+	public void addConfigurationListener() {
 	}
 
 	@Test
-	public void notifyConfigurationListeners() {
+	public void removeConfigurationListener() {
+	}
+
+	@Test
+	public void processConfigurationEvents() {
+	}
+
+	@Test
+	public void notifyConfigurationListeners() throws InterruptedException {
 		ModuleConfigurationStorage.ConfigurationListener listener = mock(ModuleConfigurationStorage.ConfigurationListener.class);
 		storage.addConfigurationListener(listener);
 		Set<String> modules = new HashSet<>();
@@ -163,25 +170,10 @@ public class ModuleConfigurationStorageAdapterTest {
 		modules.add("module-2");
 
 		storage.notifyConfigurationListeners(modules);
+		TimeUnit.MILLISECONDS.sleep(100);
 
 		storage.removeConfigurationListener(listener);
+
 		verify(listener, times(1)).changedModules(eq(modules));
-	}
-
-	// inner classes
-	private static class TestModuleConfigurationStorage extends ModuleConfigurationStorageAdapter{
-		@Autowired
-		private Logger logger;
-		@Autowired
-		private Repository repository;
-		@Override
-		protected Logger getLogger() {
-			return logger;
-		}
-
-		@Override
-		public Repository getConfigurationRepository() {
-			return repository;
-		}
 	}
 }

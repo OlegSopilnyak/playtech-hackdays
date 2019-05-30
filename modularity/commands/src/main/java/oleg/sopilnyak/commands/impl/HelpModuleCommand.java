@@ -84,7 +84,7 @@ public class HelpModuleCommand implements ModuleCommand {
 		if (Objects.isNull(parameters) || parameters.length == 0) {
 			log.debug("The list of commands");
 			listCommands(explanation);
-		}else{
+		} else {
 			final String command = (String) parameters[0];
 			log.debug("Making help for '{}' command", command);
 			particularCommandHelp(command, explanation);
@@ -94,19 +94,19 @@ public class HelpModuleCommand implements ModuleCommand {
 
 	private void particularCommandHelp(String command, List<Command> explanation) {
 		final ModuleCommandType type = restoreByName(command);
-		if (Objects.nonNull(type)){
+		if (Objects.nonNull(type)) {
 			final String[] help = detailedHelp.get(type);
-			if (Objects.isNull(help)){
+			if (Objects.isNull(help)) {
 				log.error("No detailed help for command-type '{}'", type);
 				return;
 			}
 			log.debug("Prepare detailed information.");
 			final AtomicBoolean firstTime = new AtomicBoolean(true);
-			Stream.of(help).forEach((line)->{
-				if (firstTime.get()){
+			Stream.of(help).forEach((line) -> {
+				if (firstTime.get()) {
 					explanation.add(Command.builder().name(command.toLowerCase()).description(line).build());
 					firstTime.getAndSet(false);
-				}else {
+				} else {
 					explanation.add(Command.builder().name("").description(line).build());
 				}
 			});
@@ -153,15 +153,13 @@ public class HelpModuleCommand implements ModuleCommand {
 		@Override
 		public String dataAsTTY() {
 			final Command[] details = (Command[]) data;
-			if (details.length == 0){
+			if (details.length == 0) {
 				return "Nothing to show";
 			}
 			final boolean command = isCommandHelp((Command[]) data);
 			final StringBuilder builder = command ?
 					new StringBuilder()
-					:new StringBuilder("The list of available commands\n").append("-----------\n")
-
-					;
+					: new StringBuilder("The list of available commands\n").append("-----------\n");
 			Stream.of(details).forEach(detail -> {
 				builder.append(detail.name).append("\t").append(detail.description).append("\n");
 			});
@@ -187,9 +185,10 @@ public class HelpModuleCommand implements ModuleCommand {
 				return "{\"status\": \"failed :" + t.getClass().getSimpleName() + " - " + t.getMessage() + "\"}";
 			}
 		}
+
 		// private methods
-		private boolean isCommandHelp(Command[] details){
-			return Stream.of(details).anyMatch(detail-> StringUtils.isEmpty(detail.getName()));
+		private boolean isCommandHelp(Command[] details) {
+			return Stream.of(details).anyMatch(detail -> StringUtils.isEmpty(detail.getName()));
 		}
 	}
 

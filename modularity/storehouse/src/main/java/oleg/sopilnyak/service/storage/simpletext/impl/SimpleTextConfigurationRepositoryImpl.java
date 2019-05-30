@@ -1,13 +1,13 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.configuration.storage.impl;
+package oleg.sopilnyak.service.storage.simpletext.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.dto.ModuleDto;
 import oleg.sopilnyak.service.dto.VariableItemDto;
 import org.springframework.util.StringUtils;
@@ -25,7 +25,7 @@ import java.util.Properties;
  * Service realization of configuration repository
  */
 @Slf4j
-public class SimpleTextConfigurationRepository implements ModuleConfigurationStorage.Repository {
+public class SimpleTextConfigurationRepositoryImpl implements ConfigurationStorageRepository {
 	private static final String MODULES_INDEX = "modules.index";
 	private static final SecureRandom random = new SecureRandom();
 	private static final ObjectMapper dataMapper = new ObjectMapper();

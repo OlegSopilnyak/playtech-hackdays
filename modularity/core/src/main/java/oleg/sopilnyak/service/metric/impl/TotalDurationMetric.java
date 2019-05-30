@@ -24,7 +24,7 @@ class TotalDurationMetric extends ModuleMetricAdapter {
 	}
 
 	@Override
-	public String name() {
+	public String getName() {
 		return "total-duration of '" + label + "' for " + modules + " modules";
 	}
 

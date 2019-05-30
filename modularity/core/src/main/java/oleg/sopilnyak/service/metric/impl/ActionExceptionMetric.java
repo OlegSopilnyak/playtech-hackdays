@@ -21,12 +21,12 @@ class ActionExceptionMetric extends ActionChangedMetric {
 	}
 
 	@Override
-	public String name() {
-		return "exception in '" + action().getName() + "'";
+	public String getName() {
+		return "exception in '" + this.getAction().getName() + "'";
 	}
 
 	@Override
-	public Object[] value() {
+	public Object[] getValue() {
 		return new Object[]{cause};
 	}
 

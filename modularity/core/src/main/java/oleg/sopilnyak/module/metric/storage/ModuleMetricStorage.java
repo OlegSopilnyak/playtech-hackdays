@@ -17,9 +17,10 @@ public interface ModuleMetricStorage {
 	 * @param module PK of module-owner
 	 * @param measured time when metric was measured
 	 * @param host the host where module is running
+	 * @param actionId the id of metric's action
 	 * @param metricAsString value of metric
 	 */
-	void storeMetric(String name, String module, Instant measured, String host, String metricAsString);
+	void storeMetric(String name, String module, Instant measured, String host, String actionId, String metricAsString);
 
 	/**
 	 * To find metrics by criteria
@@ -30,4 +31,5 @@ public interface ModuleMetricStorage {
 	 * @return collection of stored metrics
 	 */
 	Collection<StoredMetric> find(SelectCriteria criteria, int offset, int pageSize);
+
 }

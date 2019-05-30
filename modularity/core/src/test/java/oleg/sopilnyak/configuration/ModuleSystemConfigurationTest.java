@@ -11,6 +11,8 @@ import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.metric.storage.SelectCriteria;
 import oleg.sopilnyak.module.metric.storage.StoredMetric;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
+import oleg.sopilnyak.service.action.storage.ModuleActionStorageStub;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
@@ -32,11 +34,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {ModuleSystemConfiguration.class, ModuleSystemConfigurationTest.Config.class})
+@ContextConfiguration(classes = {
+		ModuleSystemConfiguration.class
+		, ModuleActionsConfiguration.class
+		, ModuleSystemConfigurationTest.Config.class
+})
 public class ModuleSystemConfigurationTest {
 	@Autowired
 	private ApplicationContext context;
-
 
 	@Test
 	public void getMetricsContainer() {
@@ -65,9 +70,15 @@ public class ModuleSystemConfigurationTest {
 	public void testDuring5seconds() throws InterruptedException {
 		TimeUnit.SECONDS.sleep(5);
 	}
+
 	// inner class- configuration
 	@Configuration
 	public static class Config {
+
+		@Bean
+		public ModuleActionStorage stubModuleActionStorage(){
+			return new ModuleActionStorageStub();
+		}
 		@Bean
 		public ModuleMetricStorage getModuleMetricStorage() {
 			ModuleMetricStorage storage = new ModuleMetricStorage() {
@@ -81,10 +92,11 @@ public class ModuleSystemConfigurationTest {
 				 * @param metricAsString value of metric
 				 */
 				@Override
-				public void storeMetric(String name, String module, Instant measured, String host, String metricAsString) {
+				public void storeMetric(String name, String module, Instant measured, String host, String actionId, String metricAsString) {
 					System.out.print("- metric ->");
 					System.out.print(" name: " + name);
 					System.out.print(" module: " + module);
+					System.out.print(" action-id: " + actionId);
 					System.out.print(" measured: " + measured);
 					System.out.print(" host: " + host);
 					System.out.println(" message: " + metricAsString);
@@ -107,7 +119,7 @@ public class ModuleSystemConfigurationTest {
 		}
 
 		@Bean
-		public ModuleConfigurationStorage makeModuleConfigurationStorage(){
+		public ModuleConfigurationStorage makeModuleConfigurationStorage() {
 			return mock(ModuleConfigurationStorage.class);
 		}
 	}

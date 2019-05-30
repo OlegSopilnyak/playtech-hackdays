@@ -25,7 +25,7 @@ class SimpleDurationMetric extends ModuleMetricAdapter {
 	}
 
 	@Override
-	public String name() {
+	public String getName() {
 		return "simple-duration of '" + label + "' for :" + module;
 	}
 

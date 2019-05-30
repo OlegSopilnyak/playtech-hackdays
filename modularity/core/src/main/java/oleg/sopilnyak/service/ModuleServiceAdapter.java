@@ -35,6 +35,7 @@ public abstract class ModuleServiceAdapter implements Module {
 	public static final String INIT_MODULE_ACTION_NAME = "init-module";
 	public static final String SHUTDOWN_MODULE_ACTION_NAME = "shutdown-module";
 	public static final String CONFIGURE_MODULE_ACTION_NAME = "configure-module";
+
 	// main action of module
 	private volatile ModuleAction moduleMainAction;
 

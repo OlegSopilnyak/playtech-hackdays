@@ -292,7 +292,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 		 * @return the name
 		 */
 		@Override
-		public String name() {
+		public String getName() {
 			return "logger";
 		}
 
@@ -309,8 +309,8 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 		@Override
 		public String toString() {
 			return "LoggerMetric{" +
-					"action='" + super.action().getName() + '\'' +
-					" time='" + super.measured() + '\'' +
+					"action='" + super.getAction().getName() + '\'' +
+					" time='" + super.getMeasured() + '\'' +
 					" message='" + message + '\'' +
 					'}';
 		}

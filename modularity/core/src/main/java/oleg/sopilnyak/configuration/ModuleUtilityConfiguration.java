@@ -29,6 +29,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
  */
 @Configuration
 public class ModuleUtilityConfiguration {
+
+	public static final int MAXIMUM_POOL_SIZE = 100;
+
 	/**
 	 * Service: service to work with time
 	 *
@@ -79,7 +82,7 @@ public class ModuleUtilityConfiguration {
 	@Bean
 	public ScheduledExecutorService getScheduledExecutorService(){
 		final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2);
-		executor.setMaximumPoolSize(100);
+		executor.setMaximumPoolSize(MAXIMUM_POOL_SIZE);
 		return executor;
 	}
 

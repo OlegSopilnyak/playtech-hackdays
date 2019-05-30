@@ -1,4 +1,4 @@
-package oleg.sopilnyak.service.configuration.storage.impl;
+package oleg.sopilnyak.service.storage.simpletext.impl;
 
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.dto.ModuleDto;
@@ -13,9 +13,9 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-public class SimpleTextConfigurationRepositoryTest {
+public class SimpleTextConfigurationRepositoryImplTest {
 
-	private final SimpleTextConfigurationRepository repo = new SimpleTextConfigurationRepository();
+	private final SimpleTextConfigurationRepositoryImpl repo = new SimpleTextConfigurationRepositoryImpl();
 	private ModuleDto module = new ModuleDto();
 
 	@Before

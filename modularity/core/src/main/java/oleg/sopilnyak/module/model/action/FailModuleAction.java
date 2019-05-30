@@ -11,5 +11,6 @@ import oleg.sopilnyak.module.model.ModuleAction;
 public class FailModuleAction extends ResultModuleAction {
 	public FailModuleAction(ModuleAction action, Throwable cause) {
 		super(action, cause);
+		action.setState(State.FAIL);
 	}
 }

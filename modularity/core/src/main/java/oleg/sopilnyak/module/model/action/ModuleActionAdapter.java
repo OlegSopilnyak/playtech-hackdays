@@ -19,15 +19,15 @@ import java.time.Instant;
 @ToString(of = {"name", "id", "hostName", "state", "module", "started", "duration", "description", "parent"})
 @NoArgsConstructor
 public class ModuleActionAdapter implements ModuleAction {
-	private ModuleBasics module;
-	private ModuleAction parent;
-	private String id;
-	private String name;
-	private String description;
-	private Instant started;
-	private Long duration;
-	private String hostName;
-	private State state;
+	protected ModuleBasics module;
+	protected ModuleAction parent;
+	protected String id;
+	protected String name;
+	protected String description;
+	protected Instant started;
+	protected Long duration;
+	protected String hostName;
+	protected State state;
 
 	public ModuleActionAdapter(ModuleBasics module, ModuleAction parent, String name) {
 		this.module = new ModuleDto(module);

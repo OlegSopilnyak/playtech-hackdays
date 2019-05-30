@@ -5,20 +5,22 @@ package oleg.sopilnyak.service.action.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
-import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.FailModuleAction;
-import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.module.model.action.ModuleActionRuntimeException;
 import oleg.sopilnyak.module.model.action.SuccessModuleAction;
-import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
-import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Service: Factory of module actions
@@ -27,19 +29,25 @@ import java.util.Objects;
  */
 @Slf4j
 public class ModuleActionFactoryImpl implements ModuleActionFactory {
-    private String hostName;
     protected final static ThreadLocal<ModuleAction> current = new ThreadLocal<>();
 
     @Autowired
-    private UniqueIdGenerator idGenerator;
+    private ModuleActionStorage actionsStorage;
+    @Autowired
+    private ObjectProvider<SuccessModuleAction> successActions;
+    @Autowired
+    private ObjectProvider<FailModuleAction> failedActions;
+    @Autowired
+    private ScheduledExecutorService scanRunner;
+
+    @Value("${module.action.storage.delay:200}")
+    long delay;
+
+    // the queue of actions to save
+    private BlockingQueue<ModuleAction> storageQueue = new LinkedBlockingQueue<>();
 
     public void setUp() {
-        try {
-            hostName = InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.warn("Cannot get network properties.");
-            hostName = "localhost";
-        }
+        scanRunner.schedule(this::persistScheduledAction, delay, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -51,16 +59,13 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
     @Override
     public ModuleAction createModuleMainAction(Module module) {
         log.debug("Creating main action for module {}", module.primaryKey());
-        final ModuleMainAction action = new ModuleMainAction(module);
-        action.setName("[main->" + module.getSystemId() + "->" + module.getModuleId() + "]");
-        action.setId(idGenerator.generate());
-        action.setHostName(hostName);
-        action.setDescription("Main action of " + module.getDescription());
+        final ModuleAction action = actionsStorage.createActionFor(module);
         module.getMetricsContainer().action().changed(action);
+        scheduleStorage(action);
         return action;
     }
 
-    /**
+	/**
      * To create regular module's action
      *
      * @param module owner of action
@@ -70,13 +75,10 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
     @Override
     public ModuleAction createModuleRegularAction(Module module, String name) {
         log.debug("Creating regular '{}' action for module '{}'", name, module.primaryKey());
-        final ModuleRegularAction action = new ModuleRegularAction(module, name);
-        final ModuleAction parent = current.get();
-        action.setParent(Objects.isNull(parent) ? module.getMainAction() : parent);
-        action.setId(idGenerator.generate());
-        action.setHostName(hostName);
-        action.setDescription(name + " action of " + module.getDescription());
+        final ModuleAction action = actionsStorage.createActionFor(module, current.get(), name);
         module.getMetricsContainer().action().changed(action);
+		scheduleStorage(action);
+
         return action;
     }
 
@@ -91,34 +93,46 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
      */
     @Override
     public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
-        final ModuleActionAdapter action;
-        current.set(action = (ModuleActionAdapter) createModuleRegularAction(module, actionName));
+        log.debug("Setup action for '{}' of module '{}'", actionName, module.primaryKey());
+
+        final ModuleAction action;
+        current.set(action = createModuleRegularAction(module, actionName));
 
         log.debug("Executing  for action {}", action.getName());
 
         action.setState(ModuleAction.State.PROGRESS);
         module.getMetricsContainer().action().changed(action);
+		scheduleStorage(action);
 
+        actionName = action.getName();
+        log.debug("Real name of action is '{}'", actionName);
         try {
+            log.debug("Start executing action '{}'", actionName);
             executable.run();
+            log.debug("Finished well executing of action '{}'", actionName);
             module.healthGoUp();
         } catch (Throwable t) {
-            log.error("Cannot execute action {}", action.getName(), t);
+            log.error("Cannot execute action {}", actionName, t);
 
             module.getMetricsContainer().action().fail(action, t);
             module.healthGoLow(t);
+            final ModuleAction result = failedActions.getObject(action, t);
+			scheduleStorage(action);
 
             if (rethrow) {
-                throw new ModuleActionRuntimeException(action, "Fail in " + action.getName(), t);
+                throw new ModuleActionRuntimeException(action, "Fail in " + actionName, t);
             }
-            return new FailModuleAction(action, t);
+            return result;
         } finally {
             current.set(action.getParent());
         }
 
-        log.debug("Finished execution of {}", action.getName());
+        log.debug("Finished execution of {}", actionName);
         module.getMetricsContainer().action().success(action);
-        return new SuccessModuleAction(action);
+        final ModuleAction result = successActions.getObject(action);
+        scheduleStorage(action);
+
+        return result;
     }
 
     /**
@@ -145,6 +159,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
         if (mainAction.getState() == ModuleAction.State.PROGRESS) {
             module.getMetricsContainer().action().changed(mainAction);
         }
+        scheduleStorage(mainAction);
     }
 
     /**
@@ -156,32 +171,37 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
     @Override
     public void finishMainAction(Module module, boolean success) {
         current.set(null);
+        log.debug("Main action of '{}' is finished successfully - {}.", module.primaryKey(), success);
         final ModuleAction mainAction = module.getMainAction();
         if (success) {
+            successActions.getObject(mainAction);
             module.getMetricsContainer().action().success(mainAction);
         } else {
+            failedActions.getObject(mainAction, module.lastThrown());
             module.getMetricsContainer().action().fail(mainAction, module.lastThrown());
         }
+		scheduleStorage(mainAction);
     }
 
-    // inner classes
-
-    /**
-     * Type: main action of module
-     */
-    private static class ModuleMainAction extends ModuleActionAdapter implements Serializable {
-        private ModuleMainAction(ModuleBasics module) {
-            super(module, "[main-module-action]");
+    // private method
+	private void scheduleStorage(ModuleAction action) {
+		log.debug("Schedule to save {}", action);
+		storageQueue.offer(new ActionStorageWrapper(action));
+	}
+	private void persistScheduledAction(){
+        final List<ModuleAction> chunk = new ArrayList<>();
+        try {
+            while (!storageQueue.isEmpty()) {
+                chunk.clear();
+                final int transferred = storageQueue.drainTo(chunk, 100);
+                log.debug("Processing {} actions.", transferred);
+                chunk.stream().map(a -> (ActionStorageWrapper) a).forEach(a -> actionsStorage.persist(a));
+            }
+        }catch (Throwable t){
+            log.error("Something went wrong with storage-queue", t);
+        }finally {
+            log.debug("Scheduling scan for {} millis", delay);
+            scanRunner.schedule(this::persistScheduledAction, delay, TimeUnit.MILLISECONDS);
         }
-    }
-
-    /**
-     * Type: regular action of module
-     */
-    private static class ModuleRegularAction extends ModuleActionAdapter {
-        private ModuleRegularAction(ModuleBasics module, String name) {
-            super(module, "[" + name + "-action]");
-        }
-    }
-
+	}
 }

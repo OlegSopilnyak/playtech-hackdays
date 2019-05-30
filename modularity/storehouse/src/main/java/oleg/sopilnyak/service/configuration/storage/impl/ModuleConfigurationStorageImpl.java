@@ -3,15 +3,16 @@
  */
 package oleg.sopilnyak.service.configuration.storage.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.configuration.storage.event.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.configuration.storage.event.ExpandConfigurationEvent;
 import oleg.sopilnyak.service.configuration.storage.event.ReplaceConfigurationEvent;
 import oleg.sopilnyak.service.dto.ModuleDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
@@ -26,13 +27,13 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * The adapter for module configuration storage engine
+ * Realization of storage though configurations repository
  */
-public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigurationStorage {
-
+@Slf4j
+public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStorage {
 	public static final int IDLE_DELAY = 200;
 	// the future of scanner's runner
-	private volatile ScheduledFuture runnerFuture;
+	volatile ScheduledFuture runnerFuture;
 
 	// the registry of modules
 	@Autowired
@@ -40,7 +41,7 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 	// distributed map for modules' configurations
 	@Autowired
 	@Qualifier("modules-configuration-map")
-	protected Map<String, Map<String, VariableItem>> sharedCache;
+	private Map<String, Map<String, VariableItem>> sharedCache;
 
 	// distributed queue for module configuration updates
 	@Autowired
@@ -49,7 +50,11 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 
 	// launcher of module's actions
 	@Autowired
-	protected ScheduledExecutorService activityRunner;
+	private ScheduledExecutorService activityRunner;
+
+	// repository for trivial operations
+	@Autowired
+	private ConfigurationStorageRepository repository;
 
 	// listeners of configuration change
 	private final Set<ConfigurationListener> listeners = new LinkedHashSet<>();
@@ -60,25 +65,24 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 	public void initStorage() {
 		if (sharedCache.isEmpty()){
 			registry.registered().stream().map(m-> new ModuleDto(m)).forEach(m->{
-				getLogger().info("Sharing configuration of {}", m.primaryKey());
-				sharedCache.putIfAbsent(m.primaryKey(), getConfigurationRepository().getConfiguration(m));
+				log.info("Sharing configuration of {}", m.primaryKey());
+				sharedCache.putIfAbsent(m.primaryKey(), repository.getConfiguration(m));
 			});
 		}
 		runnerFuture = activityRunner.schedule(this::processConfigurationEvents, 100, TimeUnit.MILLISECONDS);
-		getLogger().info("Initiated scan process.");
+		log.info("Initiated scan process.");
 	}
 
 	@PreDestroy
 	public void destroyStorage(){
 		if (Objects.nonNull(runnerFuture)){
-			getLogger().info("Destroying Storage...");
+			log.info("Destroying Storage...");
 			if (!runnerFuture.isDone()) {
 				runnerFuture.cancel(true);
 			}
 		}
 		runnerFuture = null;
 	}
-
 	/**
 	 * To get updated configured variables
 	 *
@@ -88,7 +92,7 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 	 */
 	@Override
 	public Map<String, VariableItem> getUpdatedVariables(Module module, Map<String, VariableItem> current) {
-		getLogger().debug("Getting configuration's updates for {} former are {}", module.primaryKey(), current);
+		log.debug("Getting configuration's updates for {} former are {}", module.primaryKey(), current);
 		// cached (actual) configuration of the module
 		final Map<String, VariableItem> cached = sharedCache.computeIfAbsent(module.primaryKey(), m -> new LinkedHashMap<>());
 		// variables which not exists in the cache
@@ -96,7 +100,7 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 		// variables which value is different with cached variable (returns cached value)
 		final Map<String, VariableItem> updated = new LinkedHashMap<>();
 
-		getLogger().debug("Iterating module {} configuration", module.primaryKey());
+		log.debug("Iterating module {} configuration", module.primaryKey());
 		// iterating current module's configuration
 		current.entrySet().forEach(entry -> {
 			final String path = entry.getKey();
@@ -107,7 +111,7 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 
 		// save not cached configuration if exists
 		if (!notCached.isEmpty()) {
-			getLogger().debug("Expand module {} configuration by {}", module.primaryKey(), notCached);
+			log.debug("Expand module {} configuration by {}", module.primaryKey(), notCached);
 			// put request to queue
 			sharedQueue.add(new ExpandConfigurationEvent(module, notCached));
 			// add not-cached configurations
@@ -126,7 +130,7 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 	 */
 	@Override
 	public void updateConfiguration(Module module, Map<String, VariableItem> configuration) {
-		getLogger().debug("Updating module {} by {}", module.primaryKey(), configuration);
+		log.debug("Updating module {} by {}", module.primaryKey(), configuration);
 		// put request to queue
 		sharedQueue.add(new ReplaceConfigurationEvent(module, configuration));
 		// notify all configuration change listeners
@@ -140,7 +144,7 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 	 */
 	@Override
 	public void addConfigurationListener(ConfigurationListener listener) {
-		getLogger().debug("Registering module-configuration-listener {}.", listener);
+		log.debug("Registering module-configuration-listener {}.", listener);
 		listenersLock.writeLock().lock();
 		try {
 			listeners.add(listener);
@@ -156,7 +160,7 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 	 */
 	@Override
 	public void removeConfigurationListener(ConfigurationListener listener) {
-		getLogger().debug("Removing module-configuration-listener {}.", listener);
+		log.debug("Removing module-configuration-listener {}.", listener);
 		listenersLock.writeLock().lock();
 		try {
 			listeners.remove(listener);
@@ -169,30 +173,23 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 	 * To process events from queue
 	 */
 	protected void processConfigurationEvents() {
-		getLogger().debug("Processing check queue job.");
+		log.debug("Processing check queue job.");
 		while (!sharedQueue.isEmpty()) {
 			try {
 				final ConfigurationStorageEvent event = sharedQueue.take();
-				getLogger().debug("Took event {}", event);
-				event.update(getConfigurationRepository());
+				log.debug("Took event {}", event);
+				event.update(repository);
 			} catch (Throwable e) {
-				getLogger().warn("Cannot process configuration event.", e);
+				log.warn("Cannot process configuration event.", e);
 			}
 		}
-		getLogger().debug("Reschedule check queue job.");
+		log.debug("Reschedule check queue job.");
 		runnerFuture = activityRunner.schedule(this::processConfigurationEvents, IDLE_DELAY, TimeUnit.MILLISECONDS);
 	}
 
-	/**
-	 * To get access to logger of storage's realization
-	 *
-	 * @return logger
-	 */
-	protected abstract Logger getLogger();
-
 	// private methods
 	void notifyConfigurationListeners(Set<String> modules) {
-		getLogger().debug("Notifying listeners by {}.", modules);
+		log.debug("Notifying listeners by {}.", modules);
 		listenersLock.readLock().lock();
 		try {
 			listeners.forEach(l -> activityRunner.execute(() -> l.changedModules(modules)));
@@ -200,5 +197,4 @@ public abstract class ModuleConfigurationStorageAdapter implements ModuleConfigu
 			listenersLock.readLock().unlock();
 		}
 	}
-
 }

@@ -17,8 +17,8 @@ class ActionChangedMetric extends ModuleMetricAdapter {
 	}
 
 	@Override
-	public String name() {
-		return "changed-action-state to {" + action().getState() + "} of " + action().getName();
+	public String getName() {
+		return "changed-action-state to {" + this.getAction().getState() + "} of " + this.getAction().getName();
 	}
 
 	@Override

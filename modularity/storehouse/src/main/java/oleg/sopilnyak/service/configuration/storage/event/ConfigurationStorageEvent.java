@@ -5,7 +5,7 @@ package oleg.sopilnyak.service.configuration.storage.event;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.dto.ModuleDto;
 
 import java.io.Serializable;
@@ -25,5 +25,5 @@ public abstract class ConfigurationStorageEvent implements Serializable {
 		this.configuration = new LinkedHashMap<>(configuration);
 	}
 
-	public abstract void update(ModuleConfigurationStorage.Repository store);
+	public abstract void update(ConfigurationStorageRepository repository);
 }

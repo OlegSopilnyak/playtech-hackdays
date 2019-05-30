@@ -4,7 +4,11 @@
 package oleg.sopilnyak.configuration;
 
 import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
+import oleg.sopilnyak.module.metric.storage.ModuleMetricsRepository;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.action.ModuleActionsRepository;
+import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.configuration.storage.event.ConfigurationStorageEvent;
 import org.junit.Test;
@@ -25,17 +29,26 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {StoreHouseConfiguration.class, StoreHouseConfigurationTest.Config.class})
+@ContextConfiguration(classes = {
+		StoreHouseConfiguration.class
+		, StoreHouseConfigurationTest.Config.class
+})
 public class StoreHouseConfigurationTest {
 	@Autowired
 	private ApplicationContext context;
 
 	@Test
-	public void makeModuleConfigurationStorage() {
+	public void testGetModuleConfigurationStorage() {
 		assertNotNull(context.getBean(ModuleConfigurationStorage.class));
 	}
+	public void testGeModuleActionStorage() {
+		assertNotNull(context.getBean(ModuleActionStorage.class));
+	}
+	public void testGetModuleMetricStorage() {
+		assertNotNull(context.getBean(ModuleMetricStorage.class));
+	}
 
-	// inner class- configuration
+	// inner class-configuration
 	@Configuration
 	public static class Config {
 		@Bean( name = "modules-configuration-map")
@@ -49,13 +62,16 @@ public class StoreHouseConfigurationTest {
 		}
 
 		@Bean
-		public ModuleConfigurationStorage.Repository makeRepository(){
-			return mock(ModuleConfigurationStorage.Repository.class);
+		public ConfigurationStorageRepository mockConfigurationStorageRepository(){
+			return mock(ConfigurationStorageRepository.class);
 		}
-
 		@Bean
-		public ModuleMetricStorage makeModuleMetricStorage(){
-			return mock(ModuleMetricStorage.class);
+		public ModuleActionsRepository mockModuleActionsRepository(){
+			return mock(ModuleActionsRepository.class);
+		}
+		@Bean
+		public ModuleMetricsRepository mockModuleMetricsRepository(){
+			return mock(ModuleMetricsRepository.class);
 		}
 	}
 }

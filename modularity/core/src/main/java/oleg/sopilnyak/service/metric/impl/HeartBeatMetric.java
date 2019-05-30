@@ -28,12 +28,12 @@ class HeartBeatMetric extends ModuleMetricAdapter {
 	}
 
 	@Override
-	public Object[] value() {
+	public Object[] getValue() {
 		return new Object[]{active, condition};
 	}
 
 	@Override
-	public String name() {
+	public String getName() {
 		return NAME;
 	}
 

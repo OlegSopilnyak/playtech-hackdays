@@ -5,7 +5,7 @@ package oleg.sopilnyak.service.configuration.storage.event;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 
 import java.util.Map;
 
@@ -18,7 +18,7 @@ public class ReplaceConfigurationEvent extends ConfigurationStorageEvent {
 	}
 
 	@Override
-	public void update(ModuleConfigurationStorage.Repository repository) {
+	public void update(ConfigurationStorageRepository repository) {
 		repository.replaceConfiguration(module, configuration);
 	}
 

@@ -11,6 +11,7 @@ import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.RegistryModulesIteratorAdapter;
+import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,8 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 
     @Autowired
     private ModuleMetricStorage metricStorage;
+	@Autowired
+    private ModuleActionStorage actionStorage;
 
     public HealthModuleRegistryServiceImpl() {
         super.registry = this;
@@ -192,7 +195,7 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
         // collect and save all metrics of module
         AtomicInteger counter = new AtomicInteger(1);
         module.metrics().stream()
-                .peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.name()))
+                .peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.getName()))
                 .filter(metric -> this.isActive())
                 .forEach(this::storeMetric);
 
@@ -217,7 +220,7 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
             log.debug("Scanning is stopped.");
             return;
         }
-        log.debug("Rescheduling service");
+        log.debug("Rescheduling service for {} millis", delay);
         runnerFuture = activityRunner.schedule(this::scanModulesHealth, delay, TimeUnit.MILLISECONDS);
     }
 
@@ -227,10 +230,17 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
      * @param metric metric to be saved
      */
     void storeMetric(ModuleMetric metric) {
-        log.debug("Storing metric '{}' of '{}'", metric.name(), metric.action().getModule().primaryKey());
-        final ModuleAction action = metric.action();
+        log.debug("Storing metric '{}' of '{}'", metric.getName(), metric.getAction().getModule().primaryKey());
+        final ModuleAction action = metric.getAction();
+        actionStorage.persist(action);
+
         final String modulePK = action.getModule().primaryKey();
-        metricStorage.storeMetric(metric.name(), modulePK, metric.measured(), action.getHostName(), metric.valuesAsString());
+        final String metricName = metric.getName();
+        final Instant metricMeasured = metric.getMeasured();
+        final String metricHost = action.getHostName();
+        final String metricActionId = action.getId();
+        final String metricData = metric.valuesAsString();
+        metricStorage.storeMetric(metricName, modulePK, metricMeasured, metricHost, metricActionId, metricData);
         log.debug("Stored '{}'", metric);
     }
 }

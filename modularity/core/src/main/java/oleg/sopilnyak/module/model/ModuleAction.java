@@ -74,6 +74,13 @@ public interface ModuleAction {
 	 */
 	State getState();
 
+	/**
+	 * To chqnge state of action
+	 *
+	 * @param newState
+	 */
+	void setState(State newState);
+
 	// inner classes
 	// available states of action in lifecycle
 	enum State{

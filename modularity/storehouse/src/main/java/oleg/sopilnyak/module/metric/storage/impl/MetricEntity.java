@@ -21,6 +21,7 @@ public class MetricEntity {
 	private String name;
 	private String module;
 	private Instant measured;
+	private String actionId;
 	private String host;
 	private String valueAsString;
 }

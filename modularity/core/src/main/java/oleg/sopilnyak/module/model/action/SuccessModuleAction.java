@@ -11,5 +11,6 @@ import oleg.sopilnyak.module.model.ModuleAction;
 public class SuccessModuleAction extends ResultModuleAction {
 	public SuccessModuleAction(ModuleAction action) {
 		super(action);
+		action.setState(State.SUCCESS);
 	}
 }
