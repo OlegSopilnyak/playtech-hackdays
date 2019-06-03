@@ -10,7 +10,7 @@ import oleg.sopilnyak.service.action.ModuleActionsRepository;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.configuration.storage.event.ConfigurationStorageEvent;
+import oleg.sopilnyak.service.configuration.storage.impl.ConfigurationStorageEvent;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

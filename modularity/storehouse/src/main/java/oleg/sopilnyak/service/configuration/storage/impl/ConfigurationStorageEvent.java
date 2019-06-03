@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.configuration.storage.event;
+package oleg.sopilnyak.service.configuration.storage.impl;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
