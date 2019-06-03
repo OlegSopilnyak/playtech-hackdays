@@ -26,7 +26,7 @@ import java.util.stream.Stream;
  */
 @Slf4j
 public class SimpleTextMetricsRepositoryImpl implements ModuleMetricsRepository {
-	private static final String METRICS_INDEX = "metrics.index";
+	static final String METRICS_INDEX = "metrics.index";
 	private static final SecureRandom random = new SecureRandom();
 	private static final MessageFormat METRIC_FORMATTER = new MessageFormat("{0}^{1}^{2}^{3}^{4}^{5}");
 	private static final ReadWriteLock storeLock = new ReentrantReadWriteLock();
@@ -84,6 +84,9 @@ public class SimpleTextMetricsRepositoryImpl implements ModuleMetricsRepository 
 					.limit(limit)
 					.collect(Collectors.toSet())
 					;
+		} catch (IOException e) {
+			log.error("Cannot find metrics", e);
+			return Collections.EMPTY_SET;
 		} finally {
 			storeLock.readLock().unlock();
 		}
@@ -149,9 +152,13 @@ public class SimpleTextMetricsRepositoryImpl implements ModuleMetricsRepository 
 		return Stream.empty();
 	}
 
-	static Properties indexByName(Properties index, String name){
+	static Properties indexByName(Properties index, String name) throws IOException {
 		if (StringUtils.isEmpty(name)){
-			return new Properties(index);
+			final ByteArrayOutputStream out = new ByteArrayOutputStream();
+			index.storeToXML(out,"transfer");
+			final Properties selected = new Properties();
+			selected.loadFromXML(new ByteArrayInputStream(out.toByteArray()));
+			return selected;
 		}
 		final Properties selected = new Properties();
 		for(Enumeration names = index.propertyNames();names.hasMoreElements();){
@@ -176,7 +183,7 @@ public class SimpleTextMetricsRepositoryImpl implements ModuleMetricsRepository 
 	static String getFileNameFor(String metricName, Properties index) {
 		final String dataFileName = index.getProperty(metricName);
 		if (StringUtils.isEmpty(dataFileName)) {
-			index.setProperty(metricName, "" + random.nextLong() + ".data");
+			index.setProperty(metricName, "" + Math.abs(random.nextLong()) + ".data");
 			storeModulesIndex(index);
 			return index.getProperty(metricName);
 		}
