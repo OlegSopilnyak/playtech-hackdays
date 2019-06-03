@@ -70,6 +70,7 @@ public class ModuleConfigurationStorageImplTest {
 		sharedCache.putIfAbsent(testModule.primaryKey(), testConfiguration);
 
 		storage.initStorage();
+		storage.listeners.clear();
 	}
 
 	@After
@@ -151,14 +152,39 @@ public class ModuleConfigurationStorageImplTest {
 
 	@Test
 	public void addConfigurationListener() {
+		assertEquals(0, storage.listeners.size());
+		ModuleConfigurationStorage.ConfigurationListener listener = mock(ModuleConfigurationStorage.ConfigurationListener.class);
+		storage.addConfigurationListener(listener);
+		assertEquals(1, storage.listeners.size());
 	}
 
 	@Test
 	public void removeConfigurationListener() {
+		ModuleConfigurationStorage.ConfigurationListener listener = mock(ModuleConfigurationStorage.ConfigurationListener.class);
+
+		storage.addConfigurationListener(listener);
+		assertEquals(1, storage.listeners.size());
+
+		storage.removeConfigurationListener(listener);
+		assertEquals(0, storage.listeners.size());
 	}
 
 	@Test
 	public void processConfigurationEvents() {
+
+		Module module = mock(Module.class);
+		Map<String, VariableItem> configuration = new HashMap<>();
+
+		ConfigurationStorageEvent event1 = new ExpandConfigurationEvent(module, configuration);
+		ConfigurationStorageEvent event2 = new ReplaceConfigurationEvent(module, configuration);
+
+		sharedQueue.add(event1);
+		sharedQueue.add(event2);
+
+		storage.processConfigurationEvents();
+
+		verify(repository, times(1)).expandConfiguration(eq(event1.getModule()), eq(configuration));
+		verify(repository, times(1)).replaceConfiguration(eq(event2.getModule()), eq(configuration));
 	}
 
 	@Test

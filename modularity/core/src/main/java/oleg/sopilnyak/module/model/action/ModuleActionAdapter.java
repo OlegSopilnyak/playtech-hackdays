@@ -1,11 +1,9 @@
-/**
- * Copyright (C) Oleg Sopilnyak 2018
+/*
+ * Copyright (C) Oleg Sopilnyak 2019
  */
 package oleg.sopilnyak.module.model.action;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.dto.ModuleDto;
@@ -18,6 +16,8 @@ import java.time.Instant;
 @Data
 @ToString(of = {"name", "id", "hostName", "state", "module", "started", "duration", "description", "parent"})
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ModuleActionAdapter implements ModuleAction {
 	protected ModuleBasics module;
 	protected ModuleAction parent;

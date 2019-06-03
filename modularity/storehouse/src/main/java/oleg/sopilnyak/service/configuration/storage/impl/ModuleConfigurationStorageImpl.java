@@ -57,7 +57,7 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 	private ConfigurationStorageRepository repository;
 
 	// listeners of configuration change
-	private final Set<ConfigurationListener> listeners = new LinkedHashSet<>();
+	final Set<ConfigurationListener> listeners = new LinkedHashSet<>();
 	// lock for listeners set
 	private final ReadWriteLock listenersLock = new ReentrantReadWriteLock();
 

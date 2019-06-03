@@ -25,5 +25,9 @@ public abstract class ConfigurationStorageEvent implements Serializable {
 		this.configuration = new LinkedHashMap<>(configuration);
 	}
 
+	public ModuleDto getModule() {
+		return module;
+	}
+
 	public abstract void update(ConfigurationStorageRepository repository);
 }

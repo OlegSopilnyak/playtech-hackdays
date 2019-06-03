@@ -35,7 +35,7 @@ public class ModuleActionStorageImpl implements ModuleActionStorage {
 	@Autowired
 	private ModuleActionsRepository repository;
 
-	private String hostName;
+	String hostName;
 
 	public void setUp() {
 		try {

@@ -44,7 +44,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
     long delay;
 
     // the queue of actions to save
-    private BlockingQueue<ModuleAction> storageQueue = new LinkedBlockingQueue<>();
+    private BlockingQueue<ActionStorageWrapper> storageQueue = new LinkedBlockingQueue<>();
 
     public void setUp() {
         scanRunner.schedule(this::persistScheduledAction, delay, TimeUnit.MILLISECONDS);
@@ -184,18 +184,18 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
     }
 
     // private method
-	private void scheduleStorage(ModuleAction action) {
+	void scheduleStorage(ModuleAction action) {
 		log.debug("Schedule to save {}", action);
 		storageQueue.offer(new ActionStorageWrapper(action));
 	}
-	private void persistScheduledAction(){
-        final List<ModuleAction> chunk = new ArrayList<>();
+	void persistScheduledAction(){
+        final List<ActionStorageWrapper> chunk = new ArrayList<>();
         try {
             while (!storageQueue.isEmpty()) {
                 chunk.clear();
                 final int transferred = storageQueue.drainTo(chunk, 100);
                 log.debug("Processing {} actions.", transferred);
-                chunk.stream().map(a -> (ActionStorageWrapper) a).forEach(a -> actionsStorage.persist(a));
+                chunk.forEach(a -> actionsStorage.persist(a));
             }
         }catch (Throwable t){
             log.error("Something went wrong with storage-queue", t);

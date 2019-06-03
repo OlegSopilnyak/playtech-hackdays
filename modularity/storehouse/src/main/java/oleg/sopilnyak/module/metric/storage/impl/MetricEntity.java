@@ -3,10 +3,7 @@
  */
 package oleg.sopilnyak.module.metric.storage.impl;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 
@@ -17,6 +14,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
+@EqualsAndHashCode
 public class MetricEntity {
 	private String name;
 	private String module;
