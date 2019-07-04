@@ -3,9 +3,9 @@
  */
 package oleg.sopilnyak.configuration;
 
-import oleg.sopilnyak.module.metric.storage.ModuleMetricsRepository;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricsRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

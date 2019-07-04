@@ -6,7 +6,7 @@ package oleg.sopilnyak.service.configuration.storage.impl;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;

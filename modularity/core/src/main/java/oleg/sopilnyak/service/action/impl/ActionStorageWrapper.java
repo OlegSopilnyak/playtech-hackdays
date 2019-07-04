@@ -5,7 +5,7 @@ package oleg.sopilnyak.service.action.impl;
 
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 /**
  * Type: action-wrapper for action to store

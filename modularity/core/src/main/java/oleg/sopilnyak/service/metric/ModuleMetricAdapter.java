@@ -6,7 +6,7 @@ package oleg.sopilnyak.service.metric;
 import lombok.Data;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.dto.ModuleActionDto;
+import oleg.sopilnyak.service.model.dto.ModuleActionDto;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;

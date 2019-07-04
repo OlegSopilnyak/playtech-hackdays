@@ -19,7 +19,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.dto.VariableItemDto;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 

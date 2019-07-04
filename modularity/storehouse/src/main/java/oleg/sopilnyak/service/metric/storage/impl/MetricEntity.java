@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.module.metric.storage.impl;
+package oleg.sopilnyak.service.metric.storage.impl;
 
 import lombok.*;
 

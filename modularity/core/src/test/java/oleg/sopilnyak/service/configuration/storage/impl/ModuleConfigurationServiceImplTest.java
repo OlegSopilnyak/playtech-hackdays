@@ -21,7 +21,7 @@ import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.dto.VariableItemDto;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.After;
 import org.junit.Before;

@@ -6,7 +6,7 @@ package oleg.sopilnyak.module.model.action;
 import lombok.*;
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.time.Instant;
 

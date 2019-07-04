@@ -3,14 +3,14 @@
  */
 package oleg.sopilnyak.configuration;
 
-import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
-import oleg.sopilnyak.module.metric.storage.ModuleMetricsRepository;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.configuration.storage.impl.ConfigurationStorageEvent;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricsRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

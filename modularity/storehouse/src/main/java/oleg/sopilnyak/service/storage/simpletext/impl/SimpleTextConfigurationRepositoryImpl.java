@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
-import oleg.sopilnyak.service.dto.ModuleDto;
-import oleg.sopilnyak.service.dto.VariableItemDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import org.springframework.util.StringUtils;
 
 import java.io.File;

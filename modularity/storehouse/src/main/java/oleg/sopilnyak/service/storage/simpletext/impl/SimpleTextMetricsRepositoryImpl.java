@@ -4,9 +4,9 @@
 package oleg.sopilnyak.service.storage.simpletext.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import oleg.sopilnyak.module.metric.storage.ModuleMetricsRepository;
-import oleg.sopilnyak.module.metric.storage.SelectCriteria;
-import oleg.sopilnyak.module.metric.storage.impl.MetricEntity;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricsRepository;
+import oleg.sopilnyak.service.metric.storage.SelectCriteria;
+import oleg.sopilnyak.service.metric.storage.impl.MetricEntity;
 import org.springframework.util.StringUtils;
 
 import java.io.*;

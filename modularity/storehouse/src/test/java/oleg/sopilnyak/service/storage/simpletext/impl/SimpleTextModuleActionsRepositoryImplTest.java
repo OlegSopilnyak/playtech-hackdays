@@ -5,7 +5,7 @@ package oleg.sopilnyak.service.storage.simpletext.impl;
 
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

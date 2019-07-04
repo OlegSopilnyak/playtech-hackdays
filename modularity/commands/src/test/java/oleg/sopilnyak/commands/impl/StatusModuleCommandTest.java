@@ -12,7 +12,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.dto.VariableItemDto;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.After;
 import org.junit.Before;

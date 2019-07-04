@@ -1,8 +1,8 @@
 package oleg.sopilnyak.service.storage.simpletext.impl;
 
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.dto.ModuleDto;
-import oleg.sopilnyak.service.dto.VariableItemDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

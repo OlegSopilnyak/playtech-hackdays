@@ -8,7 +8,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

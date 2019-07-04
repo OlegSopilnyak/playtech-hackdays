@@ -3,8 +3,8 @@
  */
 package oleg.sopilnyak.service.storage.simpletext.impl;
 
-import oleg.sopilnyak.module.metric.storage.SelectCriteria;
-import oleg.sopilnyak.module.metric.storage.impl.MetricEntity;
+import oleg.sopilnyak.service.metric.storage.SelectCriteria;
+import oleg.sopilnyak.service.metric.storage.impl.MetricEntity;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

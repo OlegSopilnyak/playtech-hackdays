@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 import org.springframework.util.StringUtils;
 
 import java.io.*;

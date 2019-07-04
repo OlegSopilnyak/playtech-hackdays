@@ -1,15 +1,15 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.module.metric.storage.impl;
+package oleg.sopilnyak.service.metric.storage.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
-import oleg.sopilnyak.module.metric.storage.ModuleMetricsRepository;
-import oleg.sopilnyak.module.metric.storage.SelectCriteria;
-import oleg.sopilnyak.module.metric.storage.StoredMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricsRepository;
+import oleg.sopilnyak.service.metric.storage.SelectCriteria;
+import oleg.sopilnyak.service.metric.storage.StoredMetric;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;

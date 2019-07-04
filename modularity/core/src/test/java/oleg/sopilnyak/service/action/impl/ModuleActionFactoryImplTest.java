@@ -10,7 +10,7 @@ import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.action.*;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

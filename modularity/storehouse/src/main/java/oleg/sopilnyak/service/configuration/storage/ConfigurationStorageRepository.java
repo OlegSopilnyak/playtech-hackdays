@@ -4,7 +4,7 @@
 package oleg.sopilnyak.service.configuration.storage;
 
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.util.Map;
 

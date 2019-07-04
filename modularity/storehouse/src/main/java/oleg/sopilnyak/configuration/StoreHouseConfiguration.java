@@ -3,12 +3,11 @@
  */
 package oleg.sopilnyak.configuration;
 
-import oleg.sopilnyak.module.metric.storage.ModuleMetricStorage;
-import oleg.sopilnyak.module.metric.storage.impl.ModuleMetricStorageImpl;
 import oleg.sopilnyak.service.action.impl.ModuleActionStorageImpl;
-import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.configuration.storage.impl.ModuleConfigurationStorageImpl;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
+import oleg.sopilnyak.service.metric.storage.impl.ModuleMetricStorageImpl;
 import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,11 +29,21 @@ public class StoreHouseConfiguration {
 		return new ModuleConfigurationStorageImpl();
 	}
 
+	/**
+	 * The storage of module-actions
+	 *
+	 * @return singleton
+	 */
 	@Bean(name = "module.actionStorage", autowire = Autowire.BY_TYPE, initMethod = "setUp")
-	public ModuleActionStorage makeModuleActionStorage(){
+	public ModuleActionStorageImpl makeModuleActionStorage(){
 		return new ModuleActionStorageImpl();
 	}
 
+	/**
+	 * The storage of modules' metrics
+	 *
+	 * @return
+	 */
 	@Bean(name = "module.metricStorage", autowire = Autowire.BY_TYPE)
 	public ModuleMetricStorage makeModuleMetricStorage(){
 		return new ModuleMetricStorageImpl();

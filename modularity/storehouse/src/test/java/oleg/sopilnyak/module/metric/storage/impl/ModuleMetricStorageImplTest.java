@@ -3,10 +3,12 @@
  */
 package oleg.sopilnyak.module.metric.storage.impl;
 
-import oleg.sopilnyak.module.metric.storage.ModuleMetricsRepository;
-import oleg.sopilnyak.module.metric.storage.SelectCriteria;
-import oleg.sopilnyak.module.metric.storage.StoredMetric;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
+import oleg.sopilnyak.service.metric.storage.ModuleMetricsRepository;
+import oleg.sopilnyak.service.metric.storage.SelectCriteria;
+import oleg.sopilnyak.service.metric.storage.StoredMetric;
+import oleg.sopilnyak.service.metric.storage.impl.MetricEntity;
+import oleg.sopilnyak.service.metric.storage.impl.ModuleMetricStorageImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

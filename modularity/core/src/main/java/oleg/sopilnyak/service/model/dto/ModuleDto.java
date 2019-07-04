@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2018
  */
-package oleg.sopilnyak.service.dto;
+package oleg.sopilnyak.service.model.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
