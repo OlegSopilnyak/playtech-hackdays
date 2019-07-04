@@ -42,7 +42,7 @@ public interface ModuleLoggerService extends Module {
 	 *
 	 * @param level new value of level
 	 */
-	void serSeverityLevel(Level level);
+	void setSeverityLevel(Level level);
 
 	/**
 	 * To setup value of layout's pattern

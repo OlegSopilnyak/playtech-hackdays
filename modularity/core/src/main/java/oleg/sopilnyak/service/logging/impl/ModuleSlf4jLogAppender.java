@@ -39,20 +39,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implements ModuleLoggerService {
 
 	@Autowired
-	private ModuleActionFactory actionFactory;
+	ModuleActionFactory actionFactory;
 	@Autowired
-	private Layout<ILoggingEvent> eventLayout;
+	Layout<ILoggingEvent> eventLayout;
 	@Autowired
-	private ModulesRegistryService modulesRegistry;
+	ModulesRegistryService modulesRegistry;
 	@Autowired
-	private TimeService timeService;
+	TimeService timeService;
 
 	@Autowired
-	private AutowireCapableBeanFactory autowireCapableBeanFactory;
+	AutowireCapableBeanFactory autowireCapableBeanFactory;
 
 	// configurable attributes
-	private int levelSeverity = LEVEL_DEFAULT;
-	private String layoutPattern = PATTERN_DEFAULT;
+	int levelSeverity = LEVEL_DEFAULT;
+	String layoutPattern = PATTERN_DEFAULT;
 
 	// instance to delegate calls module-service calls
 	private final ModuleServiceAdapter delegate = new ServiceDelegate();
@@ -68,6 +68,10 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	 */
 	@Override
 	public void moduleStart() {
+		if (super.isStarted()){
+			log.warn("Module already started.");
+			return;
+		}
 		if (!delegateInstalled.get()) {
 			log.info("Preparing delegate...");
 			delegateInstalled.getAndSet(true);
@@ -113,7 +117,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 		log.info("Stopping module.");
 
 		Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-		eventLayout.start();
+		eventLayout.stop();
 		rootLogger.detachAppender(this);
 		super.stop();
 		log.info("Stopped module.");
@@ -137,9 +141,10 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	 * @param level new value of level
 	 */
 	@Override
-	public void serSeverityLevel(Level level) {
+	public void setSeverityLevel(Level level) {
 		final Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
 		rootLogger.setLevel(level);
+		levelSeverity = level.toInt();
 	}
 
 	/**
@@ -150,6 +155,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	@Override
 	public void setLayoutPattern(String layoutPattern) {
 		((PatternLayout) eventLayout).setPattern(layoutPattern);
+		this.layoutPattern = layoutPattern;
 	}
 
 	/**
@@ -262,7 +268,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 			levelSeverity = itemValue.get(Integer.class).intValue();
 			log.debug("Changed variable 'levelSeverity' to {}", levelSeverity);
 			configurationVariable.set(levelSeverity);
-			serSeverityLevel(Level.toLevel(levelSeverity));
+			setSeverityLevel(Level.toLevel(levelSeverity));
 			return true;
 		}
 		// check for layoutPattern
@@ -324,7 +330,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 		 * @param level new value of level
 		 */
 		@Override
-		public void serSeverityLevel(Level level) {
+		public void setSeverityLevel(Level level) {
 			throw new IllegalStateException("Not realized here.");
 		}
 
