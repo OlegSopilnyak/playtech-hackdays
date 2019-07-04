@@ -6,7 +6,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import oleg.sopilnyak.configuration.ModuleSystemConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
-import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
@@ -45,8 +44,6 @@ public class ModuleSlf4jLogAppenderTest {
 
 	@Autowired
 	private ModuleActionStorage actionStorage;
-
-	private ModuleAction mainAction = mock(ModuleAction.class);
 
 	@Autowired
 	private ModuleSlf4jLogAppender service;
