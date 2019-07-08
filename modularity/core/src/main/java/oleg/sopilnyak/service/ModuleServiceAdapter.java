@@ -40,7 +40,7 @@ public abstract class ModuleServiceAdapter implements Module {
 	private volatile ModuleAction moduleMainAction;
 
 	// the lock for module's health-condition changes
-	private final Lock healthLock = new ReentrantLock();
+	private final Lock healthLock = new ReentrantLock(true);
 
 	protected volatile boolean active = false;
 	protected volatile ModuleHealthCondition healthCondition;
@@ -70,7 +70,7 @@ public abstract class ModuleServiceAdapter implements Module {
 	@Autowired
 	protected ModuleConfigurationStorage configurationStorage;
 	// lock for access to mainAction
-	private final Lock mainActionLock = new ReentrantLock();
+	private final Lock mainActionLock = new ReentrantLock(true);
 
 
 	/**
