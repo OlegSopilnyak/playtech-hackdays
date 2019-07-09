@@ -139,12 +139,15 @@ public abstract class ModuleServiceAdapter implements Module {
 			registry.remove(this);
 		}
 
+		// saving last condition value to temp value
+		final ModuleHealthCondition lastCondition = healthCondition;
 
 		// concrete-module-related shutdown
 		executeAtomicAction(SHUTDOWN_MODULE_ACTION_NAME, this::shutdownAsService);
 
+
 		// finish main-action activity
-		finishModuleAction(healthCondition != FAIL);
+		finishModuleAction((healthCondition = lastCondition) != FAIL);
 	}
 
 	/**

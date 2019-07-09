@@ -1,12 +1,16 @@
 package oleg.sopilnyak.service;
 
+import ch.qos.logback.classic.Level;
 import oleg.sopilnyak.configuration.ModuleSystemConfiguration;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorageStub;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.After;
 import org.junit.Before;
@@ -21,9 +25,12 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static oleg.sopilnyak.module.model.ModuleHealthCondition.FAIL;
-import static oleg.sopilnyak.module.model.ModuleHealthCondition.VERY_GOOD;
+import java.util.HashMap;
+import java.util.Map;
+
+import static oleg.sopilnyak.module.model.ModuleHealthCondition.*;
 import static oleg.sopilnyak.service.ModuleServiceAdapter.*;
+import static oleg.sopilnyak.service.logging.ModuleLoggerService.LEVEL_NAME;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -113,6 +120,22 @@ public class ModuleServiceAdapterTest {
 	}
 
 	@Test
+	public void testingModuleRestart(){
+		assertTrue(service.isActive());
+		reset(actionStorage, configurationStorage, service);
+
+		service.restart();
+
+		verify(service, times(1)).canRestart();
+		verify(service, times(1)).moduleStop();
+		verify(service, times(1)).shutdownAsService();
+		verify(service, times(1)).moduleStart();
+		verify(service, times(1)).initAsService();
+
+		assertTrue(service.isActive());
+	}
+
+	@Test
 	public void testingGetMainAction() {
 		reset(actionStorage, configurationStorage, service);
 
@@ -150,35 +173,133 @@ public class ModuleServiceAdapterTest {
 	}
 
 	@Test
-	public void healthGoUp() {
+	public void testingHealthGoUp() {
+		assertEquals(VERY_GOOD, service.getCondition());
+
+		service.healthCondition = FAIL;
+
+		service.healthGoUp();
+		assertEquals(POOR, service.getCondition());
+
+		service.healthGoUp();
+		assertEquals(AVERAGE, service.getCondition());
+
+		service.healthGoUp();
+		assertEquals(GOOD, service.getCondition());
+
+		service.healthGoUp();
+		assertEquals(VERY_GOOD, service.getCondition());
+
+		service.healthGoUp();
+		assertEquals(VERY_GOOD, service.getCondition());
 	}
 
 	@Test
-	public void healthGoLow() {
+	public void testingHealthGoLow() {
+		assertTrue(service.isActive());
+
+		Exception thrown = new Exception();
+		assertEquals(VERY_GOOD, service.getCondition());
+
+		service.healthGoLow(thrown);
+		assertEquals(GOOD, service.getCondition());
+
+		service.healthGoLow(thrown);
+		assertEquals(AVERAGE, service.getCondition());
+
+		service.healthGoLow(thrown);
+		assertEquals(POOR, service.getCondition());
+
+		service.healthGoLow(thrown);
+		assertEquals(FAIL, service.getCondition());
+
+		service.healthGoLow(thrown);
+		assertEquals(FAIL, service.getCondition());
+		assertFalse(service.isActive());
+
+		verify(service, times(1)).moduleStop();
+		verify(service, times(1)).shutdownAsService();
 	}
 
 	@Test
 	public void lastThrown() {
+		Exception thrown = new Exception();
+		assertEquals(VERY_GOOD, service.getCondition());
+
+		service.healthGoLow(thrown);
+		assertEquals(GOOD, service.getCondition());
+
+		assertEquals(thrown, service.lastThrown());
 	}
 
 	@Test
-	public void canRestart() {
+	public void testingCanRestart() {
+		assertTrue(service.canRestart());
 	}
 
 	@Test
-	public void getConfiguration() {
+	public void testingGetConfiguration() {
+		Map<String, VariableItem> config = service.getConfiguration();
+		assertNotNull(config);
+		assertTrue(config.isEmpty());
+		assertEquals(service.moduleConfiguration, config);
 	}
 
 	@Test
-	public void configurationChanged() {
+	public void testingConfigurationChanged() {
+		Map<String, VariableItem> configuration = new HashMap<>();
+		String variableName = "test-log-level";
+		VariableItem variableValue = new VariableItemDto(LEVEL_NAME, Level.ERROR_INT);
+		configuration.put(variableName, variableValue);
+		reset(actionStorage, configurationStorage, service);
+
+		service.configurationChanged(configuration);
+
+		verify(service, times(3)).activateMainModuleAction();
+		verify(service, times(1)).configurationItemChanged(eq(variableName), eq(variableValue));
+		verify(service, times(1)).restart();
+		verify(service, times(1)).canRestart();
+		verify(service, times(1)).moduleStop();
+		verify(service, times(1)).shutdownAsService();
+		verify(service, times(1)).moduleStart();
+		verify(service, times(1)).initAsService();
 	}
 
 	@Test
-	public void getMetricsContainer() {
+	public void testingGetMetricsContainer() {
+
+		MetricsContainer container = service.getMetricsContainer();
+		assertNotNull(container);
+		assertEquals(service.metricsContainer, container);
 	}
 
 	@Test
-	public void configurationVariableOf() {
+	public void testingConfigurationVariableOf() {
+		assertNull(service.configurationVariableOf(null));
+		assertNull(service.configurationVariableOf(""));
+
+		reset(actionStorage, configurationStorage, service);
+
+		String variableName = "test-log-level";
+		VariableItem variableValue = new VariableItemDto(LEVEL_NAME, Level.ERROR_INT);
+
+		Map<String, VariableItem> configuration = mock(Map.class);
+		when(configuration.get(variableName)).thenReturn(variableValue);
+		when(service.getConfiguration()).thenReturn(configuration);
+
+		VariableItem value = service.configurationVariableOf(variableName);
+
+		verify(service, times(1)).isActive();
+		verify(service, times(1)).getConfiguration();
+		verify(configuration, times(1)).get(eq(variableName));
+
+		assertEquals(variableValue, value);
+
+		service.active = false;
+
+		assertNull(service.configurationVariableOf(variableName));
+
+		service.active = true;
 	}
 
 	@Test
@@ -226,6 +347,10 @@ public class ModuleServiceAdapterTest {
 		@Override
 		public String getDescription() {
 			return "Test service for deep testing.";
+		}
+		@Override
+		protected boolean configurationItemChanged(String itemName, VariableItem itemValue) {
+			return true;
 		}
 	}
 	@Configuration
