@@ -6,6 +6,7 @@ package oleg.sopilnyak.service.configuration.storage.impl;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.model.dto.ModuleDto;

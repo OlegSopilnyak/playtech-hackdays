@@ -7,8 +7,7 @@ import oleg.sopilnyak.module.metric.ActionMetricsContainer;
 import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
-import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
-import oleg.sopilnyak.service.configuration.storage.impl.ModuleConfigurationServiceImpl;
+import oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl;
 import oleg.sopilnyak.service.logging.impl.ModuleSlf4jLogAppender;
 import oleg.sopilnyak.service.metric.impl.MetricsContainerImpl;
 import oleg.sopilnyak.service.metric.impl.ModuleMetricsConfiguration;
@@ -57,17 +56,6 @@ public class ModuleSystemConfiguration {
 	public ModuleActionFactoryImpl getModuleActionFactory() {
 		return new ModuleActionFactoryImpl();
 	}
-
-	/**
-	 * Storage: engine to manage actions persistence
-	 *
-	 * @return singleton
-	 * @see ModuleActionStorage
-	 */
-//	@Bean(autowire = Autowire.BY_TYPE, initMethod = "setUp")
-//	public ModuleActionStorageImpl makeModuleActionStorage(){
-//		return new ModuleActionStorageImpl();
-//	}
 
 	/**
 	 * Service: service to serve change configuration in registered modules

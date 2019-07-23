@@ -1,11 +1,10 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.configuration.storage.impl;
+package oleg.sopilnyak.service.configuration.storage;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.io.Serializable;

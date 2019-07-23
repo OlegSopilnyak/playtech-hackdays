@@ -69,7 +69,9 @@ public class SimpleTextConfigurationRepositoryImpl implements ConfigurationStora
 		log.debug("Getting configuration for module '{}'", module.primaryKey());
 		final Properties index = loadModuleIndex();
 		final String dataFileName = getFileNameFor(module, index);
-		return restoreConfiguration(dataFileName);
+		final Map<String, VariableItem> configuration = new LinkedHashMap<>();
+		restoreConfiguration(dataFileName).entrySet().forEach((e)-> configuration.put(e.getKey(),e.getValue()));
+		return configuration;
 	}
 
 	/**
@@ -132,7 +134,7 @@ public class SimpleTextConfigurationRepositoryImpl implements ConfigurationStora
 		}
 	}
 
-	private Map<String, VariableItem> restoreConfiguration(String dataFileName){
+	private Map<String, VariableItemDto> restoreConfiguration(String dataFileName){
 		final File dataFile = new File(dataFileName);
 		try {
 			return dataFile.exists() ?

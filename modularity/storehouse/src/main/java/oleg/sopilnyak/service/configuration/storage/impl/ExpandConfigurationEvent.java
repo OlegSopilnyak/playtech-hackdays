@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.configuration.storage.impl;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 
 import java.util.Map;

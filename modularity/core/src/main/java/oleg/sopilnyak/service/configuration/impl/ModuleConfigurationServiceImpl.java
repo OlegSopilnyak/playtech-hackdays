@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.configuration.storage.impl;
+package oleg.sopilnyak.service.configuration.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;

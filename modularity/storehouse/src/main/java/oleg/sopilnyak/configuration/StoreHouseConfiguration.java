@@ -42,7 +42,7 @@ public class StoreHouseConfiguration {
 	/**
 	 * The storage of modules' metrics
 	 *
-	 * @return
+	 * @return singleton
 	 */
 	@Bean(name = "module.metricStorage", autowire = Autowire.BY_TYPE)
 	public ModuleMetricStorage makeModuleMetricStorage(){
