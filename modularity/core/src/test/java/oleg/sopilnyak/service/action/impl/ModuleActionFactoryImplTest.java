@@ -105,7 +105,10 @@ public class ModuleActionFactoryImplTest {
 	public void testExecuteAtomicModuleActionGood() {
 		factory.setUp();
 		AtomicInteger value = new AtomicInteger(0);
+		reset(actionMetricsContainer);
+
 		ModuleAction result = factory.executeAtomicModuleAction(module, "test", () -> value.getAndSet(100), true);
+
 		ModuleDto moduleDto = new ModuleDto(module);
 		Assert.assertNotNull(result);
 		Assert.assertNull(((ResultModuleAction) result).getCause());
@@ -113,9 +116,8 @@ public class ModuleActionFactoryImplTest {
 		Assert.assertEquals(moduleDto, result.getModule());
 		Assert.assertEquals(100, value.get());
 		verify(module, times(1)).healthGoUp();
-		// todo solve this issue
-//        verify(actionMetricsContainer, times(2)).changed(eq(result));
-//        verify(actionMetricsContainer, times(1)).success(eq(result));
+        verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
+        verify(actionMetricsContainer, times(1)).success(any(ModuleAction.class));
 	}
 
 	@Test
@@ -125,16 +127,18 @@ public class ModuleActionFactoryImplTest {
 		Runnable throwException = () -> {
 			throw exception;
 		};
+		reset(actionMetricsContainer);
+
 		ModuleAction result = factory.executeAtomicModuleAction(module, "test", throwException, false);
+
 		ModuleDto moduleDto = new ModuleDto(module);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(exception, ((ResultModuleAction) result).getCause());
 		Assert.assertEquals(ModuleAction.State.PROGRESS, result.getState());
 		Assert.assertEquals(moduleDto, result.getModule());
 		verify(module, times(1)).healthGoLow(eq(exception));
-		// todo solve this issue
-//        verify(actionMetricsContainer, times(2)).changed(eq(result));
-//        verify(actionMetricsContainer, times(1)).fail(eq(result), eq(exception));
+        verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
+        verify(actionMetricsContainer, times(1)).fail(any(ModuleAction.class), eq(exception));
 	}
 
 	@Test(expected = ModuleActionRuntimeException.class)
