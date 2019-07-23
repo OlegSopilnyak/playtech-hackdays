@@ -6,6 +6,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.module.model.action.ResultModuleAction;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorageStub;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
@@ -20,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.annotation.Order;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -222,7 +222,7 @@ public class ModuleServiceAdapterTest {
 	}
 
 	@Test
-	public void lastThrown() {
+	public void testLastThrown() {
 		Exception thrown = new Exception();
 		assertEquals(VERY_GOOD, service.getCondition());
 
@@ -303,31 +303,97 @@ public class ModuleServiceAdapterTest {
 	}
 
 	@Test
-	public void activateMainModuleAction() {
+	public void testActivateMainModuleAction() {
+		reset(actionStorage, configurationStorage, service);
+
+		service.activateMainModuleAction();
+
+		verify(service, times(1)).getMainAction();
+		verify(service, times(1)).getMetricsContainer();
 	}
 
 	@Test
-	public void finishModuleAction() {
+	public void testFinishModuleAction() {
+		reset(actionStorage, configurationStorage, service);
+
+		service.finishModuleAction(true);
+
+		verify(service, times(1)).getMainAction();
+		verify(service, times(1)).getMetricsContainer();
 	}
 
 	@Test
-	public void initAsService() {
+	public void testInitAsService() {
+		reset(actionStorage, configurationStorage, service);
+
+		service.initAsService();
+
+		verify(service, times(1)).serviceInitiated();
 	}
 
 	@Test
-	public void shutdownAsService() {
+	public void testShutdownAsService() {
+		reset(actionStorage, configurationStorage, service);
+
+		service.shutdownAsService();
+
+		verify(service, times(1)).serviceShutdown();
 	}
 
 	@Test
-	public void configurationItemChanged() {
+	public void testConfigurationItemChanged() {
+		reset(actionStorage, configurationStorage, service);
+		String variableName = "test-log-level";
+		VariableItem variableValue = new VariableItemDto(LEVEL_NAME, Level.ERROR_INT);
+
+		boolean success = service.configurationItemChanged(variableName, variableValue);
+
+		assertTrue(success);
+		verify(service, times(1)).updateConfiguration(eq(variableName), eq(variableValue));
+
 	}
 
 	@Test
-	public void executeAtomicAction() {
+	public void testExecuteAtomicAction() {
+		Runnable testFunction = mock(Runnable.class);
+		reset(actionStorage, configurationStorage, service);
+		String activityName = "test-execution";
+
+		// normal flow
+		ResultModuleAction result = service.executeAtomicAction(activityName, testFunction);
+
+		assertNotNull(result);
+		assertNull(service.lastThrown());
+
+
+		verify(service, times(3)).primaryKey();
+		verify(service, times(5)).getMetricsContainer();
+		verify(service, times(1)).healthGoUp();
+		verify(actionStorage, times(1)).createActionFor(eq(service), any(ModuleAction.class), eq(activityName));
+		verify(testFunction, times(1)).run();
+
+		// exception flow
+		RuntimeException exception = new RuntimeException("testing exception");
+		doThrow(exception).when(testFunction).run();
+
+		result = service.executeAtomicAction(activityName, testFunction);
+
+		assertNotNull(result);
+		assertNotNull(service.lastThrown());
+		assertEquals(exception, service.lastThrown());
+		verify(service, times(1)).healthGoLow(eq(exception));
 	}
 
 	@Test
-	public void setupModuleConfiguration() {
+	public void testSetupModuleConfiguration() {
+		Map<String, VariableItem> config = service.getConfiguration();
+		reset(actionStorage, configurationStorage, service);
+
+		service.setupModuleConfiguration();
+
+		verify(service, times(1)).getConfiguration();
+		verify(service, times(1)).getMetricsContainer();
+		verify(configurationStorage, times(1)).getUpdatedVariables(eq(service), eq(config));
 	}
 
 	//inner classes
@@ -350,8 +416,22 @@ public class ModuleServiceAdapterTest {
 		}
 		@Override
 		protected boolean configurationItemChanged(String itemName, VariableItem itemValue) {
+			updateConfiguration(itemName, itemValue);
 			return true;
 		}
+		void updateConfiguration(String itemName, VariableItem itemValue){}
+
+		@Override
+		protected void initAsService() {
+			serviceInitiated();
+		}
+		void serviceInitiated(){}
+
+		@Override
+		protected void shutdownAsService() {
+			serviceShutdown();
+		}
+		void serviceShutdown(){}
 	}
 	@Configuration
 	@Import({ModuleSystemConfiguration.class})
