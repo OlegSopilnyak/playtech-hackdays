@@ -4,7 +4,7 @@
 package oleg.sopilnyak.service.model.dto;
 
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.action.ModuleActionAdapter;
+import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import org.springframework.beans.BeanUtils;
 
 /**

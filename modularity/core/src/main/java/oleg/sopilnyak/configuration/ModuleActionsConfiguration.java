@@ -5,10 +5,10 @@ package oleg.sopilnyak.configuration;
 
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.action.factory.ModuleMainAction;
-import oleg.sopilnyak.service.action.factory.ModuleRegularAction;
-import oleg.sopilnyak.service.action.result.FailModuleAction;
-import oleg.sopilnyak.service.action.result.SuccessModuleAction;
+import oleg.sopilnyak.service.action.bean.factory.ModuleMainAction;
+import oleg.sopilnyak.service.action.bean.factory.ModuleRegularAction;
+import oleg.sopilnyak.service.action.bean.result.FailModuleAction;
+import oleg.sopilnyak.service.action.bean.result.SuccessModuleAction;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

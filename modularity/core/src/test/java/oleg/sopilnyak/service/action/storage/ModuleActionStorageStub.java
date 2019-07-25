@@ -7,8 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.UniqueIdGenerator;
-import oleg.sopilnyak.service.action.factory.ModuleMainAction;
-import oleg.sopilnyak.service.action.factory.ModuleRegularAction;
+import oleg.sopilnyak.service.action.bean.factory.ModuleMainAction;
+import oleg.sopilnyak.service.action.bean.factory.ModuleRegularAction;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 

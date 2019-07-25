@@ -5,7 +5,7 @@ package oleg.sopilnyak.module.model.action;
 
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.action.result.SuccessModuleAction;
+import oleg.sopilnyak.service.action.bean.result.SuccessModuleAction;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

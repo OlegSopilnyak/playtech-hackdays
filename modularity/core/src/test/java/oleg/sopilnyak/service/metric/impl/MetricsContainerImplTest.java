@@ -8,7 +8,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
-import oleg.sopilnyak.service.action.ModuleActionAdapter;
+import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

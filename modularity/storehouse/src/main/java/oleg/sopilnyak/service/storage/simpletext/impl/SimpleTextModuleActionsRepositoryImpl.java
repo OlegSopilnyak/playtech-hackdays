@@ -5,8 +5,8 @@ package oleg.sopilnyak.service.storage.simpletext.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.action.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
+import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import org.springframework.util.StringUtils;
 

@@ -4,7 +4,7 @@
 package oleg.sopilnyak.service.action.impl;
 
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.action.ModuleActionAdapter;
+import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 /**

@@ -1,10 +1,10 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.action.result;
+package oleg.sopilnyak.service.action.bean.result;
 
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.action.ModuleActionAdapter;
+import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import org.springframework.beans.BeanUtils;
 
 public abstract class ResultModuleAction extends ModuleActionAdapter {

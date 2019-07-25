@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2018
  */
-package oleg.sopilnyak.service.action.result;
+package oleg.sopilnyak.service.action.bean.result;
 
 import oleg.sopilnyak.module.model.ModuleAction;
 

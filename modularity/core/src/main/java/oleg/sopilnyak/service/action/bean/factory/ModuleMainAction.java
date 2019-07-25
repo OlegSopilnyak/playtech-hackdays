@@ -1,10 +1,10 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.action.factory;
+package oleg.sopilnyak.service.action.bean.factory;
 
 import oleg.sopilnyak.module.ModuleBasics;
-import oleg.sopilnyak.service.action.ModuleActionAdapter;
+import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 
 import java.io.Serializable;
 
