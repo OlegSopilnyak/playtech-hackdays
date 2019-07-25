@@ -13,12 +13,12 @@ import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.module.model.action.FailModuleAction;
-import oleg.sopilnyak.module.model.action.ModuleActionAdapter;
-import oleg.sopilnyak.module.model.action.SuccessModuleAction;
 import oleg.sopilnyak.service.TimeService;
+import oleg.sopilnyak.service.action.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
+import oleg.sopilnyak.service.action.result.FailModuleAction;
+import oleg.sopilnyak.service.action.result.SuccessModuleAction;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
@@ -195,7 +195,7 @@ public class ModuleConfigurationServiceImplTest {
 
 	@Test
 	public void runNotificationProcessing() throws InterruptedException {
-		reset(actionsFactory);
+		reset(actionsFactory, activityRunner);
 		String testModule = "testModule";
 
 		service.runNotificationProcessing(Collections.singleton(testModule));

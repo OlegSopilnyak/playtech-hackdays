@@ -139,7 +139,7 @@ public class ModuleConfigurationStorageImplTest {
 		storage.addConfigurationListener(listener);
 
 		storage.updateConfiguration(testModule, moduleConfiguration);
-		TimeUnit.MILLISECONDS.sleep(50);
+		TimeUnit.MILLISECONDS.sleep(100);
 
 		// check the results
 		storage.removeConfigurationListener(listener);

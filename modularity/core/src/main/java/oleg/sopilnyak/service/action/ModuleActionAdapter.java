@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.module.model.action;
+package oleg.sopilnyak.service.action;
 
 import lombok.*;
 import oleg.sopilnyak.module.ModuleBasics;

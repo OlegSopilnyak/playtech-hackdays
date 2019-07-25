@@ -8,7 +8,7 @@ import oleg.sopilnyak.module.ModuleBasics;
 import java.time.Instant;
 
 /**
- * Type action of module
+ * Type: action of module
  */
 public interface ModuleAction {
 	/**
@@ -75,13 +75,14 @@ public interface ModuleAction {
 	State getState();
 
 	/**
-	 * To chqnge state of action
+	 * To change the state of action
 	 *
-	 * @param newState
+	 * @param newState new current state value
 	 */
 	void setState(State newState);
 
 	// inner classes
+
 	// available states of action in lifecycle
 	enum State{
 		INIT, // initialization phase

@@ -6,7 +6,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.module.model.action.ResultModuleAction;
+import oleg.sopilnyak.service.action.result.ResultModuleAction;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorageStub;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
