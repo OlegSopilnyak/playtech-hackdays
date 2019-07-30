@@ -8,6 +8,7 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
@@ -62,7 +63,7 @@ public class ModuleConfigurationStorageImplTest {
 		when(testModule.getVersionId()).thenReturn("test");
 
 		testConfiguration.putIfAbsent("test.test", new VariableItemDto("test", 100));
-		ModuleDto dto = new ModuleDto(testModule);
+		ModuleDto dto = DtoMapper.INSTANCE.toModuleDto(testModule);
 		when(repository.getConfiguration(any(ModuleDto.class))).thenReturn(testConfiguration);
 
 		sharedCache.putIfAbsent(testModule.primaryKey(), testConfiguration);

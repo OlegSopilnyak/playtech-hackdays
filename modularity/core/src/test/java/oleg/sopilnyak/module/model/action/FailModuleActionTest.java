@@ -5,6 +5,7 @@ package oleg.sopilnyak.module.model.action;
 
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.result.FailModuleAction;
 import org.junit.After;
 import org.junit.Before;
@@ -32,7 +33,7 @@ public class FailModuleActionTest {
         when(actionContext.getStarted()).thenReturn(Instant.MAX);
         when(actionContext.getState()).thenReturn(ModuleAction.State.FAIL);
         when(actionContext.getModule()).thenReturn(module);
-        action = new FailModuleAction(actionContext, cause);
+        action = ActionMapper.INSTANCE.toFailResult(actionContext, cause);
     }
 
     @After

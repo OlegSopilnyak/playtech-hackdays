@@ -14,9 +14,9 @@ import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.bean.result.FailModuleAction;
-import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
 import oleg.sopilnyak.service.action.bean.result.SuccessModuleAction;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
@@ -85,8 +85,7 @@ public class HealthModuleRegistryServiceImplTest {
 		when(module.getVersionId()).thenReturn("ver-test");
 		when(module.getDescription()).thenReturn("desc-test");
 		when(module.primaryKey()).thenReturn("test-pk");
-		mainAction = new ModuleActionAdapter(module, "test");
-		ResultModuleAction result = new SuccessModuleAction(mainAction);
+		mainAction = ActionMapper.INSTANCE.simple(module, "test");
 		when(metricsContainer.action()).thenReturn(actionMetricsContainer);
 		when(metricsContainer.duration()).thenReturn(durationMetricsContainer);
 		when(metricsContainer.health()).thenReturn(heartBeatMetricContainer);
@@ -269,21 +268,19 @@ public class HealthModuleRegistryServiceImplTest {
 		ReflectionTestUtils.setField(actionsFactory, "delay", 200L);
 		ReflectionTestUtils.setField(actionsFactory, "actionsStorage", actionStorage);
 		when(actionStorage.createActionFor(any(Module.class)))
-				.thenAnswer((Answer<ModuleAction>) invocation -> new ModuleActionAdapter((ModuleBasics) invocation.getArguments()[0], "main-test"));
+				.thenAnswer((Answer<ModuleAction>) invocation -> ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "main-test"));
 		when(actionStorage.createActionFor(any(Module.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
-			ModuleActionAdapter result1 = new ModuleActionAdapter((ModuleBasics) invocation.getArguments()[0], "regular-test");
+			ModuleActionAdapter result1 = ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "regular-test");
 			result1.setParent((ModuleAction) invocation.getArguments()[1]);
 			result1.setName((String) invocation.getArguments()[2]);
 			return result1;
 		});
 		ObjectProvider<SuccessModuleAction> successActions = mock(ObjectProvider.class);
 		when(successActions.getObject(any(ModuleAction.class)))
-				.thenAnswer((Answer<SuccessModuleAction>) invocation -> new SuccessModuleAction((ModuleAction) invocation.getArguments()[0]));
+				.thenAnswer((Answer<SuccessModuleAction>) invocation -> ActionMapper.INSTANCE.toSuccessResult((ModuleAction) invocation.getArguments()[0]));
 		ObjectProvider<FailModuleAction> failedActions = mock(ObjectProvider.class);
 		when(failedActions.getObject(any(ModuleAction.class), any(Throwable.class)))
-				.thenAnswer((Answer<FailModuleAction>) invocation -> new FailModuleAction((ModuleAction) invocation.getArguments()[0], (Throwable) invocation.getArguments()[1]));
-		ReflectionTestUtils.setField(actionsFactory, "successActions", successActions);
-		ReflectionTestUtils.setField(actionsFactory, "failedActions", failedActions);
+				.thenAnswer((Answer<FailModuleAction>) invocation -> ActionMapper.INSTANCE.toFailResult((ModuleAction) invocation.getArguments()[0], (Throwable) invocation.getArguments()[1]));
 	}
 
 }

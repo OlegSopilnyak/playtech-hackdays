@@ -12,8 +12,6 @@ import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
-import oleg.sopilnyak.service.action.bean.factory.ModuleMainAction;
-import oleg.sopilnyak.service.action.bean.factory.ModuleRegularAction;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,12 +20,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.StringUtils;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -43,10 +39,6 @@ public class ModuleActionStorageImplTest {
 	@Spy
 	private UniqueIdGenerator idGenerator = new ModuleUtilityConfiguration().getUniqueIdGenerator();
 	@Mock
-	private ObjectProvider<ModuleMainAction> mainActions;
-	@Mock
-	private ObjectProvider<ModuleRegularAction> regularActions;
-	@Mock
 	private ModuleActionsRepository repository;
 
 	@InjectMocks
@@ -54,12 +46,6 @@ public class ModuleActionStorageImplTest {
 
 	@Before
 	public void setUp() {
-		Module module = mock(Module.class);
-		ModuleMainAction mainAction = new ModuleMainAction(module);
-		ModuleRegularAction regularAction = new ModuleRegularAction(module, "test");
-		when(mainActions.getObject(any(Module.class))).thenReturn(mainAction);
-		when(regularActions.getObject(any(Module.class), anyString())).thenReturn(regularAction);
-
 		when(metricsContainer.action()).thenReturn(actionMetricsContainer);
 		when(metricsContainer.duration()).thenReturn(durationMetricsContainer);
 		when(metricsContainer.health()).thenReturn(heartBeatMetricContainer);
@@ -67,7 +53,7 @@ public class ModuleActionStorageImplTest {
 
 	@After
 	public void tearDown() throws Exception {
-		reset(mainActions, regularActions, repository, idGenerator);
+		reset( repository, idGenerator);
 	}
 
 	@Test
@@ -79,8 +65,9 @@ public class ModuleActionStorageImplTest {
 	}
 
 	@Test
-	public void createActionFor() {
+	public void createActionForMain() {
 		Module module = mock(Module.class);
+		when(module.getMetricsContainer()).thenReturn(metricsContainer);
 
 		ModuleAction action = storage.createActionFor(module);
 
@@ -89,49 +76,46 @@ public class ModuleActionStorageImplTest {
 		assertEquals(storage.hostName, action.getHostName());
 		assertTrue(action.getDescription().startsWith("Main"));
 
-		verify(mainActions, times(1)).getObject(eq(module));
 		verify(idGenerator,times(1)).generate();
 	}
 
 	@Test
-	public void createActionFor1() {
+	public void createActionForRegular() {
 		Module module = mock(Module.class);
 		ModuleAction parent = mock(ModuleAction.class);
-		String name = "test-action";
+		String name = "test";
 
 		when(module.getMetricsContainer()).thenReturn(metricsContainer);
 
 		ModuleAction action = storage.createActionFor(module, parent, name);
 
-		assertEquals("["+name+"]", action.getName());
+		assertEquals("["+name+"-action]", action.getName());
 		assertEquals(parent, action.getParent());
 		assertFalse(StringUtils.isEmpty(action.getId()));
 		assertEquals(storage.hostName, action.getHostName());
 		assertTrue(action.getDescription().startsWith(name));
 
-		verify(regularActions, times(1)).getObject(eq(module), eq(name));
 		verify(idGenerator,times(1)).generate();
 		verify(actionMetricsContainer, times(1)).changed(any(ModuleAction.class));
 	}
 
 	@Test
-	public void createActionFor2() {
+	public void createActionForRegular2() {
 		Module module = mock(Module.class);
 		ModuleAction parent = mock(ModuleAction.class);
-		String name = "test-action";
+		String name = "test";
 
 		when(module.getMetricsContainer()).thenReturn(metricsContainer);
 		when(module.getMainAction()).thenReturn(parent);
 
 		ModuleAction action = storage.createActionFor(module, null, name);
 
-		assertEquals("["+name+"]", action.getName());
+		assertEquals("["+name+"-action]", action.getName());
 		assertEquals(parent, action.getParent());
 		assertFalse(StringUtils.isEmpty(action.getId()));
 		assertEquals(storage.hostName, action.getHostName());
 		assertTrue(action.getDescription().startsWith(name));
 
-		verify(regularActions, times(1)).getObject(eq(module), eq(name));
 		verify(idGenerator,times(1)).generate();
 		verify(actionMetricsContainer, times(1)).changed(any(ModuleAction.class));
 	}

@@ -8,12 +8,12 @@ import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.metric.ActionMetricsContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
-import oleg.sopilnyak.service.action.bean.result.FailModuleAction;
 import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
-import oleg.sopilnyak.service.action.bean.result.SuccessModuleAction;
 import oleg.sopilnyak.service.action.exception.ModuleActionRuntimeException;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
+import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import org.junit.After;
 import org.junit.Assert;
@@ -25,7 +25,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.StringUtils;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,10 +45,6 @@ public class ModuleActionFactoryImplTest {
 	private ActionMetricsContainer actionMetricsContainer;
 	@Mock
 	private ModuleActionStorage actionStorage;
-	@Mock
-	private ObjectProvider<SuccessModuleAction> successActions;
-	@Mock
-	private ObjectProvider<FailModuleAction> failedActions;
 
 	@Spy
 	private ScheduledExecutorService runner = new ScheduledThreadPoolExecutor(2);
@@ -75,6 +70,7 @@ public class ModuleActionFactoryImplTest {
 	@After
 	public void tearDown() {
 		reset(module, metricsContainer, actionMetricsContainer);
+		factory.current.remove();
 	}
 
 	@Test
@@ -87,7 +83,7 @@ public class ModuleActionFactoryImplTest {
 	public void testCreateModuleMainAction() {
 		factory.setUp();
 		ModuleAction action = factory.createModuleMainAction(module);
-		ModuleDto moduleDto = new ModuleDto(module);
+		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
 		Assert.assertEquals(moduleDto, action.getModule());
 		Assert.assertEquals(ModuleAction.State.INIT, action.getState());
 		Assert.assertTrue(StringUtils.isEmpty(action.getId()));
@@ -98,7 +94,7 @@ public class ModuleActionFactoryImplTest {
 	public void testCreateModuleRegularAction() {
 		factory.setUp();
 		ModuleAction action = factory.createModuleRegularAction(module, "test");
-		ModuleDto moduleDto = new ModuleDto(module);
+		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
 		Assert.assertEquals(moduleDto, action.getModule());
 		Assert.assertEquals(ModuleAction.State.INIT, action.getState());
 		Assert.assertTrue(StringUtils.isEmpty(action.getId()));
@@ -113,7 +109,7 @@ public class ModuleActionFactoryImplTest {
 
 		ModuleAction result = factory.executeAtomicModuleAction(module, "test", () -> value.getAndSet(100), true);
 
-		ModuleDto moduleDto = new ModuleDto(module);
+		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
 		Assert.assertNotNull(result);
 		Assert.assertNull(((ResultModuleAction) result).getCause());
 		Assert.assertEquals(ModuleAction.State.PROGRESS, result.getState());
@@ -135,7 +131,7 @@ public class ModuleActionFactoryImplTest {
 
 		ModuleAction result = factory.executeAtomicModuleAction(module, "test", throwException, false);
 
-		ModuleDto moduleDto = new ModuleDto(module);
+		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
 		Assert.assertNotNull(result);
 		Assert.assertEquals(exception, ((ResultModuleAction) result).getCause());
 		Assert.assertEquals(ModuleAction.State.PROGRESS, result.getState());
@@ -203,17 +199,20 @@ public class ModuleActionFactoryImplTest {
 
 	// private methods
 	private void prepareActionStorage() {
-		when(successActions.getObject(any(ModuleAction.class)))
-				.thenAnswer((Answer<SuccessModuleAction>) invocation -> new SuccessModuleAction((ModuleAction) invocation.getArguments()[0]));
-		when(failedActions.getObject(any(ModuleAction.class), any(Throwable.class)))
-				.thenAnswer((Answer<FailModuleAction>) invocation -> new FailModuleAction((ModuleAction) invocation.getArguments()[0], (Throwable) invocation.getArguments()[1]));
 		when(actionStorage.createActionFor(any(Module.class)))
-				.thenAnswer((Answer<ModuleAction>) invocation -> new ModuleActionAdapter((ModuleBasics) invocation.getArguments()[0], "main-test"));
+				.thenAnswer((Answer<ModuleAction>) invocation -> {
+					ModuleBasics module = (ModuleBasics) invocation.getArguments()[0];
+					ModuleActionAdapter result = ActionMapper.INSTANCE.simple(module, "main-test");
+					result.setModule(DtoMapper.INSTANCE.toModuleDto(module));
+					return result;
+				});
 		when(actionStorage.createActionFor(any(Module.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
-			ModuleActionAdapter result1 = new ModuleActionAdapter((ModuleBasics) invocation.getArguments()[0], "regular-test");
-			result1.setParent((ModuleAction) invocation.getArguments()[1]);
-			result1.setName((String) invocation.getArguments()[2]);
-			return result1;
+			ModuleBasics module = (ModuleBasics) invocation.getArguments()[0];
+			ModuleActionAdapter result = ActionMapper.INSTANCE.simple(module, "regular-test");
+			result.setModule(DtoMapper.INSTANCE.toModuleDto(module));
+			result.setParent((ModuleAction) invocation.getArguments()[1]);
+			result.setName((String) invocation.getArguments()[2]);
+			return result;
 		});
 	}
 

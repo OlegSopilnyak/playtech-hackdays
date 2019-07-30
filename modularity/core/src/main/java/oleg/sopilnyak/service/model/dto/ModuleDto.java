@@ -20,13 +20,6 @@ public class ModuleDto implements ModuleBasics {
 	private String versionId;
 	private String description;
 
-	public ModuleDto(ModuleBasics module) {
-		systemId = module.getSystemId();
-		moduleId = module.getModuleId();
-		versionId = module.getVersionId();
-		description = module.getDescription();
-	}
-
 	public ModuleDto(String primaryKey) {
 		final StringTokenizer st = new StringTokenizer(primaryKey, "::");
 		systemId = st.nextToken();

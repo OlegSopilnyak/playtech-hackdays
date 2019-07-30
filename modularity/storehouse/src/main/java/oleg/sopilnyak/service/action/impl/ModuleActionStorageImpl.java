@@ -8,15 +8,14 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
+import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.factory.ModuleMainAction;
 import oleg.sopilnyak.service.action.bean.factory.ModuleRegularAction;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Objects;
 
 /**
  * Service-implementation: storage of module's actions
@@ -28,10 +27,6 @@ public class ModuleActionStorageImpl implements ModuleActionStorage {
 
 	@Autowired
 	private UniqueIdGenerator idGenerator;
-	@Autowired
-	private ObjectProvider<ModuleMainAction> mainActions;
-	@Autowired
-	private ObjectProvider<ModuleRegularAction> regularActions;
 	@Autowired
 	private ModuleActionsRepository repository;
 
@@ -45,6 +40,7 @@ public class ModuleActionStorageImpl implements ModuleActionStorage {
 			hostName = "localhost";
 		}
 	}
+
 	/**
 	 * To create and save main-action for module
 	 *
@@ -52,12 +48,11 @@ public class ModuleActionStorageImpl implements ModuleActionStorage {
 	 * @return new instance
 	 */
 	@Override
-	public ModuleAction createActionFor(Module module) {
-		final ModuleMainAction action = mainActions.getObject(module);
-		action.setName("[main->" + module.getSystemId() + "->" + module.getModuleId() + "]");
-		action.setId(idGenerator.generate());
-		action.setHostName(hostName);
-		action.setDescription("Main action of " + module.getDescription());
+	public ModuleAction createActionFor(final Module module) {
+		log.debug("Creating action for module {}", module.primaryKey());
+		final ModuleMainAction action = ActionMapper.INSTANCE.toMainAction(module, idGenerator, hostName);
+		module.getMetricsContainer().action().changed(action);
+		log.debug("Created action {}", action);
 		return action;
 	}
 
@@ -70,13 +65,11 @@ public class ModuleActionStorageImpl implements ModuleActionStorage {
 	 * @return new instance
 	 */
 	@Override
-	public ModuleAction createActionFor(Module module, ModuleAction parent, String name) {
-		final ModuleRegularAction action = regularActions.getObject(module, name);
-		action.setParent(Objects.isNull(parent) ? module.getMainAction() : parent);
-		action.setId(idGenerator.generate());
-		action.setHostName(hostName);
-		action.setDescription(name + " action of " + module.getDescription());
+	public ModuleAction createActionFor(final Module module, final ModuleAction parent, final String name) {
+		log.info("Creating regular action for {} with name {}", module.primaryKey(), name);
+		final ModuleRegularAction action = ActionMapper.INSTANCE.toRegularAction(module, parent, name, idGenerator, hostName);
 		module.getMetricsContainer().action().changed(action);
+		log.debug("Created action {}", action);
 		return action;
 	}
 
@@ -86,7 +79,8 @@ public class ModuleActionStorageImpl implements ModuleActionStorage {
 	 * @param action action to store
 	 */
 	@Override
-	public void persist(ModuleAction action) {
+	public void persist(final ModuleAction action) {
+		log.debug("Persisting action {}", action);
 		repository.persist(action);
 	}
 
@@ -97,7 +91,8 @@ public class ModuleActionStorageImpl implements ModuleActionStorage {
 	 * @return instance or null if not exists
 	 */
 	@Override
-	public ModuleAction getById(String actionId) {
+	public ModuleAction getById(final String actionId) {
+		log.debug("Getting action by id {}", actionId);
 		return repository.getById(actionId);
 	}
 }

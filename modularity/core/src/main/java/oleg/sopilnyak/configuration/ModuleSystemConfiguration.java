@@ -26,7 +26,6 @@ import org.springframework.context.annotation.Scope;
 @Configuration
 @Import({
 		ModuleUtilityConfiguration.class,
-		ModuleActionsConfiguration.class,
 		ModuleMetricsConfiguration.class
 })
 public class ModuleSystemConfiguration {

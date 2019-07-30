@@ -126,6 +126,10 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 
 	@Override
 	protected void append(ILoggingEvent event) {
+		if(!isActive()){
+			log.warn("SLF4J Appender is not started.");
+			return;
+		}
 		final ModuleAction currentAction = actionFactory.currentAction();
 		if (Objects.isNull(currentAction)) {
 			return;

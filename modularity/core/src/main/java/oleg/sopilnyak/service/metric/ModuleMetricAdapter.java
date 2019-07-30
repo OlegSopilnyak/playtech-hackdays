@@ -6,6 +6,7 @@ package oleg.sopilnyak.service.metric;
 import lombok.Data;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.model.dto.ModuleActionDto;
 import org.springframework.util.StringUtils;
 
@@ -18,12 +19,13 @@ import java.util.Objects;
 @Data
 public abstract class ModuleMetricAdapter implements ModuleMetric {
 	// action-owner of metric
-	private final ModuleActionDto action;
+	private ModuleAction action;
 	// when metric was measured
 	private final Instant measured;
 
 	public ModuleMetricAdapter(ModuleAction action, Instant measured) {
-		this.action = new ModuleActionDto(action);
+
+		this.action = DtoMapper.INSTANCE.toActionDto(action);
 		this.measured = measured;
 	}
 
@@ -55,7 +57,7 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	@Override
 	public String valuesAsString() {
 		final String concreteValue = concreteValue();
-		final ModuleActionDto action = new ModuleActionDto(getAction());
+		final ModuleActionDto action = DtoMapper.INSTANCE.toActionDto(getAction());
 
 		final StringBuilder valueBuilder = new StringBuilder("Metric ")
 				.append(getName())

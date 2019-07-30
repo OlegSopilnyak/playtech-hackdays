@@ -36,7 +36,6 @@ import static org.mockito.Mockito.mock;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
 		ModuleSystemConfiguration.class
-		, ModuleActionsConfiguration.class
 		, ModuleSystemConfigurationTest.Config.class
 })
 public class ModuleSystemConfigurationTest {
@@ -44,7 +43,7 @@ public class ModuleSystemConfigurationTest {
 	private ApplicationContext context;
 
 	@Test
-	public void getMetricsContainer() {
+	public void testGetMetricsContainer() {
 		assertNotNull(context.getBean(MetricsContainer.class));
 		assertNotNull(context.getBean(ActionMetricsContainer.class));
 		assertNotNull(context.getBean(HeartBeatMetricContainer.class));
@@ -52,17 +51,17 @@ public class ModuleSystemConfigurationTest {
 	}
 
 	@Test
-	public void getModuleActionFactory() {
+	public void testGetModuleActionFactory() {
 		assertNotNull(context.getBean(ModuleActionFactory.class));
 	}
 
 	@Test
-	public void getModuleConfigurationService() {
+	public void testGetModuleConfigurationService() {
 		assertNotNull(context.getBean(ModuleConfigurationService.class));
 	}
 
 	@Test
-	public void getHealthModuleService() {
+	public void testGetHealthModuleService() {
 		assertNotNull(context.getBean(ModulesRegistryService.class));
 	}
 

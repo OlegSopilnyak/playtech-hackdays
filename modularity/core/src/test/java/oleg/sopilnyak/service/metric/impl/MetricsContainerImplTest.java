@@ -8,6 +8,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
+import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import org.junit.After;
 import org.junit.Before;
@@ -135,7 +136,7 @@ public class MetricsContainerImplTest {
 	@Test
 	public void testChanged() throws InterruptedException {
 		ModuleAction parent = mock(ModuleAction.class);
-		ModuleActionAdapter action = new ModuleActionAdapter(module, parent, "test");
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
 		container.action().changed(action);
 
 		assertEquals(-1L, action.getDuration().longValue());
@@ -156,7 +157,7 @@ public class MetricsContainerImplTest {
 	public void testFail() {
 		RuntimeException exception = new RuntimeException();
 		ModuleAction parent = mock(ModuleAction.class);
-		ModuleActionAdapter action = new ModuleActionAdapter(module, parent, "test");
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
 
 		container.action().fail(action, exception);
 
@@ -169,7 +170,7 @@ public class MetricsContainerImplTest {
 	@Test
 	public void testSuccess() {
 		ModuleAction parent = mock(ModuleAction.class);
-		ModuleActionAdapter action = new ModuleActionAdapter(module, parent, "test");
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
 
 		container.action().success(action);
 
@@ -187,7 +188,7 @@ public class MetricsContainerImplTest {
 	@Test
 	public void testHeartBeat() {
 		ModuleAction parent = mock(ModuleAction.class);
-		ModuleActionAdapter action = new ModuleActionAdapter(module, parent, "test");
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
 
 		container.health().heartBeat(action, module);
 
@@ -202,7 +203,7 @@ public class MetricsContainerImplTest {
 	@Test
 	public void testSimple() {
 		ModuleAction parent = mock(ModuleAction.class);
-		ModuleActionAdapter action = new ModuleActionAdapter(module, parent, "test");
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
 
 		container.duration().simple("test-simple", action, timeService.now(), module.primaryKey(), 10);
 
@@ -212,7 +213,7 @@ public class MetricsContainerImplTest {
 	@Test
 	public void testTotal() {
 		ModuleAction parent = mock(ModuleAction.class);
-		ModuleActionAdapter action = new ModuleActionAdapter(module, parent, "test");
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
 
 		container.duration().total("test-total", action, timeService.now(), 25, 10);
 

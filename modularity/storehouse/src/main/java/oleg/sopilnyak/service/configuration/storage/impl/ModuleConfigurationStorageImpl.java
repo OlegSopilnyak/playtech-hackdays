@@ -9,7 +9,7 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.model.dto.ModuleDto;
+import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -62,7 +62,7 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 	@PostConstruct
 	public void initStorage() {
 		if (sharedCache.isEmpty()){
-			registry.registered().stream().map(m-> new ModuleDto(m)).forEach(m->{
+			registry.registered().stream().map(m-> DtoMapper.INSTANCE.toModuleDto(m)).forEach(m->{
 				log.info("Sharing configuration of {}", m.primaryKey());
 				sharedCache.putIfAbsent(m.primaryKey(), repository.getConfiguration(m));
 			});

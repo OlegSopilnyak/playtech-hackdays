@@ -6,7 +6,6 @@ package oleg.sopilnyak.service.action.bean;
 import lombok.*;
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.time.Instant;
 
@@ -28,17 +27,6 @@ public class ModuleActionAdapter implements ModuleAction {
 	protected Long duration;
 	protected String hostName;
 	protected State state;
-
-	public ModuleActionAdapter(ModuleBasics module, ModuleAction parent, String name) {
-		this.module = new ModuleDto(module);
-		this.parent = parent;
-		this.name = name;
-		this.state = State.INIT;
-	}
-
-	public ModuleActionAdapter(ModuleBasics module, String name) {
-		this(module, null, name);
-	}
 
 	public String valueAsString() {
 		return "action :" + name

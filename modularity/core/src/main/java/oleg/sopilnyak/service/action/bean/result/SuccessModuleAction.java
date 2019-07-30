@@ -3,14 +3,8 @@
  */
 package oleg.sopilnyak.service.action.bean.result;
 
-import oleg.sopilnyak.module.model.ModuleAction;
-
 /**
  * Type: action which is finished successfully
  */
 public class SuccessModuleAction extends ResultModuleAction {
-	public SuccessModuleAction(ModuleAction action) {
-		super(action);
-		action.setState(State.SUCCESS);
-	}
 }

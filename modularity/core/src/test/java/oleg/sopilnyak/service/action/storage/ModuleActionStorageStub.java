@@ -7,9 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.UniqueIdGenerator;
+import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.factory.ModuleMainAction;
 import oleg.sopilnyak.service.action.bean.factory.ModuleRegularAction;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -17,7 +17,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Stub for actions storage engine
@@ -28,10 +27,6 @@ public class ModuleActionStorageStub implements ModuleActionStorage {
 	private final Map<String, ModuleAction> storedActions = new HashMap<>();
 	@Autowired
 	private UniqueIdGenerator idGenerator;
-	@Autowired
-	private ObjectProvider<ModuleMainAction> mainActions;
-	@Autowired
-	private ObjectProvider<ModuleRegularAction> regularActions;
 	private String hostName;
 
 	@PostConstruct
@@ -52,11 +47,9 @@ public class ModuleActionStorageStub implements ModuleActionStorage {
 	@Override
 	public ModuleAction createActionFor(Module module) {
 		log.info("Creating main action for {}", module.primaryKey());
-		final ModuleMainAction action = mainActions.getObject(module);
-		action.setName("[main->" + module.getSystemId() + "->" + module.getModuleId() + "]");
-		action.setId(idGenerator.generate());
-		action.setHostName(hostName);
-		action.setDescription("Main action of " + module.getDescription());
+		final ModuleMainAction action = ActionMapper.INSTANCE.toMainAction(module, idGenerator, hostName);
+		module.getMetricsContainer().action().changed(action);
+		log.debug("Created action {}", action);
 		return action;
 	}
 
@@ -71,12 +64,9 @@ public class ModuleActionStorageStub implements ModuleActionStorage {
 	@Override
 	public ModuleAction createActionFor(Module module, ModuleAction parent, String name) {
 		log.info("Creating regular action for {} with name {}", module.primaryKey(), name);
-		final ModuleRegularAction action = regularActions.getObject(module, name);
-		action.setParent(Objects.isNull(parent) ? module.getMainAction() : parent);
-		action.setId(idGenerator.generate());
-		action.setHostName(hostName);
-		action.setDescription(name + " action of " + module.getDescription());
+		final ModuleRegularAction action = ActionMapper.INSTANCE.toRegularAction(module, parent, name, idGenerator, hostName);
 		module.getMetricsContainer().action().changed(action);
+		log.debug("Created action {}", action);
 		return action;
 	}
 

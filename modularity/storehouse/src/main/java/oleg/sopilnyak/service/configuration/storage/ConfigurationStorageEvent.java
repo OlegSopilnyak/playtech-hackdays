@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.configuration.storage;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.io.Serializable;
@@ -20,7 +21,7 @@ public abstract class ConfigurationStorageEvent implements Serializable {
 	protected final Map<String, VariableItem> configuration;
 
 	public ConfigurationStorageEvent(Module module, Map<String, VariableItem> configuration) {
-		this.module = new ModuleDto(module);
+		this.module = DtoMapper.INSTANCE.toModuleDto(module);
 		this.configuration = new LinkedHashMap<>(configuration);
 	}
 

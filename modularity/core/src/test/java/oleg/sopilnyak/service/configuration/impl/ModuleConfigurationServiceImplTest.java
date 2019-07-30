@@ -15,9 +15,8 @@ import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
+import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
-import oleg.sopilnyak.service.action.bean.result.FailModuleAction;
-import oleg.sopilnyak.service.action.bean.result.SuccessModuleAction;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
@@ -32,7 +31,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -85,7 +83,7 @@ public class ModuleConfigurationServiceImplTest {
 		when(module.getDescription()).thenReturn("desc-test");
 		when(module.primaryKey()).thenReturn("test-pk");
 
-		mainAction = new ModuleActionAdapter(module, "test");
+		mainAction = ActionMapper.INSTANCE.simple(module, "test");
 		when(module.getMainAction()).thenReturn(mainAction);
 
 		when(metricsContainer.action()).thenReturn(actionMetricsContainer);
@@ -110,7 +108,7 @@ public class ModuleConfigurationServiceImplTest {
 
 
 	@Test
-	public void initAsService() {
+	public void testInitAsService() {
 		ModuleConfigurationStorage.ConfigurationListener listener =
 				(ModuleConfigurationStorage.ConfigurationListener) ReflectionTestUtils.getField(service, "storageListener");
 
@@ -129,8 +127,9 @@ public class ModuleConfigurationServiceImplTest {
 	}
 
 	@Test
-	public void shutdownAsService() {
-		ModuleConfigurationStorage.ConfigurationListener listener = (ModuleConfigurationStorage.ConfigurationListener) ReflectionTestUtils.getField(service, "storageListener");
+	public void testShutdownAsService() {
+		ModuleConfigurationStorage.ConfigurationListener listener =
+				(ModuleConfigurationStorage.ConfigurationListener) ReflectionTestUtils.getField(service, "storageListener");
 
 		service.shutdownAsService();
 
@@ -142,7 +141,7 @@ public class ModuleConfigurationServiceImplTest {
 	}
 
 	@Test
-	public void inspectModule() {
+	public void testInspectModule() {
 		reset(timeService);
 
 		Map<String, VariableItem> config = new HashMap<>();
@@ -171,7 +170,7 @@ public class ModuleConfigurationServiceImplTest {
 	}
 
 	@Test
-	public void scanModulesConfiguration() {
+	public void testScanModulesConfiguration() {
 		reset(timeService);
 
 		Map<String, VariableItem> config = new HashMap<>();
@@ -194,7 +193,7 @@ public class ModuleConfigurationServiceImplTest {
 	}
 
 	@Test
-	public void runNotificationProcessing() throws InterruptedException {
+	public void testRunNotificationProcessing() throws InterruptedException {
 		reset(actionsFactory, activityRunner);
 		String testModule = "testModule";
 
@@ -207,7 +206,7 @@ public class ModuleConfigurationServiceImplTest {
 	}
 
 	@Test
-	public void scheduleScan() {
+	public void testScheduleScan() {
 		reset(actionsFactory);
 
 		String testModule = "testModule";
@@ -222,7 +221,7 @@ public class ModuleConfigurationServiceImplTest {
 	}
 
 	@Test
-	public void waitForFutureDone() {
+	public void testWaitForFutureDone() {
 		service.waitForFutureDone(null);
 
 		ScheduledFuture future = activityRunner.schedule(() -> System.out.println("test wait for"), 50, TimeUnit.MILLISECONDS);
@@ -234,7 +233,7 @@ public class ModuleConfigurationServiceImplTest {
 	}
 
 	@Test
-	public void stopFuture() {
+	public void testStopFuture() {
 		service.stopFuture(null);
 
 		ScheduledFuture future = activityRunner.schedule(() -> System.out.println("test stop"), 50, TimeUnit.MILLISECONDS);
@@ -251,21 +250,13 @@ public class ModuleConfigurationServiceImplTest {
 		ReflectionTestUtils.setField(actionsFactory, "delay", 200L);
 		ReflectionTestUtils.setField(actionsFactory, "actionsStorage", actionStorage);
 		when(actionStorage.createActionFor(any(Module.class)))
-				.thenAnswer((Answer<ModuleAction>) invocation -> new ModuleActionAdapter((ModuleBasics) invocation.getArguments()[0], "main-test"));
+				.thenAnswer((Answer<ModuleAction>) invocation -> ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "main-test"));
 		when(actionStorage.createActionFor(any(Module.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
-			ModuleActionAdapter result1 = new ModuleActionAdapter((ModuleBasics) invocation.getArguments()[0], "regular-test");
+			ModuleActionAdapter result1 = ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "regular-test");
 			result1.setParent((ModuleAction) invocation.getArguments()[1]);
 			result1.setName((String) invocation.getArguments()[2]);
 			return result1;
 		});
-		ObjectProvider<SuccessModuleAction> successActions = mock(ObjectProvider.class);
-		when(successActions.getObject(any(ModuleAction.class)))
-				.thenAnswer((Answer<SuccessModuleAction>) invocation -> new SuccessModuleAction((ModuleAction) invocation.getArguments()[0]));
-		ObjectProvider<FailModuleAction> failedActions = mock(ObjectProvider.class);
-		when(failedActions.getObject(any(ModuleAction.class), any(Throwable.class)))
-				.thenAnswer((Answer<FailModuleAction>) invocation -> new FailModuleAction((ModuleAction) invocation.getArguments()[0], (Throwable) invocation.getArguments()[1]));
-		ReflectionTestUtils.setField(actionsFactory, "successActions", successActions);
-		ReflectionTestUtils.setField(actionsFactory, "failedActions", failedActions);
 	}
 
 }
