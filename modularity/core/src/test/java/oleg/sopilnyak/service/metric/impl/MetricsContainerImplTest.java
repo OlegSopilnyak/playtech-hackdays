@@ -10,6 +10,7 @@ import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
+import oleg.sopilnyak.service.metric.bean.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

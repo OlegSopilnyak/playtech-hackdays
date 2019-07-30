@@ -5,9 +5,12 @@ package oleg.sopilnyak.service.configuration.storage.impl;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageEvent;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationMapper;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.configuration.storage.event.ConfigurationStorageEvent;
+import oleg.sopilnyak.service.configuration.storage.event.ExpandConfigurationEvent;
+import oleg.sopilnyak.service.configuration.storage.event.ReplaceConfigurationEvent;
 import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
@@ -80,7 +83,7 @@ public class ModuleConfigurationStorageImplTest {
 	}
 
 	@Test
-	public void initStorage() {
+	public void testInitStorage() {
 		final ScheduledFuture future = storage.runnerFuture;
 		storage.destroyStorage();
 
@@ -108,11 +111,16 @@ public class ModuleConfigurationStorageImplTest {
 	}
 
 	@Test
-	public void destroyStorage() {
+	public void testDestroyStorage() {
+		final ScheduledFuture future = storage.runnerFuture;
+		storage.destroyStorage();
+
+		assertNull(storage.runnerFuture);
+		assertTrue(future.isDone());
 	}
 
 	@Test
-	public void getUpdatedVariables() {
+	public void testGetUpdatedVariables() {
 		Map<String, VariableItem> moduleConfiguration = new HashMap<>();
 		moduleConfiguration.putIfAbsent("1.1", new VariableItemDto("1", 200));
 		moduleConfiguration.putIfAbsent("test.test", new VariableItemDto("test", 300));
@@ -126,12 +134,12 @@ public class ModuleConfigurationStorageImplTest {
 
 		verify(testConfiguration, times(1)).get(eq("1.1"));
 		verify(testConfiguration, times(1)).get(eq("test.test"));
-		verify(sharedQueue, times(1)).add(any(ExpandConfigurationEvent.class));
+		verify(sharedQueue, times(1)).offer(any(ExpandConfigurationEvent.class));
 		verify(sharedCache, times(1)).put(Matchers.eq(testModule.primaryKey()), anyMap());
 	}
 
 	@Test
-	public void updateConfiguration() throws InterruptedException {
+	public void testUpdateConfiguration() throws InterruptedException {
 		Map<String, VariableItem> moduleConfiguration = new HashMap<>();
 		moduleConfiguration.putIfAbsent("1.1", new VariableItemDto("1", 200));
 		moduleConfiguration.putIfAbsent("test.test", new VariableItemDto("test", 300));
@@ -145,12 +153,12 @@ public class ModuleConfigurationStorageImplTest {
 		// check the results
 		storage.removeConfigurationListener(listener);
 
-		verify(sharedQueue, times(1)).add(any(ReplaceConfigurationEvent.class));
+		verify(sharedQueue, times(1)).offer(any(ReplaceConfigurationEvent.class));
 		verify(listener, times(1)).changedModules(anyCollectionOf(String.class));
 	}
 
 	@Test
-	public void addConfigurationListener() {
+	public void testAddConfigurationListener() {
 		assertEquals(0, storage.listeners.size());
 		ModuleConfigurationStorage.ConfigurationListener listener = mock(ModuleConfigurationStorage.ConfigurationListener.class);
 		storage.addConfigurationListener(listener);
@@ -158,7 +166,7 @@ public class ModuleConfigurationStorageImplTest {
 	}
 
 	@Test
-	public void removeConfigurationListener() {
+	public void testRemoveConfigurationListener() {
 		ModuleConfigurationStorage.ConfigurationListener listener = mock(ModuleConfigurationStorage.ConfigurationListener.class);
 
 		storage.addConfigurationListener(listener);
@@ -169,13 +177,13 @@ public class ModuleConfigurationStorageImplTest {
 	}
 
 	@Test
-	public void processConfigurationEvents() {
+	public void testProcessConfigurationEvents() {
 
 		Module module = mock(Module.class);
 		Map<String, VariableItem> configuration = new HashMap<>();
 
-		ConfigurationStorageEvent event1 = new ExpandConfigurationEvent(module, configuration);
-		ConfigurationStorageEvent event2 = new ReplaceConfigurationEvent(module, configuration);
+		ConfigurationStorageEvent event1 = ConfigurationMapper.INSTANCE.toExpandEvent(module, configuration);
+		ConfigurationStorageEvent event2 = ConfigurationMapper.INSTANCE.toReplaceEvent(module, configuration);
 
 		sharedQueue.add(event1);
 		sharedQueue.add(event2);
@@ -187,7 +195,7 @@ public class ModuleConfigurationStorageImplTest {
 	}
 
 	@Test
-	public void notifyConfigurationListeners() throws InterruptedException {
+	public void testNotifyConfigurationListeners() throws InterruptedException {
 		ModuleConfigurationStorage.ConfigurationListener listener = mock(ModuleConfigurationStorage.ConfigurationListener.class);
 		storage.addConfigurationListener(listener);
 		Set<String> modules = new HashSet<>();

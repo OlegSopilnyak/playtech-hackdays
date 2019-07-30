@@ -38,10 +38,6 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	// queue of updates
 	private final BlockingQueue<Collection<String>> storageChangesQueue = new LinkedBlockingQueue<>(1000);
 
-	public ModuleConfigurationServiceImpl() {
-		System.out.println("Birth - "+primaryKey());
-	}
-
 	/**
 	 * Allocate module's resources and get module ready to work
 	 */

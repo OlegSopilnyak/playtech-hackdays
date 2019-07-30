@@ -1,24 +1,21 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2018
  */
-package oleg.sopilnyak.service.metric.impl;
+package oleg.sopilnyak.service.metric.bean;
 
-import oleg.sopilnyak.module.model.ModuleAction;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.Instant;
 
 /**
  * Type: metric for fail action
  */
-class ActionExceptionMetric extends ActionChangedMetric {
-	private final Throwable cause;
-
-	ActionExceptionMetric(ModuleAction action, Instant now, Throwable cause) {
-		super(action, now);
-		this.cause = cause;
-	}
+@Data
+@EqualsAndHashCode(callSuper=false)
+public class ActionExceptionMetric extends ActionChangedMetric {
+	private Throwable cause;
 
 	@Override
 	public String getName() {

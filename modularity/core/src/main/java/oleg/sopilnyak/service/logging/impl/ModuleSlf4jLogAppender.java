@@ -20,14 +20,13 @@ import oleg.sopilnyak.service.ModuleServiceAdapter;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.logging.ModuleLoggerService;
-import oleg.sopilnyak.service.metric.ModuleMetricAdapter;
+import oleg.sopilnyak.service.metric.MetricMapper;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -131,12 +130,11 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 			return;
 		}
 		final ModuleAction currentAction = actionFactory.currentAction();
-		if (Objects.isNull(currentAction)) {
-			return;
+		if (Objects.nonNull(currentAction)) {
+			final String message = eventLayout.doLayout(event).trim();
+			final ModuleMetric loggerMetric = MetricMapper.INSTANCE.toLog(currentAction, timeService.now(), message);
+			modulesRegistry.getRegistered(currentAction.getModule()).getMetricsContainer().add(loggerMetric);
 		}
-		final String message = eventLayout.doLayout(event).trim();
-		final ModuleMetric loggerMetric = new Metric(currentAction, timeService.now(), message);
-		modulesRegistry.getRegistered(currentAction.getModule()).getMetricsContainer().add(loggerMetric);
 	}
 
 	/**
@@ -287,44 +285,6 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	}
 
 	// inner classes
-	static class Metric extends ModuleMetricAdapter {
-
-		final String message;
-
-		Metric(ModuleAction action, Instant measured, String message) {
-			super(action, measured);
-			this.message = message;
-		}
-
-		/**
-		 * To get the name of metric
-		 *
-		 * @return the name
-		 */
-		@Override
-		public String getName() {
-			return "logger";
-		}
-
-		/**
-		 * To fill values metric's depended information
-		 *
-		 * @return concrete
-		 */
-		@Override
-		protected String concreteValue() {
-			return message;
-		}
-
-		@Override
-		public String toString() {
-			return "LoggerMetric{" +
-					"action='" + super.getAction().getName() + '\'' +
-					" time='" + super.getMeasured() + '\'' +
-					" message='" + message + '\'' +
-					'}';
-		}
-	}
 
 	class ServiceDelegate extends ModuleServiceAdapter implements ModuleLoggerService {
 

@@ -65,7 +65,6 @@ public interface ActionMapper {
 	 * @param exception occurred exception
 	 * @return instance
 	 */
-//	@Mapping(target = "module", expression = "java(DtoMapper.INSTANCE.toModuleDto(action.getModule()))")
 	@Mapping(target = "module", source = "action.module")
 	@Mapping(target = "cause", source = "exception")
 	FailModuleAction toFailResult(ModuleAction action, Throwable exception);
@@ -76,7 +75,6 @@ public interface ActionMapper {
 	 * @param action current action
 	 * @return instance
 	 */
-//	@Mapping(target = "module", expression = "java(DtoMapper.INSTANCE.toModuleDto(action.getModule()))")
 	@Mapping(target = "module", source = "action.module")
 	@Mapping(target = "cause", expression = "java(null)")
 	SuccessModuleAction toSuccessResult(ModuleAction action);
@@ -130,5 +128,4 @@ public interface ActionMapper {
 	@Mapping(target = "module", expression = "java(DtoMapper.INSTANCE.toModuleDto(action.getModule()))")
 	@Mapping(target = "parent", expression = "java(wrap(action.getParent(), true))")
 	ActionStorageWrapper wrap(ModuleAction action, boolean deep);
-
 }

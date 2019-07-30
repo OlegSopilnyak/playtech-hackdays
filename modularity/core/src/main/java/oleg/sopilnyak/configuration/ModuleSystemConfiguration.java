@@ -10,7 +10,6 @@ import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl;
 import oleg.sopilnyak.service.logging.impl.ModuleSlf4jLogAppender;
 import oleg.sopilnyak.service.metric.impl.MetricsContainerImpl;
-import oleg.sopilnyak.service.metric.impl.ModuleMetricsConfiguration;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import oleg.sopilnyak.service.registry.impl.HealthModuleRegistryServiceImpl;
 import org.springframework.beans.factory.annotation.Autowire;
@@ -25,8 +24,7 @@ import org.springframework.context.annotation.Scope;
  */
 @Configuration
 @Import({
-		ModuleUtilityConfiguration.class,
-		ModuleMetricsConfiguration.class
+		ModuleUtilityConfiguration.class
 })
 public class ModuleSystemConfiguration {
 

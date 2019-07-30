@@ -21,33 +21,14 @@ public abstract class ModuleMetricAdapter implements ModuleMetric {
 	// action-owner of metric
 	private ModuleAction action;
 	// when metric was measured
-	private final Instant measured;
+	private Instant measured;
 
-	public ModuleMetricAdapter(ModuleAction action, Instant measured) {
+//	public ModuleMetricAdapter(ModuleAction action, Instant measured) {
+//
+//		this.action = DtoMapper.INSTANCE.toActionDto(action);
+//		this.measured = measured;
+//	}
 
-		this.action = DtoMapper.INSTANCE.toActionDto(action);
-		this.measured = measured;
-	}
-
-	/**
-	 * To get action-owner of metrics
-	 *
-	 * @return reference to action
-	 */
-	@Override
-	public ModuleAction getAction() {
-		return action;
-	}
-
-	/**
-	 * To get time when metric was took
-	 *
-	 * @return the time
-	 */
-	@Override
-	public Instant getMeasured() {
-		return measured;
-	}
 
 	/**
 	 * To compose string from array of values according to metric's type

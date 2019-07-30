@@ -6,9 +6,10 @@ package oleg.sopilnyak.service.configuration.storage.impl;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageEvent;
+import oleg.sopilnyak.service.configuration.storage.ConfigurationMapper;
 import oleg.sopilnyak.service.configuration.storage.ConfigurationStorageRepository;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.configuration.storage.event.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +29,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Realization of storage though configurations repository
  */
 @Slf4j
-public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStorage {
+public class ModuleConfigurationStorageImpl implements ModuleConfigurationStorage {
 	public static final int IDLE_DELAY = 200;
 	// the future of scanner's runner
 	volatile ScheduledFuture runnerFuture;
@@ -61,8 +62,8 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 
 	@PostConstruct
 	public void initStorage() {
-		if (sharedCache.isEmpty()){
-			registry.registered().stream().map(m-> DtoMapper.INSTANCE.toModuleDto(m)).forEach(m->{
+		if (sharedCache.isEmpty()) {
+			registry.registered().stream().map(m -> DtoMapper.INSTANCE.toModuleDto(m)).forEach(m -> {
 				log.info("Sharing configuration of {}", m.primaryKey());
 				sharedCache.putIfAbsent(m.primaryKey(), repository.getConfiguration(m));
 			});
@@ -72,8 +73,8 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 	}
 
 	@PreDestroy
-	public void destroyStorage(){
-		if (Objects.nonNull(runnerFuture)){
+	public void destroyStorage() {
+		if (Objects.nonNull(runnerFuture)) {
 			log.info("Destroying Storage...");
 			if (!runnerFuture.isDone()) {
 				runnerFuture.cancel(true);
@@ -81,6 +82,7 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 		}
 		runnerFuture = null;
 	}
+
 	/**
 	 * To get updated configured variables
 	 *
@@ -102,16 +104,20 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 		// iterating current module's configuration
 		current.entrySet().forEach(entry -> {
 			final String path = entry.getKey();
-			final VariableItem value = entry.getValue(), cachedValue = cached.get(path);
-			if (Objects.isNull(cachedValue)) notCached.put(path, value);
-			else if (!cachedValue.equals(value)) updated.put(path, cachedValue);
+			final VariableItem value = entry.getValue();
+			final VariableItem cachedValue = cached.get(path);
+			if (Objects.isNull(cachedValue)) {
+				notCached.put(path, value);
+			} else if (!cachedValue.equals(value)) {
+				updated.put(path, cachedValue);
+			}
 		});
 
 		// save not cached configuration if exists
 		if (!notCached.isEmpty()) {
 			log.debug("Expand module {} configuration by {}", module.primaryKey(), notCached);
 			// put request to queue
-			sharedQueue.add(new ExpandConfigurationEvent(module, notCached));
+			processEvent(ConfigurationMapper.INSTANCE.toExpandEvent(module, notCached));
 			// add not-cached configurations
 			cached.putAll(notCached);
 			// put updated configuration back to the distributed(shared) cache
@@ -130,7 +136,7 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 	public void updateConfiguration(Module module, Map<String, VariableItem> configuration) {
 		log.debug("Updating module {} by {}", module.primaryKey(), configuration);
 		// put request to queue
-		sharedQueue.add(new ReplaceConfigurationEvent(module, configuration));
+		processEvent(ConfigurationMapper.INSTANCE.toReplaceEvent(module, configuration));
 		// notify all configuration change listeners
 		notifyConfigurationListeners(Collections.singleton(module.primaryKey()));
 	}
@@ -186,11 +192,16 @@ public class ModuleConfigurationStorageImpl  implements ModuleConfigurationStora
 	}
 
 	// private methods
+	void processEvent(final ConfigurationStorageEvent event) {
+		log.debug("Processing event {}", event.toString());
+		sharedQueue.offer(event);
+	}
+
 	void notifyConfigurationListeners(Set<String> modules) {
 		log.debug("Notifying listeners by {}.", modules);
 		listenersLock.readLock().lock();
 		try {
-			listeners.forEach(l -> activityRunner.execute(() -> l.changedModules(modules)));
+			listeners.forEach(l -> activityRunner.submit(() -> l.changedModules(modules)));
 		} finally {
 			listenersLock.readLock().unlock();
 		}

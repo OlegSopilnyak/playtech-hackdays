@@ -8,9 +8,8 @@ import oleg.sopilnyak.module.metric.*;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
-import org.springframework.beans.factory.ObjectProvider;
+import oleg.sopilnyak.service.metric.MetricMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -29,18 +28,18 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	@Autowired
 	private TimeService timeService;
 
-	@Autowired
-	@Qualifier("action-changed")
-	private ObjectProvider<ActionChangedMetric> actionChanged;
-	@Autowired
-	@Qualifier("action-fail")
-	private ObjectProvider<ActionExceptionMetric> actionFail;
-	@Autowired
-	private ObjectProvider<HeartBeatMetric> heartBeat;
-	@Autowired
-	private ObjectProvider<SimpleDurationMetric> simpleDuration;
-	@Autowired
-	private ObjectProvider<TotalDurationMetric> totalDuration;
+//	@Autowired
+//	@Qualifier("action-changed")
+//	private ObjectProvider<ActionChangedMetric> actionChanged;
+//	@Autowired
+//	@Qualifier("action-fail")
+//	private ObjectProvider<ActionExceptionMetric> actionFail;
+//	@Autowired
+//	private ObjectProvider<HeartBeatMetric> heartBeat;
+//	@Autowired
+//	private ObjectProvider<SimpleDurationMetric> simpleDuration;
+//	@Autowired
+//	private ObjectProvider<TotalDurationMetric> totalDuration;
 
 	/**
 	 * To add module's metric
@@ -126,7 +125,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 				break;
 
 		}
-		add(new ActionChangedMetric(action, mark));
+		add(MetricMapper.INSTANCE.toActionChanged(action, mark));
 	}
 
 	/**
@@ -141,7 +140,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.FAIL);
 		// make and store metric instance
-		final ModuleMetric metric = actionFail.getObject(action, timeService.now(), t);
+		final ModuleMetric metric = MetricMapper.INSTANCE.toActionFailed(action, timeService.now(), t);
 		this.add(metric);
 		// initialize the action
 		adapter.setState(ModuleAction.State.INIT);
@@ -159,7 +158,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.SUCCESS);
 		// make and store metric instance
-		final ModuleMetric metric = actionChanged.getObject(action, timeService.now());
+		final ModuleMetric metric = MetricMapper.INSTANCE.toActionChanged(action, timeService.now());
 		this.add(metric);
 		// initialize the action
 		adapter.setState(ModuleAction.State.INIT);
@@ -185,7 +184,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	@Override
 	public void heartBeat(ModuleAction action, Module module) {
 		// make and store metric instance to module
-		final ModuleMetric metric = heartBeat.getObject(action, module, timeService.now());
+		final ModuleMetric metric = MetricMapper.INSTANCE.toHeartBeat(action, module, timeService.now());
 		module.getMetricsContainer().add(metric);
 	}
 
@@ -211,7 +210,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	@Override
 	public void simple(String label, ModuleAction action, Instant measured, String module, long duration) {
 		// make and store metric instance
-		final ModuleMetric metric = simpleDuration.getObject(label, action, measured, module, duration);
+		final ModuleMetric metric = MetricMapper.INSTANCE.simpleDuration(label, action, measured, module, duration);
 		this.add(metric);
 	}
 
@@ -227,7 +226,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	@Override
 	public void total(String label, ModuleAction action, Instant measured, int modules, long duration) {
 		// make and store metric instance
-		final ModuleMetric metric = totalDuration.getObject(label, action, measured, modules, duration);
+		final ModuleMetric metric = MetricMapper.INSTANCE.totalDuration(label, action, measured, modules, duration);
 		this.add(metric);
 	}
 

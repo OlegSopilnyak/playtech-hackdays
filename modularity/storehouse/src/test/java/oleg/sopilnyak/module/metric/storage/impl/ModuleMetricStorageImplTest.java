@@ -44,7 +44,7 @@ public class ModuleMetricStorageImplTest {
 	}
 
 	@Test
-	public void storeMetric() {
+	public void testStoreMetric() {
 		Instant time = Instant.now();
 		MetricEntity entity = MetricEntity.builder()
 				.name("test-name")
@@ -61,7 +61,7 @@ public class ModuleMetricStorageImplTest {
 	}
 
 	@Test
-	public void find() {
+	public void testFind() {
 		Instant time = Instant.now();
 		MetricEntity entity = MetricEntity.builder()
 				.name("test-name")

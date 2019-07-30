@@ -245,10 +245,21 @@ public class HealthModuleRegistryServiceImplTest {
 
 	@Test
 	public void store() {
-		ModuleMetricAdapter metric = new ModuleMetricAdapter(mainAction, timeService.now()) {
+		final Instant mark = timeService.now();
+		ModuleMetricAdapter metric = new ModuleMetricAdapter() {
 			@Override
 			public String getName() {
 				return "test-metric";
+			}
+
+			@Override
+			public ModuleAction getAction() {
+				return mainAction;
+			}
+
+			@Override
+			public Instant getMeasured() {
+				return mark;
 			}
 		};
 		service.storeMetric(metric);
