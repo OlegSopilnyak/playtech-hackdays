@@ -7,6 +7,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.*;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
+import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.metric.MetricMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,19 +28,6 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 
 	@Autowired
 	private TimeService timeService;
-
-//	@Autowired
-//	@Qualifier("action-changed")
-//	private ObjectProvider<ActionChangedMetric> actionChanged;
-//	@Autowired
-//	@Qualifier("action-fail")
-//	private ObjectProvider<ActionExceptionMetric> actionFail;
-//	@Autowired
-//	private ObjectProvider<HeartBeatMetric> heartBeat;
-//	@Autowired
-//	private ObjectProvider<SimpleDurationMetric> simpleDuration;
-//	@Autowired
-//	private ObjectProvider<TotalDurationMetric> totalDuration;
 
 	/**
 	 * To add module's metric
@@ -139,12 +127,13 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.FAIL);
+
 		// make and store metric instance
-		final ModuleMetric metric = MetricMapper.INSTANCE.toActionFailed(action, timeService.now(), t);
-		this.add(metric);
+		this.add(MetricMapper.INSTANCE.toActionFailed(action, timeService.now(), t));
+
 		// initialize the action
 		adapter.setState(ModuleAction.State.INIT);
-		this.changed(adapter);
+		this.action().changed(adapter);
 	}
 
 	/**
@@ -158,11 +147,34 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.SUCCESS);
 		// make and store metric instance
-		final ModuleMetric metric = MetricMapper.INSTANCE.toActionChanged(action, timeService.now());
-		this.add(metric);
+		this.add(MetricMapper.INSTANCE.toActionChanged(action, timeService.now()));
 		// initialize the action
 		adapter.setState(ModuleAction.State.INIT);
 		this.action().changed(adapter);
+	}
+
+	/**
+	 * To save metric about start action with parameters
+	 *
+	 * @param action  regular module-action
+	 * @param context input parameters of the action
+	 */
+	@Override
+	public void start(ModuleAction action, ActionContext context) {
+		// make and store metric instance
+		this.add(MetricMapper.INSTANCE.toActionStart(action, timeService.now(), context));
+	}
+
+	/**
+	 * To save metric about finish action with parameters
+	 *
+	 * @param action regular module-action
+	 * @param output result of the action
+	 */
+	@Override
+	public void finish(ModuleAction action, Object output) {
+		// make and store metric instance
+		this.add(MetricMapper.INSTANCE.toActionFinish(action, timeService.now(), output));
 	}
 
 	/**

@@ -32,7 +32,7 @@ public class HeartBeatMetric extends ModuleMetricAdapter {
 
 	@Override
 	protected String concreteValue() {
-		return "module: " + modulePK + ", condition: " + condition + ", active: " + active;
+		return "{module: \"" + modulePK + "\", condition: \"" + condition + "\", active: \"" + active+"\"}";
 	}
 }
 

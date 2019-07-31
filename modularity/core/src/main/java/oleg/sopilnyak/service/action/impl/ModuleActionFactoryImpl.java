@@ -6,6 +6,7 @@ package oleg.sopilnyak.service.action.impl;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.exception.ModuleActionRuntimeException;
@@ -14,11 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Service: Factory of module actions
@@ -71,6 +70,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction createModuleRegularAction(Module module, String name) {
 		log.debug("Creating regular '{}' action for module '{}'", name, module.primaryKey());
 		final ModuleAction action = actionsStorage.createActionFor(module, current.get(), name);
+
 		module.getMetricsContainer().action().changed(action);
 		scheduleStorage(action);
 
@@ -88,46 +88,75 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
+		final Callable actionCall = new Callable() {
+			@Override
+			public Object call() throws Exception {
+				executable.run();
+				return null;
+			}
+		};
+		final ActionContext context = AtomicActionContext.builder().action(actionCall).criteria(new LinkedHashMap<>()).build();
+		return executeAtomicModuleAction(module, actionName, context, rethrow);
+	}
+
+	/**
+	 * Execute in context of module action using regular action
+	 *
+	 * @param module     owner of simple action
+	 * @param actionName action's name
+	 * @param context    context of atomic action execution
+	 * @param rethrow    flag for rethrow exception if occurred
+	 * @return action-result of execution
+	 */
+	@Override
+	public ModuleAction executeAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow) {
 		log.debug("Setup action for '{}' of module '{}'", actionName, module.primaryKey());
 
-		final ModuleAction action;
-		current.set(action = createModuleRegularAction(module, actionName));
+		final ModuleAction action = createModuleRegularAction(module, actionName);
+		final String realActionName = action.getName();
+		// set new regular action as current action
+		current.set(action);
 
-		log.debug("Executing  for action {}", action.getName());
+		log.debug("Starting  for action {} context {}", realActionName, context);
+		module.getMetricsContainer().action().start(action, context);
 
+		log.debug("Executing context call for action {}", realActionName);
 		action.setState(ModuleAction.State.PROGRESS);
 		module.getMetricsContainer().action().changed(action);
 		scheduleStorage(action);
 
-		actionName = action.getName();
-		log.debug("Real name of action is '{}'", actionName);
 		try {
-			log.debug("Start executing action '{}'", actionName);
-			executable.run();
-			log.debug("Finished well executing of action '{}'", actionName);
+			log.debug("Start executing action '{}'", realActionName);
+
+			final Object output = context.getAction().call();
+
+			log.debug("Finished well executing of action '{}' with output '{}'", realActionName, output);
+			module.getMetricsContainer().action().finish(action, output);
+			// health is going to be better
 			module.healthGoUp();
 		} catch (Throwable t) {
-			log.error("Cannot execute action {}", actionName, t);
+			log.error("Cannot execute action {}", realActionName, t);
+			// health is going to be worse
+			module.healthGoLow(t);
 
 			module.getMetricsContainer().action().fail(action, t);
-			module.healthGoLow(t);
 			scheduleStorage(action);
 
 			if (rethrow) {
-				throw new ModuleActionRuntimeException(action, "Fail in " + actionName, t);
+				// throw caught exception
+				throw new ModuleActionRuntimeException(action, "Fail in " + realActionName, t);
 			}
-			final ModuleAction result = ActionMapper.INSTANCE.toFailResult(action, t);
-			return result;
+			return ActionMapper.INSTANCE.toFailResult(action, t);
 		} finally {
+			// set as current previous action
 			current.set(action.getParent());
 		}
 
-		log.debug("Finished execution of {}", actionName);
+		log.debug("Finished well execution of {}", realActionName);
 		module.getMetricsContainer().action().success(action);
 		scheduleStorage(action);
 
-		final ModuleAction result = ActionMapper.INSTANCE.toSuccessResult(action);
-		return result;
+		return ActionMapper.INSTANCE.toSuccessResult(action);
 	}
 
 	/**

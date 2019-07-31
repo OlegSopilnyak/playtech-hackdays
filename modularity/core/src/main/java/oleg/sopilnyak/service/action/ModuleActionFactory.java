@@ -29,7 +29,7 @@ public interface ModuleActionFactory {
 
 
 	/**
-	 * Execute in context of module action
+	 * Execute in context of module action using regular action
 	 *
 	 * @param module owner of simple action
 	 * @param actionName action's name
@@ -38,6 +38,17 @@ public interface ModuleActionFactory {
 	 * @return action-result of execution
 	 */
 	ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow);
+
+	/**
+	 * Execute in context of module action using regular action
+	 *
+	 * @param module owner of simple action
+	 * @param actionName action's name
+	 * @param context context of atomic action execution
+	 * @param rethrow    flag for rethrow exception if occurred
+	 * @return action-result of execution
+	 */
+	ModuleAction executeAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow);
 
 	/**
 	 * To get current action by Thread context

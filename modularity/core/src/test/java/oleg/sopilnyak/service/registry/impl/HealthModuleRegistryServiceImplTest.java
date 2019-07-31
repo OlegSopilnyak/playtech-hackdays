@@ -244,7 +244,7 @@ public class HealthModuleRegistryServiceImplTest {
 	}
 
 	@Test
-	public void store() {
+	public void testStore() {
 		final Instant mark = timeService.now();
 		ModuleMetricAdapter metric = new ModuleMetricAdapter() {
 			@Override

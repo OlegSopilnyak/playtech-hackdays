@@ -147,7 +147,7 @@ public abstract class ModuleServiceAdapter implements Module {
 
 
 		// finish main-action activity
-		finishModuleAction((healthCondition = lastCondition) != FAIL);
+		shutdownMainModuleAction((healthCondition = lastCondition) != FAIL);
 	}
 
 	/**
@@ -323,12 +323,20 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	// protected methods - should be redefined in children
+
+	/**
+	 * To activate main action of the service
+	 */
 	protected void activateMainModuleAction() {
-		// setup action for main-module activity
 		actionsFactory.startMainAction(this);
 	}
 
-	protected void finishModuleAction(boolean success) {
+	/**
+	 * To finish service activities
+	 *
+	 * @param success flag how it should be finished
+	 */
+	protected void shutdownMainModuleAction(boolean success) {
 		actionsFactory.finishMainAction(this, success);
 	}
 

@@ -12,11 +12,11 @@ public class ActionChangedMetric extends ModuleMetricAdapter {
 
 	@Override
 	public String getName() {
-		return "changed-action-state to {" + this.getAction().getState() + "} of " + this.getAction().getName();
+		return "action-state is '" + action.getState() + "'";
 	}
 
 	@Override
 	protected String concreteValue() {
-		return "";
+		return "'" + action.getState() + "'";
 	}
 }

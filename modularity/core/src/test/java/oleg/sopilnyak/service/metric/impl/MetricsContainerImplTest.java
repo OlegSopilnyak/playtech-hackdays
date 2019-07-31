@@ -8,6 +8,7 @@ import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
+import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.metric.bean.*;
@@ -166,6 +167,29 @@ public class MetricsContainerImplTest {
 		assertNull(action.getStarted());
 		assertEquals(-1L, action.getDuration().longValue());
 		assertEquals(ModuleAction.State.INIT, action.getState());
+	}
+
+	@Test
+	public void testStart(){
+		ModuleAction parent = mock(ModuleAction.class);
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
+		ActionContext context = mock(ActionContext.class);
+
+		container.action().start(action, context);
+
+		assertEquals(1, container.unProcessed());
+		verify(context, times(1)).getCriteria();
+		verify(context, times(1)).getInput();
+	}
+
+	@Test
+	public void testFinish(){
+		ModuleAction parent = mock(ModuleAction.class);
+		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
+
+		container.action().finish(action, "");
+
+		assertEquals(1, container.unProcessed());
 	}
 
 	@Test

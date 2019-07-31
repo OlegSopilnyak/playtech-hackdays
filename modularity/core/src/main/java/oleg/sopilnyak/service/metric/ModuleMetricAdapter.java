@@ -19,16 +19,9 @@ import java.util.Objects;
 @Data
 public abstract class ModuleMetricAdapter implements ModuleMetric {
 	// action-owner of metric
-	private ModuleAction action;
+	protected ModuleAction action;
 	// when metric was measured
-	private Instant measured;
-
-//	public ModuleMetricAdapter(ModuleAction action, Instant measured) {
-//
-//		this.action = DtoMapper.INSTANCE.toActionDto(action);
-//		this.measured = measured;
-//	}
-
+	protected Instant measured;
 
 	/**
 	 * To compose string from array of values according to metric's type

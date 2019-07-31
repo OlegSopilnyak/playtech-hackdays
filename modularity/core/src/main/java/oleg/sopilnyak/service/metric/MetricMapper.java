@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.metric;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.metric.bean.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -15,7 +16,7 @@ import java.time.Instant;
 /**
  * MapStruct mapper for various metrics
  */
-@Mapper
+@Mapper(imports = {ActionContext.class})
 public interface MetricMapper {
 	MetricMapper INSTANCE = Mappers.getMapper(MetricMapper.class);
 
@@ -42,6 +43,33 @@ public interface MetricMapper {
 	@Mapping(target = "measured", source = "measured")
 	@Mapping(target = "cause", source = "cause")
 	ActionExceptionMetric toActionFailed(ModuleAction action, Instant measured, Throwable cause);
+
+	/**
+	 * Create action-start module-metric
+	 *
+	 * @param action going to start action
+	 * @param measured time when it is occurred
+	 * @param context action's call parameters
+	 * @return instance
+	 */
+	@Mapping(target = "action", expression = "java(action)" )
+	@Mapping(target = "measured", source = "measured")
+	@Mapping(target = "criteria", expression = "java(context.getCriteria())" )
+	@Mapping(target = "input", expression = "java(context.getInput())" )
+	ActionStartMetric toActionStart(ModuleAction action, Instant measured, ActionContext context);
+
+	/**
+	 * Create action-finish module-metric
+	 *
+	 * @param action which finish action call well
+	 * @param measured time when it is occurred
+	 * @param result result of action's execution
+	 * @return instance
+	 */
+	@Mapping(target = "action", expression = "java(action)" )
+	@Mapping(target = "measured", source = "measured")
+	@Mapping(target = "output", source = "result")
+	ActionFinishMetric toActionFinish(ModuleAction action, Instant measured, Object result);
 
 	/**
 	 * Create heart-beat module-metric
