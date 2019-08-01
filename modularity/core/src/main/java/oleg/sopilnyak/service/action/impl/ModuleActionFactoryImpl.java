@@ -6,6 +6,7 @@ package oleg.sopilnyak.service.action.impl;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
@@ -14,6 +15,7 @@ import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,6 +34,8 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	private ModuleActionStorage actionsStorage;
 	@Autowired
 	private ScheduledExecutorService scanRunner;
+	@Autowired
+	private TimeService timeService;
 
 	@Value("${module.action.storage.delay:200}")
 	long delay;
@@ -112,6 +116,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction executeAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow) {
 		log.debug("Setup action for '{}' of module '{}'", actionName, module.primaryKey());
 
+		final Instant startMark = timeService.now();
 		final ModuleAction action = createModuleRegularAction(module, actionName);
 		final String realActionName = action.getName();
 		// set new regular action as current action
@@ -130,10 +135,15 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 
 			final Object output = context.getAction().call();
 
-			log.debug("Finished well executing of action '{}' with output '{}'", realActionName, output);
 			module.getMetricsContainer().action().finish(action, output);
 			// health is going to be better
 			module.healthGoUp();
+
+			log.debug("Finished well execution of {} returned {}", realActionName, output);
+			module.getMetricsContainer().action().success(action);
+			scheduleStorage(action);
+
+			return ActionMapper.INSTANCE.toSuccessResult(action);
 		} catch (Throwable t) {
 			log.error("Cannot execute action {}", realActionName, t);
 			// health is going to be worse
@@ -148,15 +158,16 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 			}
 			return ActionMapper.INSTANCE.toFailResult(action, t);
 		} finally {
+			// store action's duration metric
+			final Instant nowMark = timeService.now();
+			final long duration = timeService.duration(startMark);
+			final String modulePK = module.primaryKey();
+			final String label = "atomic-action";
+
+			module.getMetricsContainer().duration().simple(label, action, nowMark, modulePK, duration);
 			// set as current previous action
 			current.set(action.getParent());
 		}
-
-		log.debug("Finished well execution of {}", realActionName);
-		module.getMetricsContainer().action().success(action);
-		scheduleStorage(action);
-
-		return ActionMapper.INSTANCE.toSuccessResult(action);
 	}
 
 	/**

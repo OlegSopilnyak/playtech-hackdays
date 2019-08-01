@@ -80,8 +80,8 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).executeAtomicAction(eq(INIT_MODULE_ACTION_NAME), any(Runnable.class));
 		verify(service, times(1)).initAsService();
 		verify(service, times(2)).healthGoUp();
-		verify(service, times(9)).primaryKey();
-		verify(service, times(15)).getMetricsContainer();
+		verify(service, times(11)).primaryKey();
+		verify(service, times(17)).getMetricsContainer();
 
 		assertTrue(service.isActive());
 		assertEquals(service, registry.getRegistered(service));
@@ -108,8 +108,8 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).executeAtomicAction(eq(SHUTDOWN_MODULE_ACTION_NAME), any(Runnable.class));
 		verify(service, times(1)).shutdownAsService();
 		verify(service, times(1)).shutdownMainModuleAction(eq(true));
-		verify(service, times(6)).primaryKey();
-		verify(service, times(8)).getMetricsContainer();
+		verify(service, times(7)).primaryKey();
+		verify(service, times(9)).getMetricsContainer();
 
 		assertFalse(service.isActive());
 		assertNull(registry.getRegistered(service));
@@ -366,8 +366,8 @@ public class ModuleServiceAdapterTest {
 		assertNull(service.lastThrown());
 
 
-		verify(service, times(3)).primaryKey();
-		verify(service, times(7)).getMetricsContainer();
+		verify(service, times(4)).primaryKey();
+		verify(service, times(8)).getMetricsContainer();
 		verify(service, times(1)).healthGoUp();
 		verify(actionStorage, times(1)).createActionFor(eq(service), any(ModuleAction.class), eq(activityName));
 		verify(testFunction, times(1)).run();

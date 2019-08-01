@@ -72,6 +72,7 @@ public class ModuleConfigurationServiceImplTest {
 	private ModuleActionStorage actionStorage;
 	@Mock
 	private ModulesRegistryService registry;
+
 	@InjectMocks
 	private ModuleConfigurationServiceImpl service = new ModuleConfigurationServiceImpl();
 
@@ -246,6 +247,7 @@ public class ModuleConfigurationServiceImplTest {
 
 	// private methods
 	private void prepareActionsFactory() {
+		ReflectionTestUtils.setField(actionsFactory, "timeService", timeService);
 		ReflectionTestUtils.setField(actionsFactory, "scanRunner", activityRunner);
 		ReflectionTestUtils.setField(actionsFactory, "delay", 200L);
 		ReflectionTestUtils.setField(actionsFactory, "actionsStorage", actionStorage);

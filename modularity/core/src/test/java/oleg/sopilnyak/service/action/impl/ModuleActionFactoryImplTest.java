@@ -3,11 +3,14 @@
  */
 package oleg.sopilnyak.service.action.impl;
 
+import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.metric.ActionMetricsContainer;
+import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
@@ -44,10 +47,14 @@ public class ModuleActionFactoryImplTest {
 	@Mock
 	private ActionMetricsContainer actionMetricsContainer;
 	@Mock
+	private DurationMetricsContainer durationMetricsContainer;
+	@Mock
 	private ModuleActionStorage actionStorage;
 
 	@Spy
 	private ScheduledExecutorService runner = new ScheduledThreadPoolExecutor(2);
+	@Spy
+	private TimeService timeService = new ModuleUtilityConfiguration().getTimeService();
 
 	@InjectMocks
 	private ModuleActionFactoryImpl factory = new ModuleActionFactoryImpl();
@@ -61,6 +68,7 @@ public class ModuleActionFactoryImplTest {
 
 		when(module.getMetricsContainer()).thenReturn(metricsContainer);
 		when(metricsContainer.action()).thenReturn(actionMetricsContainer);
+		when(metricsContainer.duration()).thenReturn(durationMetricsContainer);
 
 		prepareActionStorage();
 

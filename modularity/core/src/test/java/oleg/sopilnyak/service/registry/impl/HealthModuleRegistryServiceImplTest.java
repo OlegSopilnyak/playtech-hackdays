@@ -16,8 +16,6 @@ import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
-import oleg.sopilnyak.service.action.bean.result.FailModuleAction;
-import oleg.sopilnyak.service.action.bean.result.SuccessModuleAction;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
@@ -33,7 +31,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -275,6 +272,7 @@ public class HealthModuleRegistryServiceImplTest {
 	// private methods
 	private void prepareActionsFactory() {
 		ModuleActionStorage actionStorage = mock(ModuleActionStorage.class);
+		ReflectionTestUtils.setField(actionsFactory, "timeService", timeService);
 		ReflectionTestUtils.setField(actionsFactory, "scanRunner", activityRunner);
 		ReflectionTestUtils.setField(actionsFactory, "delay", 200L);
 		ReflectionTestUtils.setField(actionsFactory, "actionsStorage", actionStorage);
@@ -286,12 +284,6 @@ public class HealthModuleRegistryServiceImplTest {
 			result1.setName((String) invocation.getArguments()[2]);
 			return result1;
 		});
-		ObjectProvider<SuccessModuleAction> successActions = mock(ObjectProvider.class);
-		when(successActions.getObject(any(ModuleAction.class)))
-				.thenAnswer((Answer<SuccessModuleAction>) invocation -> ActionMapper.INSTANCE.toSuccessResult((ModuleAction) invocation.getArguments()[0]));
-		ObjectProvider<FailModuleAction> failedActions = mock(ObjectProvider.class);
-		when(failedActions.getObject(any(ModuleAction.class), any(Throwable.class)))
-				.thenAnswer((Answer<FailModuleAction>) invocation -> ActionMapper.INSTANCE.toFailResult((ModuleAction) invocation.getArguments()[0], (Throwable) invocation.getArguments()[1]));
 	}
 
 }
