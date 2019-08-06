@@ -3,6 +3,7 @@
  */
 package oleg.sopilnyak.service.metric.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.*;
 import oleg.sopilnyak.module.model.ModuleAction;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 /**
  * Service - container of metrics
  */
+@Slf4j
 public class MetricsContainerImpl implements MetricsContainer, ActionMetricsContainer, HeartBeatMetricContainer, DurationMetricsContainer {
 	// local container of metrics
 	private final Queue<ModuleMetric> metrics = new ConcurrentLinkedQueue<>();
@@ -37,6 +39,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	@Override
 	public void add(ModuleMetric metric) {
 		assert metric != null : "Metric cannot be null.";
+		log.debug("Adding {}", metric);
 		metrics.offer(metric);
 	}
 
@@ -48,7 +51,8 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	@Override
 	public void add(Collection<ModuleMetric> metrics) {
 		assert metrics != null : "Metrics collection cannot be null.";
-		this.metrics.addAll(metrics);
+		log.debug("Adding {}", metrics);
+		metrics.addAll(metrics);
 	}
 
 	/**
@@ -66,6 +70,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void clear() {
+		log.debug("Cleaning container.");
 		metrics.clear();
 	}
 
@@ -96,6 +101,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void changed(ModuleAction action) {
+		log.debug("Changing {}", action);
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 		final Instant mark = timeService.now();
 		switch (action.getState()) {
@@ -124,16 +130,18 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void fail(ModuleAction action, Throwable t) {
+		log.debug("Failing {} by {}", action, t.getMessage());
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.FAIL);
 
 		// make and store metric instance
-		this.add(MetricMapper.INSTANCE.toActionFailed(action, timeService.now(), t));
+		add(MetricMapper.INSTANCE.toActionFailed(action, timeService.now(), t));
 
 		// initialize the action
+		log.debug("Restore state of {} to INIT", adapter);
 		adapter.setState(ModuleAction.State.INIT);
-		this.action().changed(adapter);
+		action().changed(adapter);
 	}
 
 	/**
@@ -143,14 +151,18 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void success(ModuleAction action) {
+		log.debug("Success for {}", action);
 		final ModuleActionAdapter adapter = (ModuleActionAdapter) action;
 		adapter.setDuration(timeService.duration(action.getStarted()));
 		adapter.setState(ModuleAction.State.SUCCESS);
+
 		// make and store metric instance
-		this.add(MetricMapper.INSTANCE.toActionChanged(action, timeService.now()));
+		add(MetricMapper.INSTANCE.toActionChanged(action, timeService.now()));
+
 		// initialize the action
+		log.debug("Restore state of {} to INIT", adapter);
 		adapter.setState(ModuleAction.State.INIT);
-		this.action().changed(adapter);
+		action().changed(adapter);
 	}
 
 	/**
@@ -161,8 +173,12 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void start(ModuleAction action, ActionContext context) {
+		if (context.isTrivial()){
+			log.debug("Context is trivial {}", context);
+			return;
+		}
 		// make and store metric instance
-		this.add(MetricMapper.INSTANCE.toActionStart(action, timeService.now(), context));
+		add(MetricMapper.INSTANCE.toActionStart(action, timeService.now(), context));
 	}
 
 	/**
@@ -173,8 +189,12 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void finish(ModuleAction action, Object output) {
+		if (Objects.isNull(output)){
+			log.debug("No output for action.");
+			return;
+		}
 		// make and store metric instance
-		this.add(MetricMapper.INSTANCE.toActionFinish(action, timeService.now(), output));
+		add(MetricMapper.INSTANCE.toActionFinish(action, timeService.now(), output));
 	}
 
 	/**
@@ -195,6 +215,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void heartBeat(ModuleAction action, Module module) {
+		log.debug("Saving heart-beat for {}", module.primaryKey());
 		// make and store metric instance to module
 		final ModuleMetric metric = MetricMapper.INSTANCE.toHeartBeat(action, module, timeService.now());
 		module.getMetricsContainer().add(metric);
@@ -216,14 +237,14 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 * @param label    label of activity
 	 * @param action   action-context
 	 * @param measured time of occurrence
-	 * @param module   pk of processed module
+	 * @param modulePK   pk of processed module
 	 * @param duration duration of operation
 	 */
 	@Override
-	public void simple(String label, ModuleAction action, Instant measured, String module, long duration) {
+	public void simple(String label, ModuleAction action, Instant measured, String modulePK, long duration) {
+		log.debug("Saving simple duration '{}' for {}", label, modulePK);
 		// make and store metric instance
-		final ModuleMetric metric = MetricMapper.INSTANCE.simpleDuration(label, action, measured, module, duration);
-		this.add(metric);
+		add(MetricMapper.INSTANCE.simpleDuration(label, action, measured, modulePK, duration));
 	}
 
 	/**
@@ -237,9 +258,9 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void total(String label, ModuleAction action, Instant measured, int modules, long duration) {
+		log.debug("Saving total duration '{}' for {} modules.", label, modules);
 		// make and store metric instance
-		final ModuleMetric metric = MetricMapper.INSTANCE.totalDuration(label, action, measured, modules, duration);
-		this.add(metric);
+		add(MetricMapper.INSTANCE.totalDuration(label, action, measured, modules, duration));
 	}
 
 }

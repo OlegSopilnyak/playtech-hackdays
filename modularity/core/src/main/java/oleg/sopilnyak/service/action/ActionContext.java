@@ -3,6 +3,8 @@
  */
 package oleg.sopilnyak.service.action;
 
+import java.util.Objects;
+
 /**
  * Type context for executing atomic-action-activity
  */
@@ -37,4 +39,15 @@ public interface ActionContext {
 	 * @return callable instance
 	 */
 	java.util.concurrent.Callable getAction();
+
+	/**
+	 * To check if no input and empty criteria
+	 *
+	 * @return true if only callable presents
+	 */
+	default boolean isTrivial(){
+		return Objects.isNull(getInput())
+				|| Objects.isNull(getCriteria())
+				|| getCriteria().isEmpty();
+	}
 }
