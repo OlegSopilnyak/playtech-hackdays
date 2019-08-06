@@ -80,7 +80,7 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).executeAtomicAction(eq(INIT_MODULE_ACTION_NAME), any(Runnable.class));
 		verify(service, times(1)).initAsService();
 		verify(service, times(2)).healthGoUp();
-		verify(service, times(11)).primaryKey();
+		verify(service, atLeast(11)).primaryKey();
 		verify(service, times(17)).getMetricsContainer();
 
 		assertTrue(service.isActive());

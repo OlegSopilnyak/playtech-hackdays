@@ -79,6 +79,7 @@ public class ModuleConfigurationStorageImplTest {
 	public void tearDown() throws Exception {
 		storage.destroyStorage();
 		reset(registry, testModule);
+		storage.listeners.clear();
 		sharedCache.clear();
 	}
 
@@ -148,7 +149,7 @@ public class ModuleConfigurationStorageImplTest {
 		storage.addConfigurationListener(listener);
 
 		storage.updateConfiguration(testModule, moduleConfiguration);
-		TimeUnit.MILLISECONDS.sleep(100);
+		TimeUnit.MILLISECONDS.sleep(200);
 
 		// check the results
 		storage.removeConfigurationListener(listener);

@@ -52,7 +52,7 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	public void add(Collection<ModuleMetric> metrics) {
 		assert metrics != null : "Metrics collection cannot be null.";
 		log.debug("Adding {}", metrics);
-		metrics.addAll(metrics);
+		this.metrics.addAll(metrics);
 	}
 
 	/**
