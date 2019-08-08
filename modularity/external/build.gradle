@@ -1,0 +1,7 @@
+group = 'oleg.sopilnyak'
+version = '0.6-SNAPSHOT'
+description = 'External access to modules system'
+
+dependencies {
+    compile group: 'org.springframework', name: 'spring-webmvc', version: '5.+'
+}

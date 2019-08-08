@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.model.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import oleg.sopilnyak.module.ModuleBasics;
 
 import java.util.StringTokenizer;
@@ -14,6 +15,7 @@ import java.util.StringTokenizer;
  */
 @Data
 @NoArgsConstructor
+@ToString
 public class ModuleDto implements ModuleBasics {
 	private String systemId;
 	private String moduleId;

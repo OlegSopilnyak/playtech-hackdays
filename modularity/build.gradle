@@ -52,3 +52,9 @@ project(':storehouse') {
         implementation project(':core')
     }
 }
+project(':external') {
+    dependencies {
+        implementation project(':core')
+        implementation project(':commands')
+    }
+}

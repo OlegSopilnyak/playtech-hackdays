@@ -2,4 +2,5 @@ rootProject.name = 'modularity'
 include 'core'
 include 'commands'
 include 'storehouse'
+include 'external'
 
