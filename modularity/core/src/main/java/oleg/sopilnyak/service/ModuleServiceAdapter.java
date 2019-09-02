@@ -10,7 +10,6 @@ import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
-import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
@@ -89,7 +88,7 @@ public abstract class ModuleServiceAdapter implements Module {
 		}
 
 		// start main-action activity
-		final ModuleActionAdapter mainAction = (ModuleActionAdapter) this.getMainAction();
+		final ModuleAction mainAction = getMainAction();
 
 		// prepare main-action for the work
 		activateMainModuleAction();

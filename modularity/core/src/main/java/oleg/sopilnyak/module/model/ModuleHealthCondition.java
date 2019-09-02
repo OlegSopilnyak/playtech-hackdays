@@ -12,5 +12,6 @@ public enum ModuleHealthCondition {
 	GOOD,
 	AVERAGE,
 	POOR,
-	FAIL
+	FAIL,
+	DAMAGED
 }

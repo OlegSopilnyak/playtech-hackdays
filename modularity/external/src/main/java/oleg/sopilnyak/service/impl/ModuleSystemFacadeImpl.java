@@ -10,21 +10,31 @@ import oleg.sopilnyak.commands.model.ModuleCommandType;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.controller.ModuleMapper;
 import oleg.sopilnyak.dto.ModuleStatusDto;
+import oleg.sopilnyak.dto.RemoteModuleDto;
 import oleg.sopilnyak.exception.ModuleNotFoundException;
+import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.model.ModuleHealthCondition;
+import oleg.sopilnyak.service.ExternalModule;
 import oleg.sopilnyak.service.ModuleSystemFacade;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
+import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Facade: working with remote modules realization
+ * Facade: working with remote (external) modules realization
+ *
  * @see oleg.sopilnyak.service.ModuleSystemFacade
  */
 @Slf4j
 public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	@Autowired
 	ModuleCommandFactory commandFactory;
+	@Autowired
+	ModulesRegistryService registery;
 	/**
 	 * To get list of registered modules
 	 *
@@ -73,6 +83,44 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 		final ModuleInfoAdapter moduleInfo = executeSingModuleCommand(ModuleCommandType.STOP, modulePK);
 		return ModuleMapper.INSTANCE.toStatusDto(moduleInfo);
 	}
+
+	/**
+	 * To register external module
+	 *
+	 * @param remoteModule remote module
+	 * @return status of registered module
+	 */
+	@Override
+	public ModuleStatusDto registerModule(RemoteModuleDto remoteModule) {
+		final ModuleStatusDto result = new ModuleStatusDto();
+		result.setCondition(ModuleHealthCondition.DAMAGED);
+		return result;
+	}
+
+	/**
+	 * To un-register external module
+	 *
+	 * @param remoteModule remote module
+	 * @return last status of module
+	 */
+	@Override
+	public ModuleStatusDto unRegisterModule(ModuleDto remoteModule) {
+		log.debug("Un-Registering {}", remoteModule);
+		final ModuleStatusDto result = new ModuleStatusDto();
+		result.setCondition(ModuleHealthCondition.DAMAGED);
+
+		// getting module from registry
+		final Module module = registery.getRegistered(remoteModule);
+		if (Objects.nonNull(module) && module instanceof ExternalModule){
+			// module is external, so we can to un-register it
+			registery.remove(module);
+			log.debug("Removed external module registration: {}", remoteModule);
+			ModuleMapper.INSTANCE.copyModuleStatus(result, module);
+			module.moduleStop();
+		}
+		return result;
+	}
+
 	// private methods
 	ModuleInfoAdapter executeSingModuleCommand(ModuleCommandType command, String modulePK) {
 		log.debug("Executing module-command '{}' for '{}'", command, modulePK);

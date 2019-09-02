@@ -4,6 +4,8 @@
 package oleg.sopilnyak.service;
 
 import oleg.sopilnyak.dto.ModuleStatusDto;
+import oleg.sopilnyak.dto.RemoteModuleDto;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.util.List;
 
@@ -39,4 +41,20 @@ public interface ModuleSystemFacade {
 	 * @return module's status
 	 */
 	ModuleStatusDto moduleStop(String modulePK);
+
+	/**
+	 * To register external module
+	 *
+	 * @param remoteModule remote module
+	 * @return status of registered module
+	 */
+	ModuleStatusDto registerModule(RemoteModuleDto remoteModule);
+
+	/**
+	 * To un-register external module
+	 *
+	 * @param remoteModule remote module
+	 * @return last status of module
+	 */
+	ModuleStatusDto unRegisterModule(ModuleDto remoteModule);
 }

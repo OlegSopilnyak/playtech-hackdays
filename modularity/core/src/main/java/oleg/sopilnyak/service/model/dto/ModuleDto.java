@@ -4,6 +4,7 @@
 package oleg.sopilnyak.service.model.dto;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import oleg.sopilnyak.module.ModuleBasics;
@@ -14,6 +15,7 @@ import java.util.StringTokenizer;
  * Type to transport Module's properties
  */
 @Data
+@EqualsAndHashCode
 @NoArgsConstructor
 @ToString
 public class ModuleDto implements ModuleBasics {
