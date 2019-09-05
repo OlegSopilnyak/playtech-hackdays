@@ -193,7 +193,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	/**
 	 * To get instance of last thrown exception
 	 *
-	 * @return exception or nul if wouldn't
+	 * @return exception or null if wouldn't
 	 */
 	@Override
 	public Throwable lastThrown() {

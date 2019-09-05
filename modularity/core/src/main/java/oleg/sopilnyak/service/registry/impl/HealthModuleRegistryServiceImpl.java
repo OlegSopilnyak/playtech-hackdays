@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -94,7 +95,9 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 	 */
 	@Override
 	public Collection<Module> registered() {
-		return new LinkedHashSet<>(modules.values());
+		return modules.values().stream()
+				.peek(m->m.refreshModuleState())
+				.collect(Collectors.toCollection(LinkedList::new));
 	}
 
 	/**

@@ -34,15 +34,15 @@ import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import static oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl.ACTIVITY_LABEL;
+import static oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl.CONFIGURATION_UPDATE;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -74,7 +74,7 @@ public class ModuleConfigurationServiceImplTest {
 	private ModulesRegistryService registry;
 
 	@InjectMocks
-	private ModuleConfigurationServiceImpl service = new ModuleConfigurationServiceImpl();
+	private ModuleConfigurationServiceImpl service = spy(new ModuleConfigurationServiceImpl());
 
 	@Before
 	public void setUp() {
@@ -104,7 +104,7 @@ public class ModuleConfigurationServiceImplTest {
 	@After
 	public void tearDown() {
 		service.moduleStop();
-		reset(module, actionsFactory, metricsContainer, actionMetricsContainer, registry, activityRunner);
+		reset(service, module, actionsFactory, metricsContainer, actionMetricsContainer, registry, activityRunner);
 	}
 
 
@@ -170,56 +170,40 @@ public class ModuleConfigurationServiceImplTest {
 		verify(module, times(1)).configurationChanged(eq(config));
 	}
 
-	@Test
-	public void testScanModulesConfiguration() {
-		reset(timeService);
-
-		Map<String, VariableItem> config = new HashMap<>();
-		config.put("1.2.3.4.value", new VariableItemDto("value", 100));
-		when(module.getConfiguration()).thenReturn(config);
-		when(configurationStorage.getUpdatedVariables(module, config)).thenReturn(config).thenReturn(Collections.emptyMap());
-
-		when(registry.registered()).thenReturn(Collections.singletonList(module));
-
-		service.scanModulesConfiguration();
-
-		verify(actionsFactory, times(1)).executeAtomicModuleAction(eq(service), eq("configuration-check"), any(Runnable.class), eq(false));
-		verify(actionsFactory, times(2)).startMainAction(eq(service));
-		verify(actionsFactory, times(2)).currentAction();
-
-		verify(module, times(1)).getConfiguration();
-		verify(configurationStorage, times(1)).getUpdatedVariables(eq(module), eq(config));
-		// changing module configuration
-		verify(module, times(1)).configurationChanged(eq(config));
-	}
 
 	@Test
 	public void testRunNotificationProcessing() throws InterruptedException {
 		reset(actionsFactory, activityRunner);
 		String testModule = "testModule";
+		when(registry.getRegistered(testModule)).thenReturn(module);
 
 		service.runNotificationProcessing(Collections.singleton(testModule));
 
 		TimeUnit.MILLISECONDS.sleep(100);
 
-		verify(activityRunner, times(2)).schedule(any(Runnable.class), eq(50L), eq(TimeUnit.MILLISECONDS));
+		verify(activityRunner, times(1)).schedule(any(Runnable.class), eq(0L), eq(TimeUnit.MILLISECONDS));
 		verify(actionsFactory, atLeastOnce()).startMainAction(eq(service));
+		verify(service, times(1)).notifyModuleConfigurationUpdates(eq(CONFIGURATION_UPDATE), eq(testModule));
 	}
 
 	@Test
-	public void testScheduleScan() {
-		reset(actionsFactory);
+	public void testNotifyModuleConfigurationUpdates(){
+		reset(actionsFactory, service, timeService);
+		String testModule = "testModule", testLabel = "testLabel";
+		Map<String, VariableItem> config = mock(Map.class);
+		when(config.isEmpty()).thenReturn(false);
+		when(configurationStorage.getUpdatedVariables(eq(module), any(Map.class))).thenReturn(config);
+		when(registry.getRegistered(testModule)).thenReturn(module);
 
-		String testModule = "testModule";
+		service.notifyModuleConfigurationUpdates(testLabel, testModule);
 
-		BlockingQueue<Collection<String>> storageChangesQueue = (BlockingQueue<Collection<String>>) ReflectionTestUtils.getField(service, "storageChangesQueue");
-		storageChangesQueue.add(Collections.singleton(testModule));
-
-		service.scheduleScan();
-
-		verify(activityRunner, times(1)).schedule(any(Runnable.class), eq(50L), eq(TimeUnit.MILLISECONDS));
-		verify(actionsFactory, times(1)).startMainAction(eq(service));
+		verify(service, times(1)).inspectModule(eq(ACTIVITY_LABEL), any(ModuleAction.class), eq(module));
+		verify(actionsFactory, times(1)).executeAtomicModuleAction(eq(service), eq(testLabel), any(Runnable.class), eq(false));
+		verify(actionsFactory, times(1)).createModuleRegularAction(eq(service), eq(testLabel));
+		verify(timeService, times(6)).now();
+		verify(module, times(1)).configurationChanged(eq(config));
 	}
+
 
 	@Test
 	public void testWaitForFutureDone() {

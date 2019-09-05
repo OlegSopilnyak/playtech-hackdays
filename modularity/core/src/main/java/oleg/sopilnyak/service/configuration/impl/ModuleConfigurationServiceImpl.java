@@ -10,6 +10,7 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.RegistryModulesIteratorAdapter;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import org.springframework.util.CollectionUtils;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -27,12 +28,14 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapter implements ModuleConfigurationService {
-	private static final String ACTIVITY_LABEL = "Configuration";
+	static final String ACTIVITY_LABEL = "Configuration";
+	private static final String CONFIGURATION_CHECK = "configuration-check";
+	static final String CONFIGURATION_UPDATE = "configuration-update";
 	// listener of storage's state changes
 	private final StorageListener storageListener = new StorageListener();
 	// future of scheduled activities
 	private volatile ScheduledFuture runnerFuture;
-	// future fo config changes scanner
+	// future for config changes scanner
 	private volatile ScheduledFuture notifyFuture;
 
 	// queue of updates
@@ -43,13 +46,24 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	 */
 	@Override
 	protected void initAsService() {
-		if (active){
+		if (active) {
 			log.debug("Service initiated already...");
 			return;
 		}
 		log.debug("Initiating service...");
 		configurationStorage.addConfigurationListener(storageListener);
-		runnerFuture = activityRunner.schedule(this::scanModulesConfiguration, 50, TimeUnit.MILLISECONDS);
+		// prepare scan module configuration runner
+		final Module module = this;
+		final String actionName = CONFIGURATION_CHECK;
+		final Runnable executable = () -> iterateRegisteredModules(ACTIVITY_LABEL);
+		final Runnable scanModulesConfiguration = () -> {
+			// activate main module action
+			activateMainModuleAction();
+			// scanning all allowed modules
+			log.info("Scanning modules.");
+			actionsFactory.executeAtomicModuleAction(module, actionName, executable, false);
+		};
+		runnerFuture = activityRunner.schedule(scanModulesConfiguration, 50, TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -57,7 +71,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	 */
 	@Override
 	protected void shutdownAsService() {
-		if (!active){
+		if (!active) {
 			log.debug("Service stopped already...");
 			return;
 		}
@@ -73,13 +87,14 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	 * @param label  label of module's processing
 	 * @param action action owner of inspection
 	 * @param module module to be inspected
+	 * @see RegistryModulesIteratorAdapter##iterateRegisteredModules(String)
 	 */
 	protected void inspectModule(String label, ModuleAction action, Module module) {
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
 		log.debug("Scan module {}", modulePK);
 		final Map<String, VariableItem> config = configurationStorage.getUpdatedVariables(module, module.getConfiguration());
-		if (config.isEmpty()) {
+		if (CollectionUtils.isEmpty(config)) {
 			getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
 			log.debug("Nothing to update properties for {}", modulePK);
 			return;
@@ -90,45 +105,49 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	}
 
 	// private methods
-	void scanModulesConfiguration() {
-		// activate main module action
-		activateMainModuleAction();
-
-		log.info("Scanning modules.");
-		actionsFactory.executeAtomicModuleAction(this, "configuration-check", () -> iterateRegisteredModules(ACTIVITY_LABEL), false);
-	}
-
-	void runNotificationProcessing(Collection<String> modules) {
-		storageChangesQueue.offer(modules);
-		if (Objects.isNull(notifyFuture) || notifyFuture.isDone()) {
-			notifyFuture = activityRunner.schedule(this::scheduleScan, 50, TimeUnit.MILLISECONDS);
-		} else {
-			waitForFutureDone(notifyFuture);
-			try {
-				storageChangesQueue.take();
-			} catch (InterruptedException e) {
-				log.debug("Cannot get item from queue.", e);
-			}
-			notifyFuture = activityRunner.schedule(this::scheduleScan, 50, TimeUnit.MILLISECONDS);
-		}
-	}
-
-	void scheduleScan() {
-		// activate main module action
-		activateMainModuleAction();
-
-		if (storageChangesQueue.isEmpty()) {
-			log.debug("Change configuration queue is empty.");
+	void notifyModuleConfigurationUpdates(String label, String modulePK){
+		final Module module = registry.getRegistered(modulePK);
+		if (Objects.isNull(module)){
+			log.warn("Module '{}' is not registered.", modulePK);
 			return;
 		}
-		waitForFutureDone(runnerFuture);
-		runnerFuture = activityRunner.schedule(this::scanModulesConfiguration, 50, TimeUnit.MILLISECONDS);
+		final Module service = this;
+		final Runnable executable = ()-> inspectModule(ACTIVITY_LABEL, actionsFactory.currentAction(), module);
+
+		log.debug("Updating module '{}' configuration.", modulePK);
+		actionsFactory.executeAtomicModuleAction(service, label, executable, false);
+	}
+
+	void runNotificationProcessing(final Collection<String> modules) {
+		if (CollectionUtils.isEmpty(modules)){
+			log.warn("Listener notified by emptu modules set.");
+			return;
+		}
+		final Runnable executeConfigurationUpdates = () -> {
+			// activate main module action for current Thread
+			activateMainModuleAction();
+			final ModuleAction action = actionsFactory.currentAction();
+
+			log.info("Updating modules {}", modules);
+			final String label = CONFIGURATION_UPDATE;
+			final Instant mark = timeService.now();
+			final int counter[] = new int[]{0};
+			modules.forEach(pk -> {
+				counter[0]++;
+				notifyModuleConfigurationUpdates(label, pk);
+			});
+			// save metric of notified modules update duration
+			getMetricsContainer().duration().total(label, action, timeService.now(), counter[0], timeService.duration(mark));
+		};
+		waitForFutureDone(notifyFuture);
+		notifyFuture = activityRunner.schedule(executeConfigurationUpdates, 0L, TimeUnit.MILLISECONDS);
 	}
 
 	void waitForFutureDone(ScheduledFuture future) {
-		if (Objects.isNull(future)){
+		if (Objects.isNull(future) || future.isDone()) {
 			return;
 		}
+		log.debug("Waiting for previous updates will be done...");
 		while (!future.isDone()) {
 			try {
 				TimeUnit.MILLISECONDS.sleep(200);

@@ -47,6 +47,7 @@ public interface ModuleMapper {
 	 * @param sharedModulesMap distributed map of registereed external modules
 	 * @return external module instance
 	 */
+	@Mapping(ignore = true, target = "changed")
 	ExternalModuleImpl toExternalModule(RemoteModuleDto remoteModule, Map<String, ExternalModule> sharedModulesMap);
 
 	/**

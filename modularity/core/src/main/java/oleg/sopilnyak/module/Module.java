@@ -6,15 +6,15 @@ package oleg.sopilnyak.module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
-import oleg.sopilnyak.module.model.ModuleHealthCondition;
 
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.stream.Collectors;
 
 /**
  * Type - service's module
  */
-public interface Module extends ModuleBasics, ModuleConfigurable {
+public interface Module extends ModuleBasics, ModuleHealth, ModuleConfigurable {
 	/**
 	 * To start module activity
 	 */
@@ -52,33 +52,6 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 		moduleStart();
 	}
 
-
-	/**
-	 * To get the registry condition of module for the moment
-	 *
-	 * @return current condition value
-	 */
-	ModuleHealthCondition getCondition();
-
-	/**
-	 * After action detected fail
-	 *
-	 * @param exception cause of fail
-	 */
-	void healthGoLow(Throwable exception);
-
-	/**
-	 * To get instance of last thrown exception
-	 *
-	 * @return exception or nul if wouldn't
-	 */
-	Throwable lastThrown();
-
-	/**
-	 * After action detected success
-	 */
-	void healthGoUp();
-
 	/**
 	 * To get root action of module
 	 *
@@ -99,9 +72,16 @@ public interface Module extends ModuleBasics, ModuleConfigurable {
 	 * @return metrics snapshot
 	 */
 	default Collection<ModuleMetric> metrics() {
-		final Collection<ModuleMetric> metrics = new LinkedList<>(getMetricsContainer().metrics());
+		final LinkedList<ModuleMetric> metrics =
+				getMetricsContainer().metrics().stream().collect(Collectors.toCollection(LinkedList::new));
 		getMetricsContainer().clear();
 		return metrics;
 	}
 
+	/**
+	 * To refresh module's state before return from registry
+	 */
+	default void refreshModuleState(){
+
+	}
 }
