@@ -1,26 +1,23 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.controller;
+package oleg.sopilnyak.external.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import oleg.sopilnyak.dto.ModuleStatusDto;
-import oleg.sopilnyak.service.ModuleSystemFacade;
+import oleg.sopilnyak.external.dto.ModuleStatusDto;
+import oleg.sopilnyak.external.service.ModuleSystemFacade;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static oleg.sopilnyak.controller.ControllerConstant.MODULE_BASE;
-import static oleg.sopilnyak.controller.ControllerConstant.MODULE_PARAMETER;
-
 /**
  * Controller for modules operation
  */
 @Slf4j
 @RestController
-@RequestMapping(value = MODULE_BASE)
+@RequestMapping(value = ControllerConstant.MODULE_BASE)
 public class ModuleSystemController {
 	@Autowired
 	ModuleSystemFacade facade;
@@ -45,7 +42,7 @@ public class ModuleSystemController {
 	 */
 	@GetMapping(value = "/status")
 	public ResponseEntity<ModuleStatusDto> moduleStatus(
-			@RequestParam(name = MODULE_PARAMETER) final String modulePK
+			@RequestParam(name = ControllerConstant.MODULE_PARAMETER) final String modulePK
 	) {
 		log.debug("Getting status for module '{}'", modulePK);
 		return ResponseEntity.ok(facade.moduleStatus(modulePK));
@@ -60,7 +57,7 @@ public class ModuleSystemController {
 	 */
 	@PutMapping(value = "/start")
 	public ResponseEntity<ModuleStatusDto> moduleStart(
-			@RequestParam(name = MODULE_PARAMETER) final String modulePK
+			@RequestParam(name = ControllerConstant.MODULE_PARAMETER) final String modulePK
 	) {
 		log.debug("Starting module '{}'", modulePK);
 		return ResponseEntity.ok(facade.moduleStart(modulePK));
@@ -74,7 +71,7 @@ public class ModuleSystemController {
 	 */
 	@PutMapping(value = "/stop")
 	public ResponseEntity<ModuleStatusDto> moduleStop(
-			@RequestParam(name = MODULE_PARAMETER) final String modulePK
+			@RequestParam(name = ControllerConstant.MODULE_PARAMETER) final String modulePK
 	) {
 		log.debug("Stopping module '{}'", modulePK);
 		return ResponseEntity.ok(facade.moduleStop(modulePK));

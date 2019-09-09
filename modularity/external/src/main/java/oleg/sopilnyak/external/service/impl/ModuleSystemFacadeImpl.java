@@ -1,28 +1,34 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.impl;
+package oleg.sopilnyak.external.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.commands.CommandResult;
 import oleg.sopilnyak.commands.ModuleCommandFactory;
 import oleg.sopilnyak.commands.model.ModuleCommandType;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
-import oleg.sopilnyak.controller.ModuleMapper;
-import oleg.sopilnyak.dto.ModuleStatusDto;
-import oleg.sopilnyak.dto.RemoteModuleDto;
-import oleg.sopilnyak.exception.ModuleNotFoundException;
+import oleg.sopilnyak.external.controller.ModuleMapper;
+import oleg.sopilnyak.external.dto.ModuleStatusDto;
+import oleg.sopilnyak.external.dto.RemoteModuleDto;
+import oleg.sopilnyak.external.exception.ModuleNotFoundException;
+import oleg.sopilnyak.external.service.ExternalModule;
+import oleg.sopilnyak.external.service.ModuleSystemFacade;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.ModuleBasics;
+import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
-import oleg.sopilnyak.service.ExternalModule;
-import oleg.sopilnyak.service.ModuleSystemFacade;
+import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
+import oleg.sopilnyak.service.model.DtoMapper;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.util.CollectionUtils;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,7 +37,7 @@ import java.util.stream.Collectors;
 /**
  * Facade: working with remote (external) modules realization
  *
- * @see oleg.sopilnyak.service.ModuleSystemFacade
+ * @see ModuleSystemFacade
  */
 @Slf4j
 public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
@@ -39,6 +45,8 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	ModuleCommandFactory commandFactory;
 	@Autowired
 	ModulesRegistryService registry;
+	@Autowired
+	ModuleActionStorage actionStorage;
 
 	// storage of all modules configurations
 	@Autowired
@@ -107,6 +115,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	@Override
 	public ModuleStatusDto registerModule(RemoteModuleDto remoteModule) {
 		final ModuleStatusDto result = new ModuleStatusDto();
+		result.setActive(false);
 		result.setCondition(ModuleHealthCondition.DAMAGED);
 		final ExternalModule external = registerExternalModule(remoteModule);
 		if (Objects.nonNull(external)) {
@@ -127,17 +136,18 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	public ModuleStatusDto unRegisterModule(ModuleDto remoteModule) {
 		log.debug("Un-Registering '{}'", remoteModule);
 		final ModuleStatusDto result = new ModuleStatusDto();
+		result.setActive(false);
 		result.setCondition(ModuleHealthCondition.DAMAGED);
 
 		// getting module from registry
 		final Module module = registry.getRegistered(remoteModule);
 		if (Objects.nonNull(module) && module instanceof ExternalModule) {
-			// module is external, so we can to un-register it
+			// module is external, so we can un-register it
 			registry.remove(module);
 			sharedModulesMap.remove(module.primaryKey());
 			log.debug("Removed external module registration: {}", remoteModule);
-			ModuleMapper.INSTANCE.copyModuleStatus(result, module);
 			module.moduleStop();
+			ModuleMapper.INSTANCE.copyModuleStatus(result, (ExternalModule)module);
 		}else {
 			final ExternalModule remote = sharedModulesMap.get(remoteModule.primaryKey());
 			if (Objects.nonNull(remote)){
@@ -162,11 +172,30 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 		}
 
 		// creating external module
+		log.debug("Making external module instance");
 		final ExternalModule module = ModuleMapper.INSTANCE.toExternalModule(remoteModule, sharedModulesMap);
 
-		log.debug("Storing '{}' current configuration.", module.primaryKey());
-		configurationStorage.getUpdatedVariables(module, module.getConfiguration());
+		// preparing module main-action
+		log.debug("Preparing main action for external module '{}'", module.primaryKey());
+		final ModuleAction mainAction = actionStorage.createActionFor(module);
+		actionStorage.persist(mainAction);
+		module.setMainAction(DtoMapper.INSTANCE.toActionDto(mainAction));
 
+		// store current module configuration
+		log.debug("Storing '{}' current configuration.", module.primaryKey());
+		if (!CollectionUtils.isEmpty(remoteModule.getConfiguration())){
+			final Map<String, VariableItem> config = new LinkedHashMap<>();
+			log.debug("Storing remote configuration {}", remoteModule.getConfiguration());
+			remoteModule.getConfiguration().forEach((k,v) -> config.put(k,v));
+			((ExternalModuleImpl)module).setConfiguration(config);
+		}
+		final Map<String, VariableItem> changed = configurationStorage.getUpdatedVariables(module, module.getConfiguration());
+		if (!CollectionUtils.isEmpty(changed)) {
+			log.debug("Storing diffrence configuration {}", changed);
+			((ExternalModuleImpl) module).setChanged(ModuleMapper.INSTANCE.toConfigurationDto(changed));
+		}
+
+		// register external module in the registry
 		log.debug("Registering module '{}'", module.primaryKey());
 		registry.add(module);
 

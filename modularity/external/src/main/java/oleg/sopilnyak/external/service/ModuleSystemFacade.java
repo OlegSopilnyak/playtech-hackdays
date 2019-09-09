@@ -1,10 +1,10 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service;
+package oleg.sopilnyak.external.service;
 
-import oleg.sopilnyak.dto.ModuleStatusDto;
-import oleg.sopilnyak.dto.RemoteModuleDto;
+import oleg.sopilnyak.external.dto.ModuleStatusDto;
+import oleg.sopilnyak.external.dto.RemoteModuleDto;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 
 import java.util.List;

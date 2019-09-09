@@ -141,7 +141,7 @@ public class ModuleSlf4jLogAppenderTest {
 
 	@Test
 	public void testingHealthGoLow() {
-		service.healthGoLow(new Exception());
+		service.healthGoDown(new Exception());
 
 		assertEquals(ModuleHealthCondition.GOOD, service.getCondition());
 	}
@@ -150,16 +150,16 @@ public class ModuleSlf4jLogAppenderTest {
 	public void testingLastThrown() {
 		Exception ex = new Exception();
 
-		service.healthGoLow(ex);
+		service.healthGoDown(ex);
 		assertEquals(ModuleHealthCondition.GOOD, service.getCondition());
 		assertEquals(ex, service.lastThrown());
 	}
 
 	@Test
 	public void testingHealthGoUp() {
-		service.healthGoLow(new Exception());
-		service.healthGoLow(new Exception());
-		service.healthGoLow(new Exception());
+		service.healthGoDown(new Exception());
+		service.healthGoDown(new Exception());
+		service.healthGoDown(new Exception());
 
 		assertEquals(ModuleHealthCondition.POOR, service.getCondition());
 

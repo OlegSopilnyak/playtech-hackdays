@@ -2,7 +2,7 @@
  * Copyright (C) Oleg Sopilnyak 2019
  */
 
-package oleg.sopilnyak.exception;
+package oleg.sopilnyak.external.exception;
 
 /**
  * Exception thrown when no registered module

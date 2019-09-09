@@ -224,7 +224,7 @@ public abstract class ModuleServiceAdapter implements Module {
 	 * After action detected fail
 	 */
 	@Override
-	public void healthGoLow(Throwable exception) {
+	public void healthGoDown(Throwable exception) {
 		healthLock.lock();
 		try {
 			lastThrow = exception;

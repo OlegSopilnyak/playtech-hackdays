@@ -1,11 +1,13 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service;
+package oleg.sopilnyak.external.service;
+
 
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
-import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 
 import java.util.Map;
 
@@ -18,7 +20,7 @@ public interface ExternalModule extends Module {
 	 *
 	 * @return true if external module is detached
 	 */
-	default boolean detached(){
+	default boolean detached() {
 		return !isActive() && getCondition() == ModuleHealthCondition.DAMAGED;
 	}
 
@@ -27,5 +29,12 @@ public interface ExternalModule extends Module {
 	 *
 	 * @return changed configuration
 	 */
-	Map<String, VariableItem> getChanged();
+	Map<String, VariableItemDto> getChanged();
+
+	/**
+	 * To setup main module action
+	 *
+	 * @param moduleMainAction stored main module action
+	 */
+	void setMainAction(ModuleAction moduleMainAction);
 }

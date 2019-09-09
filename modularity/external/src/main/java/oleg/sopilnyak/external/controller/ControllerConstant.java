@@ -1,4 +1,4 @@
-package oleg.sopilnyak.controller;
+package oleg.sopilnyak.external.controller;
 
 /**
  * Constants of controllers

@@ -144,7 +144,7 @@ public class ModuleActionFactoryImplTest {
 		Assert.assertEquals(exception, ((ResultModuleAction) result).getCause());
 		Assert.assertEquals(ModuleAction.State.PROGRESS, result.getState());
 		Assert.assertEquals(moduleDto, result.getModule());
-		verify(module, times(1)).healthGoLow(eq(exception));
+		verify(module, times(1)).healthGoDown(eq(exception));
         verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
         verify(actionMetricsContainer, times(1)).fail(any(ModuleAction.class), eq(exception));
 	}

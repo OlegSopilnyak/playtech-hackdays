@@ -147,7 +147,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		} catch (Throwable t) {
 			log.error("Cannot execute action {}", realActionName, t);
 			// health is going to be worse
-			module.healthGoLow(t);
+			module.healthGoDown(t);
 
 			module.getMetricsContainer().action().fail(action, t);
 			scheduleStorage(action);

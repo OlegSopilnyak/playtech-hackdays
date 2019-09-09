@@ -21,7 +21,7 @@ public interface ModuleHealth {
 	 *
 	 * @param exception cause of fail
 	 */
-	void healthGoLow(Throwable exception);
+	void healthGoDown(Throwable exception);
 
 	/**
 	 * To get instance of last thrown exception

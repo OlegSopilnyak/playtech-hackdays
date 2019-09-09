@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategiesFactory;
 import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategy;
@@ -18,6 +19,7 @@ import java.util.Objects;
  *
  * @see oleg.sopilnyak.module.model.VariableItem
  */
+@Data
 public class VariableItemDto implements VariableItem, Serializable {
 	@JsonProperty("type")
 	private Type type;

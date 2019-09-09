@@ -1,19 +1,20 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.impl;
+package oleg.sopilnyak.external.service.impl;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import oleg.sopilnyak.controller.ModuleMapper;
-import oleg.sopilnyak.dto.MetricContainerDto;
+import oleg.sopilnyak.external.controller.ModuleMapper;
+import oleg.sopilnyak.external.dto.MetricContainerDto;
+import oleg.sopilnyak.external.service.ExternalModule;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
-import oleg.sopilnyak.service.ExternalModule;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
+import oleg.sopilnyak.service.model.dto.VariableItemDto;
 
 import java.util.Map;
 import java.util.Objects;
@@ -25,10 +26,11 @@ import java.util.Objects;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
+	private ModuleAction mainAction;
 	private boolean active;
 	private ModuleHealthCondition condition;
 	private Map<String, VariableItem> configuration;
-	private Map<String, VariableItem> changed;
+	private Map<String, VariableItemDto> changed;
 	private MetricContainerDto metrics;
 	private transient Map<String, ExternalModule> sharedModulesMap;
 
@@ -70,7 +72,7 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	 * @param exception cause of fail
 	 */
 	@Override
-	public void healthGoLow(Throwable exception) {
+	public void healthGoDown(Throwable exception) {
 		throw new UnsupportedOperationException("Not supported for external module.");
 	}
 
@@ -93,16 +95,6 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	}
 
 	/**
-	 * To get root action of module
-	 *
-	 * @return instance
-	 */
-	@Override
-	public ModuleAction getMainAction() {
-		throw new UnsupportedOperationException("Not supported for external module.");
-	}
-
-	/**
 	 * To get access to Module's metrics container
 	 *
 	 * @return instance
@@ -119,7 +111,7 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	 */
 	@Override
 	public void configurationChanged(Map<String, VariableItem> changed) {
-		this.changed = changed;
+//		this.changed = changed;
 	}
 
 	/**

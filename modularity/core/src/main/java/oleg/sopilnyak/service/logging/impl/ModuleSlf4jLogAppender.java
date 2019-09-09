@@ -186,8 +186,8 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	 * @param exception cause of fail
 	 */
 	@Override
-	public void healthGoLow(Throwable exception) {
-		delegate.healthGoLow(exception);
+	public void healthGoDown(Throwable exception) {
+		delegate.healthGoDown(exception);
 	}
 
 	/**

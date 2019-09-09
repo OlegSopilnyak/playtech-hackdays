@@ -201,19 +201,19 @@ public class ModuleServiceAdapterTest {
 		Exception thrown = new Exception();
 		assertEquals(VERY_GOOD, service.getCondition());
 
-		service.healthGoLow(thrown);
+		service.healthGoDown(thrown);
 		assertEquals(GOOD, service.getCondition());
 
-		service.healthGoLow(thrown);
+		service.healthGoDown(thrown);
 		assertEquals(AVERAGE, service.getCondition());
 
-		service.healthGoLow(thrown);
+		service.healthGoDown(thrown);
 		assertEquals(POOR, service.getCondition());
 
-		service.healthGoLow(thrown);
+		service.healthGoDown(thrown);
 		assertEquals(FAIL, service.getCondition());
 
-		service.healthGoLow(thrown);
+		service.healthGoDown(thrown);
 		assertEquals(FAIL, service.getCondition());
 		assertFalse(service.isActive());
 
@@ -226,7 +226,7 @@ public class ModuleServiceAdapterTest {
 		Exception thrown = new Exception();
 		assertEquals(VERY_GOOD, service.getCondition());
 
-		service.healthGoLow(thrown);
+		service.healthGoDown(thrown);
 		assertEquals(GOOD, service.getCondition());
 
 		assertEquals(thrown, service.lastThrown());
@@ -381,7 +381,7 @@ public class ModuleServiceAdapterTest {
 		assertNotNull(result);
 		assertNotNull(service.lastThrown());
 		assertEquals(exception, service.lastThrown());
-		verify(service, times(1)).healthGoLow(eq(exception));
+		verify(service, times(1)).healthGoDown(eq(exception));
 	}
 
 	@Test
