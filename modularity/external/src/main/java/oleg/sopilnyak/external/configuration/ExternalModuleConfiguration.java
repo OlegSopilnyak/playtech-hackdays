@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  * Configuration: external module main configuration
  */
 @Configuration
-@ComponentScan(basePackages = "oleg.sopilnyak.controller")
+@ComponentScan(basePackages = "oleg.sopilnyak.external.controller")
 public class ExternalModuleConfiguration {
 
 	@Bean
