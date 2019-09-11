@@ -4,8 +4,12 @@
 package oleg.sopilnyak.external.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import oleg.sopilnyak.external.dto.ExternalModuleStateDto;
+import oleg.sopilnyak.external.dto.GeneralModuleStateDto;
 import oleg.sopilnyak.external.dto.ModuleStatusDto;
+import oleg.sopilnyak.external.dto.RemoteModuleDto;
 import oleg.sopilnyak.external.service.ModuleSystemFacade;
+import oleg.sopilnyak.service.model.dto.ModuleDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -75,6 +79,42 @@ public class ModuleSystemController {
 	) {
 		log.debug("Stopping module '{}'", modulePK);
 		return ResponseEntity.ok(facade.moduleStop(modulePK));
+	}
+
+	/**
+	 * To register external module
+	 *
+	 * @param externalModule external module
+	 * @return status of registered module
+	 */
+	@PostMapping(value = "/register")
+	public ResponseEntity<ModuleStatusDto> registerExternalModule(RemoteModuleDto externalModule){
+		log.debug("Try to register external module '{}'", externalModule.primaryKey());
+		return ResponseEntity.ok(facade.registerModule(externalModule));
+	}
+
+	/**
+	 * To unregister external module
+	 *
+	 * @param externalModule external module
+	 * @return last status of the module
+	 */
+	@DeleteMapping(value = "/register")
+	public ResponseEntity<ModuleStatusDto> unRegisterExternalModule(ModuleDto externalModule){
+		log.debug("Try to un-register external module '{}'", externalModule.primaryKey());
+		return ResponseEntity.ok(facade.unRegisterModule(externalModule));
+	}
+
+	/**
+	 * To update state of external module
+	 *
+	 * @param state external state of registered module
+	 * @return updated state of external module
+	 */
+	@PutMapping(value = "/ping")
+	public ResponseEntity<GeneralModuleStateDto> updateModuleState(ExternalModuleStateDto state){
+		log.debug("Updating state of external module '{}'", state.getModulePK());
+		return ResponseEntity.ok(facade.status(state));
 	}
 
 	@ExceptionHandler(value = Exception.class)

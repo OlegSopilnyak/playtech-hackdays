@@ -15,7 +15,7 @@ import oleg.sopilnyak.module.model.ModuleHealthCondition;
 @Data
 @EqualsAndHashCode
 @ToString
-public class RemoteModuleStateDto {
+public class ExternalModuleStateDto {
 	// primary key of module
 	private String modulePK;
 	// flag is module active

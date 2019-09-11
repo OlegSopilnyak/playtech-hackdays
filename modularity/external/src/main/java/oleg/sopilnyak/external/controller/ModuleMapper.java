@@ -41,6 +41,15 @@ public interface ModuleMapper {
 	ModuleStatusDto toStatusDto(ModuleInfoAdapter module);
 
 	/**
+	 * To build status for external module
+	 *
+	 * @param module module instance
+	 * @return trivial module status
+	 */
+	@Mapping(target = "modulePK", expression = "java(module.primaryKey())" )
+	ModuleStatusDto toStatusDto(ExternalModule module);
+
+	/**
 	 * Copy status of module to dto-object
 	 *
 	 * @param dto dto-object of status

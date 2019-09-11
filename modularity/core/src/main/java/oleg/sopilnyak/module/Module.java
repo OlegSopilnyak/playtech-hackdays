@@ -72,16 +72,16 @@ public interface Module extends ModuleBasics, ModuleHealth, ModuleConfigurable {
 	 * @return metrics snapshot
 	 */
 	default Collection<ModuleMetric> metrics() {
-		final LinkedList<ModuleMetric> metrics =
-				getMetricsContainer().metrics().stream().collect(Collectors.toCollection(LinkedList::new));
-		getMetricsContainer().clear();
-		return metrics;
+		final MetricsContainer container = getMetricsContainer();
+		try {
+			return container.metrics().stream().collect(Collectors.toCollection(LinkedList::new));
+		}finally {
+			container.clear();
+		}
 	}
 
 	/**
 	 * To refresh module's state before return from registry
 	 */
-	default void refreshModuleState(){
-
-	}
+	default void refreshModuleState(){}
 }

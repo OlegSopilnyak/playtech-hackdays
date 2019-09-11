@@ -16,6 +16,8 @@ import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -135,5 +137,15 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 			active = false;
 			condition = ModuleHealthCondition.DAMAGED;
 		}
+	}
+
+	/**
+	 * To merge main configuration with changed
+	 */
+	@Override
+	public void repairConfiguration() {
+		configuration = new LinkedHashMap<>(configuration);
+		configuration.putAll(changed);
+		changed = Collections.EMPTY_MAP;
 	}
 }

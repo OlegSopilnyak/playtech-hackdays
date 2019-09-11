@@ -3,6 +3,8 @@
  */
 package oleg.sopilnyak.external.service;
 
+import oleg.sopilnyak.external.dto.ExternalModuleStateDto;
+import oleg.sopilnyak.external.dto.GeneralModuleStateDto;
 import oleg.sopilnyak.external.dto.ModuleStatusDto;
 import oleg.sopilnyak.external.dto.RemoteModuleDto;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
@@ -57,4 +59,12 @@ public interface ModuleSystemFacade {
 	 * @return last status of module
 	 */
 	ModuleStatusDto unRegisterModule(ModuleDto remoteModule);
+
+	/**
+	 * To update status of external module
+	 *
+	 * @param externalState remote state of external module
+	 * @return updated state of external module (include module configuration updates)
+	 */
+	GeneralModuleStateDto status(ExternalModuleStateDto externalState);
 }

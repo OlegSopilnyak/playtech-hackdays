@@ -9,6 +9,8 @@ import oleg.sopilnyak.commands.ModuleCommandFactory;
 import oleg.sopilnyak.commands.model.ModuleCommandType;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.external.controller.ModuleMapper;
+import oleg.sopilnyak.external.dto.ExternalModuleStateDto;
+import oleg.sopilnyak.external.dto.GeneralModuleStateDto;
 import oleg.sopilnyak.external.dto.ModuleStatusDto;
 import oleg.sopilnyak.external.dto.RemoteModuleDto;
 import oleg.sopilnyak.external.exception.ModuleNotFoundException;
@@ -158,6 +160,38 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 			}
 		}
 		return result;
+	}
+
+	/**
+	 * To update status of external module
+	 *
+	 * @param externalState remote state of external module
+	 * @return updated state of external module (include module configuration updates)
+	 */
+	@Override
+	public GeneralModuleStateDto status(ExternalModuleStateDto externalState) {
+		final String modulePK = externalState.getModulePK();
+		log.debug("Try to update status for '{}'", modulePK);
+
+		final ExternalModule module = sharedModulesMap.get(modulePK);
+		if(Objects.isNull(module)){
+			log.debug("External module '{}' is not found.", modulePK);
+			throw new ModuleNotFoundException(modulePK);
+		}else if (module.isDetached()){
+			log.debug("External module '{}' is detached from modules processing.", modulePK);
+			sharedModulesMap.remove(modulePK);
+			throw new ModuleNotFoundException(modulePK);
+		}
+		try {
+			log.debug("Returning actual general state for external module '{}'", modulePK);
+			final ModuleStatusDto status = ModuleMapper.INSTANCE.toStatusDto(module);
+			return ModuleMapper.INSTANCE.toGeneralStateDto(status, module);
+		}finally {
+			log.debug("Merging main and changed configuration for external module '{}'", modulePK);
+			module.repairConfiguration();
+			log.debug("Storing updated external module '{}' to distributed map", modulePK);
+			sharedModulesMap.put(modulePK, module);
+		}
 	}
 
 	// private methods

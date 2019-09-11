@@ -20,7 +20,7 @@ public interface ExternalModule extends Module {
 	 *
 	 * @return true if external module is detached
 	 */
-	default boolean detached() {
+	default boolean isDetached() {
 		return !isActive() && getCondition() == ModuleHealthCondition.DAMAGED;
 	}
 
@@ -37,4 +37,9 @@ public interface ExternalModule extends Module {
 	 * @param moduleMainAction stored main module action
 	 */
 	void setMainAction(ModuleAction moduleMainAction);
+
+	/**
+	 * To merge main configuration with changed
+	 */
+	void repairConfiguration();
 }

@@ -52,7 +52,7 @@ public class MetricContainerDto implements MetricsContainer {
 	 */
 	@Override
 	public void clear() {
-		throw new UnsupportedOperationException("Operation not allowed for transport object");
+		metrics = Collections.EMPTY_SET;
 	}
 
 	/**
