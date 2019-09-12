@@ -3,10 +3,13 @@
  */
 package oleg.sopilnyak.external.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import oleg.sopilnyak.module.metric.*;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -14,7 +17,9 @@ import java.util.Collections;
  * Type: DTO type of module metrics container
  */
 @Data
+@EqualsAndHashCode
 public class MetricContainerDto implements MetricsContainer {
+	@JsonDeserialize(as = ArrayList.class, contentAs=ModuleMetricDto.class)
 	private Collection<ModuleMetric> metrics;
 
 	/**
@@ -52,7 +57,7 @@ public class MetricContainerDto implements MetricsContainer {
 	 */
 	@Override
 	public void clear() {
-		metrics = Collections.EMPTY_SET;
+		metrics = new ArrayList<>();
 	}
 
 	/**

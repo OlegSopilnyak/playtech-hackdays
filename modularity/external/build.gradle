@@ -3,5 +3,8 @@ version = '0.6-SNAPSHOT'
 description = 'External access to modules system'
 
 dependencies {
-    compile group: 'org.springframework', name: 'spring-webmvc', version: '5.+'
+//    compile("org.springframework.boot:spring-boot-starter-web")
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.9'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '+'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: '+'
 }

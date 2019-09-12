@@ -3,12 +3,14 @@
  */
 package oleg.sopilnyak.external.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -19,6 +21,8 @@ import java.util.Map;
 public class RemoteModuleDto extends ModuleDto {
 	private boolean active;
 	private ModuleHealthCondition condition;
+
+	@JsonDeserialize(as = LinkedHashMap.class)
 	private Map<String, VariableItemDto> configuration;
 	private MetricContainerDto metrics;
 }

@@ -88,7 +88,7 @@ public class ModuleSystemController {
 	 * @return status of registered module
 	 */
 	@PostMapping(value = "/register")
-	public ResponseEntity<ModuleStatusDto> registerExternalModule(RemoteModuleDto externalModule){
+	public ResponseEntity<ModuleStatusDto> registerExternalModule(@RequestBody RemoteModuleDto externalModule){
 		log.debug("Try to register external module '{}'", externalModule.primaryKey());
 		return ResponseEntity.ok(facade.registerModule(externalModule));
 	}
@@ -100,7 +100,7 @@ public class ModuleSystemController {
 	 * @return last status of the module
 	 */
 	@DeleteMapping(value = "/register")
-	public ResponseEntity<ModuleStatusDto> unRegisterExternalModule(ModuleDto externalModule){
+	public ResponseEntity<ModuleStatusDto> unRegisterExternalModule(@RequestBody ModuleDto externalModule){
 		log.debug("Try to un-register external module '{}'", externalModule.primaryKey());
 		return ResponseEntity.ok(facade.unRegisterModule(externalModule));
 	}
@@ -112,13 +112,13 @@ public class ModuleSystemController {
 	 * @return updated state of external module
 	 */
 	@PutMapping(value = "/ping")
-	public ResponseEntity<GeneralModuleStateDto> updateModuleState(ExternalModuleStateDto state){
+	public ResponseEntity<GeneralModuleStateDto> updateModuleState(@RequestBody ExternalModuleStateDto state){
 		log.debug("Updating state of external module '{}'", state.getModulePK());
 		return ResponseEntity.ok(facade.status(state));
 	}
 
 	@ExceptionHandler(value = Exception.class)
 	public ResponseEntity<String> processError(Exception e) {
-		return ResponseEntity.badRequest().body("Error:" + e.getMessage());
+		return ResponseEntity.badRequest().body("Error: " + e.getMessage());
 	}
 }

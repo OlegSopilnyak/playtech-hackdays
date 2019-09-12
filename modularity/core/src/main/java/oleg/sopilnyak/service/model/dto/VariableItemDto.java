@@ -6,6 +6,7 @@ package oleg.sopilnyak.service.model.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategiesFactory;
 import oleg.sopilnyak.module.model.typestrategy.VariableTypeStrategy;
@@ -20,6 +21,7 @@ import java.util.Objects;
  * @see oleg.sopilnyak.module.model.VariableItem
  */
 @Data
+@EqualsAndHashCode(of = {"name","type", "valueAsString"})
 public class VariableItemDto implements VariableItem, Serializable {
 	@JsonProperty("type")
 	private Type type;
@@ -148,21 +150,6 @@ public class VariableItemDto implements VariableItem, Serializable {
 	@Override
 	public VariableTypeStrategy strategy() {
 		return strategy;
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		VariableItemDto that = (VariableItemDto) o;
-		return type == that.type &&
-				name.equals(that.name) &&
-				valueAsString.equals(that.valueAsString);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(type, name, valueAsString);
 	}
 
 	@Override
