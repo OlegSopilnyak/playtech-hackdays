@@ -11,6 +11,7 @@ import oleg.sopilnyak.external.dto.ModuleStatusDto;
 import oleg.sopilnyak.external.dto.RemoteModuleDto;
 import oleg.sopilnyak.external.service.ModuleSystemFacade;
 import oleg.sopilnyak.module.metric.ModuleMetric;
+import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.service.model.dto.ModuleActionDto;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
@@ -188,7 +189,18 @@ public class ModuleSystemControllerTest {
 		MetricContainerDto metrics = new MetricContainerDto();
 		Collection<ModuleMetric> metricSet = new ArrayList<>();
 
+		ModuleDto module = new ModuleDto();
+		module.setSystemId("test-action-module-sys");
+		module.setModuleId("test-action-module");
+		module.setVersionId("test-action-module-ver");
+		module.setDescription("test-action-module-desc");
+
 		ModuleActionDto action = new ModuleActionDto();
+		action.setModule(module);
+		action.setId("test-id");
+		action.setDuration(100L);
+		action.setHostName("test-host");
+		action.setState(ModuleAction.State.PROGRESS);
 		action.setStarted(Instant.now().minus(3, ChronoUnit.HOURS));
 		action.setName("test-action");
 
