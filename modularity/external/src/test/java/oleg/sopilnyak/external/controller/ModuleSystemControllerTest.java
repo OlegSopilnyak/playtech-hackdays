@@ -5,10 +5,7 @@ package oleg.sopilnyak.external.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import oleg.sopilnyak.external.dto.MetricContainerDto;
-import oleg.sopilnyak.external.dto.ModuleMetricDto;
-import oleg.sopilnyak.external.dto.ModuleStatusDto;
-import oleg.sopilnyak.external.dto.RemoteModuleDto;
+import oleg.sopilnyak.external.dto.*;
 import oleg.sopilnyak.external.service.ModuleSystemFacade;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
@@ -187,32 +184,13 @@ public class ModuleSystemControllerTest {
 		configuration.put("test.value.1", new VariableItemDto("1", 100));
 		remote.setConfiguration(configuration);
 		MetricContainerDto metrics = new MetricContainerDto();
+
+		ModuleActionDto action = createTestAction();
+		ModuleMetricDto metricDto = createTestMetric(action);
+
 		Collection<ModuleMetric> metricSet = new ArrayList<>();
-
-		ModuleDto module = new ModuleDto();
-		module.setSystemId("test-action-module-sys");
-		module.setModuleId("test-action-module");
-		module.setVersionId("test-action-module-ver");
-		module.setDescription("test-action-module-desc");
-
-		ModuleActionDto action = new ModuleActionDto();
-		action.setModule(module);
-		action.setId("test-id");
-		action.setDuration(100L);
-		action.setHostName("test-host");
-		action.setState(ModuleAction.State.PROGRESS);
-		action.setStarted(Instant.now().minus(3, ChronoUnit.HOURS));
-		action.setName("test-action");
-
-		ModuleMetricDto metricDto = new ModuleMetricDto();
-		metricDto.setAction(action);
-		metricDto.setMeasured(Instant.now());
-		metricDto.setName("test-metric");
-		metricDto.setValueAsString("test-value");
-		metricSet.add(metricDto);
-
-
 		metrics.setMetrics(metricSet);
+		metricSet.add(metricDto);
 
 
 		remote.setMetrics(metrics);
@@ -239,6 +217,37 @@ public class ModuleSystemControllerTest {
 		assertEquals(status, statusDto);
 		verify(facade, times(1)).registerModule(eq(remote));
 
+	}
+
+	private ModuleMetricDto createTestMetric(ModuleActionDto action) {
+		ModuleMetricDto metricDto = new ModuleMetricDto();
+		metricDto.setAction(action);
+		metricDto.setMeasured(Instant.now());
+		metricDto.setName("test-metric");
+		metricDto.setValueAsString("test-value");
+		return metricDto;
+	}
+
+	private ModuleActionDto createTestAction() {
+		ModuleDto module = createTestModule();
+		ModuleActionDto action = new ModuleActionDto();
+		action.setModule(module);
+		action.setId("test-id");
+		action.setDuration(100L);
+		action.setHostName("test-host");
+		action.setState(ModuleAction.State.PROGRESS);
+		action.setStarted(Instant.now().minus(3, ChronoUnit.HOURS));
+		action.setName("test-action");
+		return action;
+	}
+
+	private ModuleDto createTestModule() {
+		ModuleDto module = new ModuleDto();
+		module.setSystemId("test-action-module-sys");
+		module.setModuleId("test-action-module");
+		module.setVersionId("test-action-module-ver");
+		module.setDescription("test-action-module-desc");
+		return module;
 	}
 
 	@Test
@@ -274,7 +283,48 @@ public class ModuleSystemControllerTest {
 	}
 
 	@Test
-	public void updateModuleState() {
+	public void testUpdateModuleState() throws Exception {
+		MetricContainerDto metrics = new MetricContainerDto();
+
+		ModuleActionDto action = createTestAction();
+		ModuleMetricDto metricDto = createTestMetric(action);
+
+		Collection<ModuleMetric> metricSet = new ArrayList<>();
+		metrics.setMetrics(metricSet);
+		metricSet.add(metricDto);
+
+		ExternalModuleStateDto ping = new ExternalModuleStateDto();
+		ping.setActive(true);
+		ping.setCondition(ModuleHealthCondition.VERY_GOOD);
+		ping.setModulePK("test=module-pk");
+		ping.setMetrics(metrics);
+
+
+		GeneralModuleStateDto pong = new GeneralModuleStateDto();
+		pong.setActive(true);
+		pong.setMainActionId(action.getId());
+		pong.setModulePK(ping.getModulePK());
+		pong.setCondition(ping.getCondition());
+		pong.setDescription("test-desc");
+		Map<String, VariableItemDto> configuration = new HashMap<>();
+		configuration.put("test.value.100", new VariableItemDto("100", "One hundred."));
+		pong.setConfiguration(configuration);
+
+		when(facade.status(ping)).thenReturn(pong);
+
+		MvcResult result =
+				mockMvc.perform(
+						MockMvcRequestBuilders.put(MODULE_BASE + "/ping")
+								.contentType(APPLICATION_JSON)
+								.content(mapper.writeValueAsString(ping))
+				)
+						.andExpect(status().isOk()).andDo(print())
+						.andReturn();
+
+		GeneralModuleStateDto stateDto = mapper.readValue(result.getResponse().getContentAsString(), GeneralModuleStateDto.class);
+		assertEquals(pong , stateDto);
+
+		verify(facade, times(1)).status(eq(ping));
 	}
 
 	@Test
