@@ -71,7 +71,7 @@ public class ModuleSystemControllerTest {
 
 	@Test
 	public void testRegisteredModules() throws Exception {
-		String modules[] = new String[]{"module1", "module2"};
+		String[] modules = new String[]{"module1", "module2"};
 		List<String> modulesList = Arrays.asList(modules);
 
 		when(facade.registeredModules()).thenReturn(modulesList);
@@ -200,7 +200,7 @@ public class ModuleSystemControllerTest {
 		remote.setDescription("test-desc");
 
 		status.setModulePK(remote.primaryKey());
-		when(facade.registerModule(remote)).thenReturn(status);
+		when(facade.registerModule(remote, "localhost")).thenReturn(status);
 
 		MvcResult result =
 				mockMvc.perform(
@@ -215,7 +215,7 @@ public class ModuleSystemControllerTest {
 		ModuleStatusDto statusDto = mapper.readValue(result.getResponse().getContentAsString(), ModuleStatusDto.class);
 
 		assertEquals(status, statusDto);
-		verify(facade, times(1)).registerModule(eq(remote));
+		verify(facade, times(1)).registerModule(eq(remote), eq("localhost"));
 
 	}
 
@@ -264,7 +264,7 @@ public class ModuleSystemControllerTest {
 		remote.setDescription("test-desc");
 
 		status.setModulePK(remote.primaryKey());
-		when(facade.unRegisterModule(remote)).thenReturn(status);
+		when(facade.unRegisterModule(remote, "localhost")).thenReturn(status);
 
 		MvcResult result =
 				mockMvc.perform(
@@ -278,7 +278,7 @@ public class ModuleSystemControllerTest {
 		ModuleStatusDto statusDto = mapper.readValue(result.getResponse().getContentAsString(), ModuleStatusDto.class);
 
 		assertEquals(status, statusDto);
-		verify(facade, times(1)).unRegisterModule(eq(remote));
+		verify(facade, times(1)).unRegisterModule(eq(remote), eq("localhost"));
 
 	}
 
@@ -310,7 +310,7 @@ public class ModuleSystemControllerTest {
 		configuration.put("test.value.100", new VariableItemDto("100", "One hundred."));
 		pong.setConfiguration(configuration);
 
-		when(facade.status(ping)).thenReturn(pong);
+		when(facade.status(ping, "localhost")).thenReturn(pong);
 
 		MvcResult result =
 				mockMvc.perform(
@@ -324,7 +324,7 @@ public class ModuleSystemControllerTest {
 		GeneralModuleStateDto stateDto = mapper.readValue(result.getResponse().getContentAsString(), GeneralModuleStateDto.class);
 		assertEquals(pong , stateDto);
 
-		verify(facade, times(1)).status(eq(ping));
+		verify(facade, times(1)).status(eq(ping), eq("localhost"));
 	}
 
 	@Test

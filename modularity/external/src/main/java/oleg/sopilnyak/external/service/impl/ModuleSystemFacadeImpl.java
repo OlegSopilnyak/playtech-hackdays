@@ -112,18 +112,20 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	 * To register external module
 	 *
 	 * @param remoteModule remote module
+	 * @param moduleHost owner of remote module
 	 * @return status of registered module
 	 */
 	@Override
-	public ModuleStatusDto registerModule(RemoteModuleDto remoteModule) {
+	public ModuleStatusDto registerModule(RemoteModuleDto remoteModule, String moduleHost) {
 		final ModuleStatusDto result = new ModuleStatusDto();
 		result.setActive(false);
 		result.setCondition(ModuleHealthCondition.DAMAGED);
-		final ExternalModule external = registerExternalModule(remoteModule);
+		final ExternalModule external = registerExternalModule(remoteModule, moduleHost);
 		if (Objects.nonNull(external)) {
+			final String modulePK = externalModulePK(remoteModule.primaryKey(), moduleHost);
 			log.debug("Registered external module : {}", remoteModule);
 			ModuleMapper.INSTANCE.copyModuleStatus(result, external);
-			sharedModulesMap.put(external.primaryKey(), external);
+			sharedModulesMap.put(modulePK, external);
 		}
 		return result;
 	}
@@ -132,31 +134,33 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	 * To un-register external module
 	 *
 	 * @param remoteModule remote module
+	 * @param moduleHost owner of remote module
 	 * @return last status of module
 	 */
 	@Override
-	public ModuleStatusDto unRegisterModule(ModuleDto remoteModule) {
+	public ModuleStatusDto unRegisterModule(ModuleDto remoteModule, String moduleHost) {
 		log.debug("Un-Registering '{}'", remoteModule);
 		final ModuleStatusDto result = new ModuleStatusDto();
 		result.setActive(false);
 		result.setCondition(ModuleHealthCondition.DAMAGED);
 
 		// getting module from registry
+		final String modulePK = externalModulePK(remoteModule.primaryKey(), moduleHost);
 		final Module module = registry.getRegistered(remoteModule);
 		if (Objects.nonNull(module) && module instanceof ExternalModule) {
 			// module is external, so we can un-register it
 			registry.remove(module);
-			sharedModulesMap.remove(module.primaryKey());
+			sharedModulesMap.remove(modulePK);
 			log.debug("Removed external module registration: {}", remoteModule);
 			module.moduleStop();
 			ModuleMapper.INSTANCE.copyModuleStatus(result, (ExternalModule)module);
 		}else {
-			final ExternalModule remote = sharedModulesMap.get(remoteModule.primaryKey());
+			final ExternalModule remote = sharedModulesMap.get(modulePK);
 			if (Objects.nonNull(remote)){
 				log.debug("External Module '{}' is not registered for this host, mark it as 'DAMAGED'", remote.primaryKey());
 				((ExternalModuleImpl)remote).setCondition(ModuleHealthCondition.DAMAGED);
 				remote.moduleStop();
-				sharedModulesMap.put(remote.primaryKey(), remote);
+				sharedModulesMap.put(modulePK, remote);
 			}
 		}
 		return result;
@@ -166,11 +170,12 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	 * To update status of external module
 	 *
 	 * @param externalState remote state of external module
+	 * @param moduleHost owner of remote module
 	 * @return updated state of external module (include module configuration updates)
 	 */
 	@Override
-	public GeneralModuleStateDto status(ExternalModuleStateDto externalState) {
-		final String modulePK = externalState.getModulePK();
+	public GeneralModuleStateDto status(ExternalModuleStateDto externalState, String moduleHost) {
+		final String modulePK = externalModulePK(externalState.getModulePK(), moduleHost);
 		log.debug("Try to update status for '{}'", modulePK);
 
 		final ExternalModule module = sharedModulesMap.get(modulePK);
@@ -195,12 +200,17 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	}
 
 	// private methods
-	boolean isRegisteredModule(ModuleBasics module){
-		final String modulePK = module.primaryKey();
-		return sharedModulesMap.containsKey(modulePK) || Objects.nonNull(registry.getRegistered(modulePK));
+	static String externalModulePK(String modulePK, String moduleHost){
+		return "external-" + modulePK + "=>" + moduleHost;
 	}
-	ExternalModule registerExternalModule(RemoteModuleDto remoteModule) {
-		if (isRegisteredModule(remoteModule)) {
+
+	boolean isRegisteredModule(ModuleBasics module, String moduleHost) {
+		return sharedModulesMap.containsKey(externalModulePK(module.primaryKey(), moduleHost))
+				|| Objects.nonNull(registry.getRegistered(module))
+				;
+	}
+	ExternalModule registerExternalModule(RemoteModuleDto remoteModule, String moduleHost) {
+		if (isRegisteredModule(remoteModule, moduleHost)) {
 			log.warn("Module '{}' already registered.", remoteModule.primaryKey());
 			return null;
 		}

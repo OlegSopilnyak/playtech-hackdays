@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -88,9 +89,10 @@ public class ModuleSystemController {
 	 * @return status of registered module
 	 */
 	@PostMapping(value = "/register")
-	public ResponseEntity<ModuleStatusDto> registerExternalModule(@RequestBody RemoteModuleDto externalModule){
+	public ResponseEntity<ModuleStatusDto> registerExternalModule(@RequestBody RemoteModuleDto externalModule, HttpServletRequest request){
 		log.debug("Try to register external module '{}'", externalModule.primaryKey());
-		return ResponseEntity.ok(facade.registerModule(externalModule));
+		final String moduleHost = request.getRemoteHost();
+		return ResponseEntity.ok(facade.registerModule(externalModule, moduleHost));
 	}
 
 	/**
@@ -100,9 +102,10 @@ public class ModuleSystemController {
 	 * @return last status of the module
 	 */
 	@DeleteMapping(value = "/register")
-	public ResponseEntity<ModuleStatusDto> unRegisterExternalModule(@RequestBody ModuleDto externalModule){
+	public ResponseEntity<ModuleStatusDto> unRegisterExternalModule(@RequestBody ModuleDto externalModule, HttpServletRequest request){
 		log.debug("Try to un-register external module '{}'", externalModule.primaryKey());
-		return ResponseEntity.ok(facade.unRegisterModule(externalModule));
+		final String moduleHost = request.getRemoteHost();
+		return ResponseEntity.ok(facade.unRegisterModule(externalModule, moduleHost));
 	}
 
 	/**
@@ -112,9 +115,10 @@ public class ModuleSystemController {
 	 * @return updated state of external module
 	 */
 	@PutMapping(value = "/ping")
-	public ResponseEntity<GeneralModuleStateDto> updateModuleState(@RequestBody ExternalModuleStateDto state){
+	public ResponseEntity<GeneralModuleStateDto> updateModuleState(@RequestBody ExternalModuleStateDto state, HttpServletRequest request){
 		log.debug("Updating state of external module '{}'", state.getModulePK());
-		return ResponseEntity.ok(facade.status(state));
+		final String moduleHost = request.getRemoteHost();
+		return ResponseEntity.ok(facade.status(state, moduleHost));
 	}
 
 	@ExceptionHandler(value = Exception.class)

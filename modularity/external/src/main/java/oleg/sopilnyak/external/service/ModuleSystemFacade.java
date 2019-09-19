@@ -48,23 +48,26 @@ public interface ModuleSystemFacade {
 	 * To register external module
 	 *
 	 * @param remoteModule remote module
+	 * @param moduleHost owner of remote module
 	 * @return status of registered module
 	 */
-	ModuleStatusDto registerModule(RemoteModuleDto remoteModule);
+	ModuleStatusDto registerModule(RemoteModuleDto remoteModule, String moduleHost);
 
 	/**
 	 * To un-register external module
 	 *
 	 * @param remoteModule remote module
+	 * @param moduleHost owner of remote module
 	 * @return last status of module
 	 */
-	ModuleStatusDto unRegisterModule(ModuleDto remoteModule);
+	ModuleStatusDto unRegisterModule(ModuleDto remoteModule, String moduleHost);
 
 	/**
 	 * To update status of external module
 	 *
 	 * @param externalState remote state of external module
+	 * @param moduleHost owner of remote module
 	 * @return updated state of external module (include module configuration updates)
 	 */
-	GeneralModuleStateDto status(ExternalModuleStateDto externalState);
+	GeneralModuleStateDto status(ExternalModuleStateDto externalState, String moduleHost);
 }
