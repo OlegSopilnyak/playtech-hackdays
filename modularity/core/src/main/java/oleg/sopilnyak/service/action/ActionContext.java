@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * Type context for executing atomic-action-activity
  */
-public interface ActionContext {
+public interface ActionContext<IN,OUT> {
 
 	/**
 	 * To add new criteria value to context
@@ -31,14 +31,28 @@ public interface ActionContext {
 	 *
 	 * @return the value or null if not applied
 	 */
-	Object getInput();
+	IN getInput();
+
+	/**
+	 * To get result of execution
+	 *
+	 * @return
+	 */
+	OUT getOutput();
+
+	/**
+	 * To save the result of successful operation
+	 *
+	 * @param result the result of operation
+	 */
+	void saveResult(OUT result);
 
 	/**
 	 * To get callable instance of action
 	 *
 	 * @return callable instance
 	 */
-	java.util.concurrent.Callable getAction();
+	java.util.concurrent.Callable<OUT> getAction();
 
 	/**
 	 * To check if no input and empty criteria

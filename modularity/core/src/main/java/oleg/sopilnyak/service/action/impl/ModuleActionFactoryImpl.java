@@ -3,11 +3,14 @@
  */
 package oleg.sopilnyak.service.action.impl;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ActionContext;
+import oleg.sopilnyak.service.action.AtomicModuleAction;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.exception.ModuleActionRuntimeException;
@@ -20,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Service: Factory of module actions
@@ -44,7 +48,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	private BlockingQueue<ActionStorageWrapper> storageQueue = new LinkedBlockingQueue<>();
 
 	public void setUp() {
-	    log.info("Starting scheduling action save from queue.");
+		log.info("Starting scheduling action save from queue.");
 		scanRunner.schedule(this::persistScheduledAction, delay, TimeUnit.MILLISECONDS);
 	}
 
@@ -92,15 +96,24 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
-		final Callable actionCall = new Callable() {
-			@Override
-			public Object call() throws Exception {
-				executable.run();
-				return null;
-			}
+		final Callable<Void> actionCall = () -> {
+			executable.run();
+			return null;
 		};
-		final ActionContext context = AtomicActionContext.builder().action(actionCall).criteria(new LinkedHashMap<>()).build();
+		final ActionContext<Void, Void> context = createContext(null, actionCall);
 		return executeAtomicModuleAction(module, actionName, context, rethrow);
+	}
+
+	/**
+	 * To create action's context for function
+	 *
+	 * @param input    the value of input parameter
+	 * @param function function to be executed
+	 * @return instance of action context
+	 */
+	@Override
+	public <I, O> ActionContext<I, O> createContext(I input, Callable<O> function) {
+		return AtomicActionContext.<I, O>builder().input(input).action(function).output(null).criteria(new LinkedHashMap<>()).build();
 	}
 
 	/**
@@ -115,59 +128,22 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	@Override
 	public ModuleAction executeAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow) {
 		log.debug("Setup action for '{}' of module '{}'", actionName, module.primaryKey());
+		final AtomicModuleAction moduleAction = createAtomicModuleAction(module, actionName, context, rethrow);
+		return moduleAction.operate();
+	}
 
-		final Instant startMark = timeService.now();
-		final ModuleAction action = createModuleRegularAction(module, actionName);
-		final String realActionName = action.getName();
-		// set new regular action as current action
-		current.set(action);
-
-		log.debug("Starting  for action {} context {}", realActionName, context);
-		module.getMetricsContainer().action().start(action, context);
-
-		log.debug("Executing context call for action {}", realActionName);
-		action.setState(ModuleAction.State.PROGRESS);
-		module.getMetricsContainer().action().changed(action);
-		scheduleStorage(action);
-
-		try {
-			log.debug("Start executing action '{}'", realActionName);
-
-			final Object output = context.getAction().call();
-
-			module.getMetricsContainer().action().finish(action, output);
-			// health is going to be better
-			module.healthGoUp();
-
-			log.debug("Finished well execution of {} returned {}", realActionName, output);
-			module.getMetricsContainer().action().success(action);
-			scheduleStorage(action);
-
-			return ActionMapper.INSTANCE.toSuccessResult(action);
-		} catch (Throwable t) {
-			log.error("Cannot execute action {}", realActionName, t);
-			// health is going to be worse
-			module.healthGoDown(t);
-
-			module.getMetricsContainer().action().fail(action, t);
-			scheduleStorage(action);
-
-			if (rethrow) {
-				// throw caught exception
-				throw new ModuleActionRuntimeException(action, "Fail in " + realActionName, t);
-			}
-			return ActionMapper.INSTANCE.toFailResult(action, t);
-		} finally {
-			// store action's duration metric
-			final Instant nowMark = timeService.now();
-			final long duration = timeService.duration(startMark);
-			final String modulePK = module.primaryKey();
-			final String label = "atomic-action";
-
-			module.getMetricsContainer().duration().simple(label, action, nowMark, modulePK, duration);
-			// set as current previous action
-			current.set(action.getParent());
-		}
+	/**
+	 * To create atomic module action instance
+	 *
+	 * @param module     owner of atomic action
+	 * @param actionName action's name
+	 * @param context    context of atomic action execution
+	 * @param rethrow    flag for rethrow exception if occurred
+	 * @return built instance
+	 */
+	@Override
+	public AtomicModuleAction createAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow) {
+		return new AtomicActionExecutor(context, actionName, module, rethrow);
 	}
 
 	/**
@@ -214,6 +190,78 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 			module.getMetricsContainer().action().fail(mainAction, module.lastThrown());
 		}
 		scheduleStorage(mainAction);
+	}
+
+	// inner classes
+	@Data
+	@AllArgsConstructor
+	class AtomicActionExecutor implements AtomicModuleAction {
+		private ActionContext context;
+		private String actionName;
+		private Module module;
+		private boolean allowedExceptionRethrow;
+		private final AtomicBoolean executed = new AtomicBoolean(false);
+
+		public ModuleAction operate() {
+			log.debug("Executing action '{}' for module '{}'", actionName, module.primaryKey());
+
+			final Instant startMark = timeService.now();
+			final ModuleAction action = createModuleRegularAction(module, actionName);
+			this.actionName = action.getName();
+			// set new regular action as current action
+			current.set(action);
+
+			try {
+				if (executed.get()) {
+					throw new RuntimeException("Atomic action already executed.");
+				}
+				log.debug("Starting  for action {} context {}", this.actionName, context);
+				module.getMetricsContainer().action().start(action, context);
+
+				log.debug("Executing context call for action {}", this.actionName);
+				action.setState(ModuleAction.State.PROGRESS);
+				module.getMetricsContainer().action().changed(action);
+				scheduleStorage(action);
+
+				log.debug("Start executing action '{}'", this.actionName);
+				final Object output = context.getAction().call();
+				context.saveResult(output);
+
+				module.getMetricsContainer().action().finish(action, output);
+				// health is going to be better
+				module.healthGoUp();
+
+				log.debug("Finished well execution of {} returned {}", this.actionName, output);
+				module.getMetricsContainer().action().success(action);
+				scheduleStorage(action);
+
+				return ActionMapper.INSTANCE.toSuccessResult(action);
+			} catch (Throwable t) {
+				log.error("Cannot execute action {}", this.actionName, t);
+				// health is going to be worse
+				module.healthGoDown(t);
+
+				module.getMetricsContainer().action().fail(action, t);
+				scheduleStorage(action);
+
+				if (allowedExceptionRethrow) {
+					// throw caught exception
+					throw new ModuleActionRuntimeException(action, "Fail in " + this.actionName, t);
+				}
+				return ActionMapper.INSTANCE.toFailResult(action, t);
+			} finally {
+				executed.getAndSet(true);
+				// store action's duration metric
+				final Instant nowMark = timeService.now();
+				final long duration = timeService.duration(startMark);
+				final String modulePK = module.primaryKey();
+				final String label = "atomic-action";
+
+				module.getMetricsContainer().duration().simple(label, action, nowMark, modulePK, duration);
+				// set as current previous action
+				current.set(action.getParent());
+			}
+		}
 	}
 
 	// private method

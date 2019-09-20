@@ -6,6 +6,8 @@ package oleg.sopilnyak.service.action;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 
+import java.util.concurrent.Callable;
+
 /**
  * Service: Factory to manage module's actions
  */
@@ -40,6 +42,16 @@ public interface ModuleActionFactory {
 	ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow);
 
 	/**
+	 * To create action's context for function
+	 *
+	 * @param input the value of input parameter
+	 * @param function function to be executed
+	 * @param <I> type of input parameter
+	 * @param <O> type of function's execution
+	 * @return instance of action context
+	 */
+	<I,O> ActionContext<I,O>createContext(I input, Callable<O> function);
+	/**
 	 * Execute in context of module action using regular action
 	 *
 	 * @param module owner of simple action
@@ -49,6 +61,17 @@ public interface ModuleActionFactory {
 	 * @return action-result of execution
 	 */
 	ModuleAction executeAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow);
+
+	/**
+	 * To create atomic module action instance
+	 *
+	 * @param module owner of atomic action
+	 * @param actionName action's name
+	 * @param context context of atomic action execution
+	 * @param rethrow    flag for rethrow exception if occurred
+	 * @return built instance
+	 */
+	AtomicModuleAction createAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow);
 
 	/**
 	 * To get current action by Thread context

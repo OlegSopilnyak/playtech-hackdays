@@ -219,7 +219,8 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 		log.debug("Making external module instance");
 		final ExternalModule module = ModuleMapper.INSTANCE.toExternalModule(remoteModule, sharedModulesMap);
 
-		// preparing module main-action
+		// preparing module in host main-action
+		// todo find better solution for pair module-host
 		log.debug("Preparing main action for external module '{}'", module.primaryKey());
 		final ModuleAction mainAction = actionStorage.createActionFor(module);
 		actionStorage.persist(mainAction);

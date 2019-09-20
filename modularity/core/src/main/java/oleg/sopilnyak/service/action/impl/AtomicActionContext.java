@@ -19,13 +19,25 @@ import java.util.concurrent.Callable;
 @Data
 @AllArgsConstructor
 @Builder
-@ToString(of = {"criteria", "input"})
-public class AtomicActionContext implements ActionContext {
+@ToString(of = {"criteria", "input", "output"})
+class AtomicActionContext<IN, OUT> implements ActionContext<IN,OUT> {
 	private Map<String, Object> criteria;
-	private Object input;
-	private Callable action;
+	private IN input;
+	private OUT output;
+	private Callable<OUT> action;
+
 	@Override
 	public boolean addCriteria(String criteriaName, Object criteriaValue){
 		return Objects.isNull(criteria.putIfAbsent(criteriaName, criteriaValue));
+	}
+
+	/**
+	 * To save the result of successful operation
+	 *
+	 * @param result the result of operation
+	 */
+	@Override
+	public void saveResult(OUT result) {
+		this.output = result;
 	}
 }
