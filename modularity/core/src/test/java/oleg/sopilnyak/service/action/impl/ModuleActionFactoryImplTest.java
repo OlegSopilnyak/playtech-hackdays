@@ -11,6 +11,8 @@ import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
+import oleg.sopilnyak.service.action.ActionContext;
+import oleg.sopilnyak.service.action.AtomicModuleAction;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
@@ -35,6 +37,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -57,7 +60,7 @@ public class ModuleActionFactoryImplTest {
 	private TimeService timeService = new ModuleUtilityConfiguration().getTimeService();
 
 	@InjectMocks
-	private ModuleActionFactoryImpl factory = new ModuleActionFactoryImpl();
+	private ModuleActionFactoryImpl factory = spy(new ModuleActionFactoryImpl());
 
 	@Before
 	public void setUp() throws Exception {
@@ -92,8 +95,8 @@ public class ModuleActionFactoryImplTest {
 		factory.setUp();
 		ModuleAction action = factory.createModuleMainAction(module);
 		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
-		Assert.assertEquals(moduleDto, action.getModule());
-		Assert.assertEquals(ModuleAction.State.INIT, action.getState());
+		assertEquals(moduleDto, action.getModule());
+		assertEquals(ModuleAction.State.INIT, action.getState());
 		Assert.assertTrue(StringUtils.isEmpty(action.getId()));
 		verify(actionMetricsContainer, times(1)).changed(eq(action));
 	}
@@ -103,8 +106,8 @@ public class ModuleActionFactoryImplTest {
 		factory.setUp();
 		ModuleAction action = factory.createModuleRegularAction(module, "test");
 		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
-		Assert.assertEquals(moduleDto, action.getModule());
-		Assert.assertEquals(ModuleAction.State.INIT, action.getState());
+		assertEquals(moduleDto, action.getModule());
+		assertEquals(ModuleAction.State.INIT, action.getState());
 		Assert.assertTrue(StringUtils.isEmpty(action.getId()));
 		verify(actionMetricsContainer, times(1)).changed(eq(action));
 	}
@@ -120,12 +123,12 @@ public class ModuleActionFactoryImplTest {
 		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
 		Assert.assertNotNull(result);
 		Assert.assertNull(((ResultModuleAction) result).getCause());
-		Assert.assertEquals(ModuleAction.State.PROGRESS, result.getState());
-		Assert.assertEquals(moduleDto, result.getModule());
-		Assert.assertEquals(100, value.get());
+		assertEquals(ModuleAction.State.PROGRESS, result.getState());
+		assertEquals(moduleDto, result.getModule());
+		assertEquals(100, value.get());
 		verify(module, times(1)).healthGoUp();
-        verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
-        verify(actionMetricsContainer, times(1)).success(any(ModuleAction.class));
+		verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
+		verify(actionMetricsContainer, times(1)).success(any(ModuleAction.class));
 	}
 
 	@Test
@@ -141,12 +144,12 @@ public class ModuleActionFactoryImplTest {
 
 		ModuleDto moduleDto = DtoMapper.INSTANCE.toModuleDto(module);
 		Assert.assertNotNull(result);
-		Assert.assertEquals(exception, ((ResultModuleAction) result).getCause());
-		Assert.assertEquals(ModuleAction.State.PROGRESS, result.getState());
-		Assert.assertEquals(moduleDto, result.getModule());
+		assertEquals(exception, ((ResultModuleAction) result).getCause());
+		assertEquals(ModuleAction.State.PROGRESS, result.getState());
+		assertEquals(moduleDto, result.getModule());
 		verify(module, times(1)).healthGoDown(eq(exception));
-        verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
-        verify(actionMetricsContainer, times(1)).fail(any(ModuleAction.class), eq(exception));
+		verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
+		verify(actionMetricsContainer, times(1)).fail(any(ModuleAction.class), eq(exception));
 	}
 
 	@Test(expected = ModuleActionRuntimeException.class)
@@ -161,12 +164,91 @@ public class ModuleActionFactoryImplTest {
 	}
 
 	@Test
+	public void testCreateActionContext() throws Exception {
+		ActionContext<Long, Long> context = factory.createContext(0L, () -> 1L);
+
+		assertNull(context.getOutput());
+		context.addCriteria("test", 100L);
+		context.saveResult(context.getAction().call());
+
+		assertEquals(0L, context.getInput().longValue());
+		assertEquals(1L, context.getOutput().longValue());
+		assertEquals(1L, context.getAction().call().longValue());
+		assertNull(context.getCriteria().get("Test"));
+		assertEquals(new Long(100), context.getCriteria().get("test"));
+	}
+
+	@Test
+	public void testCreateAndOperateAtomicModuleActionHappyDayScenario() {
+		ActionContext<Long, Long> context = spy(factory.createContext(0L, () -> 1L));
+
+		String actionName = "test";
+		AtomicModuleAction action = factory.createAtomicModuleAction(module, actionName, context, true);
+		ModuleAction result = action.operate();
+
+		assertNotNull(result);
+		assertNull(((ResultModuleAction) result).getCause());
+		assertEquals(0L, context.getInput().longValue());
+		assertEquals(1L, context.getOutput().longValue());
+
+		verify(factory, times(1)).createModuleRegularAction(eq(module), eq(actionName));
+		verify(actionStorage, times(1)).createActionFor(eq(module), any(ModuleAction.class), eq(actionName));
+		verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
+		verify(actionMetricsContainer, times(1)).start(any(ModuleAction.class), eq(context));
+		verify(actionMetricsContainer, times(1)).finish(any(ModuleAction.class), eq(1L));
+		verify(actionMetricsContainer, times(1)).success(any(ModuleAction.class));
+		verify(context, times(1)).getAction();
+		verify(context, times(1)).saveResult(eq(1L));
+		verify(module, times(1)).healthGoUp();
+		verify(factory, times(3)).scheduleStorage(any(ModuleAction.class));
+	}
+
+	@Test
+	public void testCreateAndOperateAtomicModuleActionManagedExceptionScenario() {
+		RuntimeException exception = new RuntimeException("test-exception");
+		ActionContext<Long, Long> context = spy(factory.createContext(0L, () -> {
+			throw exception;
+		}));
+
+		String actionName = "test";
+		AtomicModuleAction action = factory.createAtomicModuleAction(module, actionName, context, false);
+		ModuleAction result = action.operate();
+
+		assertNotNull(result);
+		assertEquals(exception, ((ResultModuleAction) result).getCause());
+		assertEquals(0L, context.getInput().longValue());
+		assertNull(context.getOutput());
+
+		verify(factory, times(1)).createModuleRegularAction(eq(module), eq(actionName));
+		verify(actionStorage, times(1)).createActionFor(eq(module), any(ModuleAction.class), eq(actionName));
+		verify(actionMetricsContainer, times(2)).changed(any(ModuleAction.class));
+		verify(actionMetricsContainer, times(1)).start(any(ModuleAction.class), eq(context));
+		verify(actionMetricsContainer, times(1)).fail(any(ModuleAction.class), eq(exception));
+		verify(context, times(1)).getAction();
+		verify(module, times(1)).healthGoDown(eq(exception));
+		verify(factory, times(3)).scheduleStorage(any(ModuleAction.class));
+	}
+
+	@Test(expected = ModuleActionRuntimeException.class)
+	public void testCreateAndOperateAtomicModuleActionNonManagedExceptionScenario() {
+		RuntimeException exception = new RuntimeException("test-exception");
+		ActionContext<Long, Long> context = spy(factory.createContext(0L, () -> {
+			throw exception;
+		}));
+
+		String actionName = "test";
+		AtomicModuleAction action = factory.createAtomicModuleAction(module, actionName, context, true);
+		action.operate();
+		fail("Here we were waiting for rethrown exception.");
+	}
+
+	@Test
 	public void testCurrentAction() {
 		ThreadLocal<ModuleAction> actions = factory.current;
 		Assert.assertNull(factory.currentAction());
 		ModuleAction action = mock(ModuleAction.class);
 		actions.set(action);
-		Assert.assertEquals(action, factory.currentAction());
+		assertEquals(action, factory.currentAction());
 	}
 
 	@Test
@@ -176,7 +258,7 @@ public class ModuleActionFactoryImplTest {
 		when(action.getModule()).thenReturn(module);
 
 		factory.startMainAction(module);
-		Assert.assertEquals(action, factory.currentAction());
+		assertEquals(action, factory.currentAction());
 		verify(actionMetricsContainer, times(0)).changed(eq(action));
 
 		when(action.getState()).thenReturn(ModuleAction.State.PROGRESS);

@@ -13,12 +13,12 @@ import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.AtomicModuleAction;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
+import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.exception.ModuleActionRuntimeException;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,14 +32,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 public class ModuleActionFactoryImpl implements ModuleActionFactory {
-	protected final static ThreadLocal<ModuleAction> current = new ThreadLocal<>();
+	final static ThreadLocal<ModuleAction> current = new ThreadLocal<>();
 
 	@Autowired
-	private ModuleActionStorage actionsStorage;
+	ModuleActionStorage actionsStorage;
 	@Autowired
-	private ScheduledExecutorService scanRunner;
+	ScheduledExecutorService scanRunner;
 	@Autowired
-	private TimeService timeService;
+	TimeService timeService;
 
 	@Value("${module.action.storage.delay:200}")
 	long delay;
@@ -78,6 +78,9 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	public ModuleAction createModuleRegularAction(Module module, String name) {
 		log.debug("Creating regular '{}' action for module '{}'", name, module.primaryKey());
 		final ModuleAction action = actionsStorage.createActionFor(module, current.get(), name);
+		if (action instanceof ModuleActionAdapter) {
+			((ModuleActionAdapter) action).setStarted(timeService.now());
+		}
 
 		module.getMetricsContainer().action().changed(action);
 		scheduleStorage(action);
@@ -143,6 +146,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public AtomicModuleAction createAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow) {
+		log.debug("Making module's atomic action executor for '{}' of '{}'", module.primaryKey(), actionName);
 		return new AtomicActionExecutor(context, actionName, module, rethrow);
 	}
 
@@ -163,6 +167,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 */
 	@Override
 	public void startMainAction(Module module) {
+		log.debug("Starting Main action for '{}'", module.primaryKey());
 		final ModuleAction mainAction = module.getMainAction();
 		if (mainAction != current.get()) {
 			current.set(mainAction);
@@ -195,17 +200,21 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	// inner classes
 	@Data
 	@AllArgsConstructor
-	class AtomicActionExecutor implements AtomicModuleAction {
+	final class AtomicActionExecutor implements AtomicModuleAction {
 		private ActionContext context;
 		private String actionName;
 		private Module module;
 		private boolean allowedExceptionRethrow;
 		private final AtomicBoolean executed = new AtomicBoolean(false);
 
+		/**
+		 * To execute action
+		 *
+		 * @return result of execution
+		 */
 		public ModuleAction operate() {
 			log.debug("Executing action '{}' for module '{}'", actionName, module.primaryKey());
 
-			final Instant startMark = timeService.now();
 			final ModuleAction action = createModuleRegularAction(module, actionName);
 			this.actionName = action.getName();
 			// set new regular action as current action
@@ -215,56 +224,77 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 				if (executed.get()) {
 					throw new RuntimeException("Atomic action already executed.");
 				}
-				log.debug("Starting  for action {} context {}", this.actionName, context);
-				module.getMetricsContainer().action().start(action, context);
-
-				log.debug("Executing context call for action {}", this.actionName);
-				action.setState(ModuleAction.State.PROGRESS);
-				module.getMetricsContainer().action().changed(action);
-				scheduleStorage(action);
-
-				log.debug("Start executing action '{}'", this.actionName);
-				final Object output = context.getAction().call();
-				context.saveResult(output);
-
-				module.getMetricsContainer().action().finish(action, output);
-				// health is going to be better
-				module.healthGoUp();
-
-				log.debug("Finished well execution of {} returned {}", this.actionName, output);
-				module.getMetricsContainer().action().success(action);
-				scheduleStorage(action);
-
-				return ActionMapper.INSTANCE.toSuccessResult(action);
+				return executePositiveActionScenario(action);
 			} catch (Throwable t) {
-				log.error("Cannot execute action {}", this.actionName, t);
-				// health is going to be worse
-				module.healthGoDown(t);
-
-				module.getMetricsContainer().action().fail(action, t);
-				scheduleStorage(action);
-
-				if (allowedExceptionRethrow) {
-					// throw caught exception
-					throw new ModuleActionRuntimeException(action, "Fail in " + this.actionName, t);
-				}
-				return ActionMapper.INSTANCE.toFailResult(action, t);
+				return processOperationErrorModuleAction(action, t);
 			} finally {
-				executed.getAndSet(true);
-				// store action's duration metric
-				final Instant nowMark = timeService.now();
-				final long duration = timeService.duration(startMark);
-				final String modulePK = module.primaryKey();
-				final String label = "atomic-action";
-
-				module.getMetricsContainer().duration().simple(label, action, nowMark, modulePK, duration);
-				// set as current previous action
-				current.set(action.getParent());
+				finalizeModuleActionOperation(action);
 			}
 		}
+
+		// executor's private methods
+		ModuleAction executePositiveActionScenario(ModuleAction action) throws Exception {
+			log.debug("Starting  for action {} context {}", this.actionName, context);
+			module.getMetricsContainer().action().start(action, context);
+
+			log.debug("Executing context call for action {}", this.actionName);
+			action.setState(ModuleAction.State.PROGRESS);
+			module.getMetricsContainer().action().changed(action);
+			scheduleStorage(action);
+
+			log.debug("Start executing action '{}'", this.actionName);
+			final Object output = context.getAction().call();
+			context.saveResult(output);
+
+			module.getMetricsContainer().action().finish(action, output);
+			// health is going to be better
+			module.healthGoUp();
+
+			log.debug("Finished well execution of '{}' returned: {}", this.actionName, output);
+			if (action instanceof ModuleActionAdapter) {
+				((ModuleActionAdapter) action).setDuration(timeService.duration(action.getStarted()));
+			}
+			module.getMetricsContainer().action().success(action);
+			scheduleStorage(action);
+
+			return ActionMapper.INSTANCE.toSuccessResult(action);
+		}
+
+		ModuleAction processOperationErrorModuleAction(ModuleAction action, Throwable t) {
+			log.error("Cannot execute action {}", this.actionName, t);
+			// health is going to be worse
+			module.healthGoDown(t);
+
+			if (action instanceof ModuleActionAdapter) {
+				((ModuleActionAdapter) action).setDuration(timeService.duration(action.getStarted()));
+			}
+			module.getMetricsContainer().action().fail(action, t);
+			scheduleStorage(action);
+
+			if (allowedExceptionRethrow) {
+				// throw caught exception
+				throw new ModuleActionRuntimeException(action, "Fail in " + this.actionName, t);
+			}
+			return ActionMapper.INSTANCE.toFailResult(action, t);
+		}
+
+		void finalizeModuleActionOperation(ModuleAction action) {
+			executed.getAndSet(true);
+			// store action's duration metric
+			final String label = "atomic-action";
+			module.getMetricsContainer().duration()
+					.simple(
+							label, action, timeService.now(),
+							module.primaryKey(), action.getDuration()
+					);
+			// set as current previous action
+			current.set(action.getParent());
+		}
+
 	}
 
 	// private method
+
 	void scheduleStorage(ModuleAction action) {
 		log.debug("Schedule to save {}", action);
 		storageQueue.offer(ActionMapper.INSTANCE.wrap(action, true));
