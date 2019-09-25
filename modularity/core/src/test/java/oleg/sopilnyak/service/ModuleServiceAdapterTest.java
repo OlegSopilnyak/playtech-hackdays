@@ -108,7 +108,7 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).executeAtomicAction(eq(SHUTDOWN_MODULE_ACTION_NAME), any(Runnable.class));
 		verify(service, times(1)).shutdownAsService();
 		verify(service, times(1)).shutdownMainModuleAction(eq(true));
-		verify(service, times(8)).primaryKey();
+		verify(service, times(10)).primaryKey();
 		verify(service, times(9)).getMetricsContainer();
 
 		assertFalse(service.isActive());
@@ -366,7 +366,7 @@ public class ModuleServiceAdapterTest {
 		assertNull(service.lastThrown());
 
 
-		verify(service, times(5)).primaryKey();
+		verify(service, times(6)).primaryKey();
 		verify(service, times(8)).getMetricsContainer();
 		verify(service, times(1)).healthGoUp();
 		verify(actionStorage, times(1)).createActionFor(eq(service), any(ModuleAction.class), eq(activityName));
