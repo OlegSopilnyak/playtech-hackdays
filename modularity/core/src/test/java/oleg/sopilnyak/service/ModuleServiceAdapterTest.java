@@ -80,7 +80,7 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).initAsService();
 		verify(service, times(2)).healthGoUp();
 		verify(service, atLeast(11)).primaryKey();
-		verify(service, times(17)).getMetricsContainer();
+		verify(service, times(11)).getMetricsContainer();
 
 		assertTrue(service.isWorking());
 		assertEquals(service, registry.getRegistered(service));
@@ -108,7 +108,7 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).shutdownAsService();
 		verify(service, times(1)).shutdownMainModuleAction(eq(true));
 		verify(service, times(10)).primaryKey();
-		verify(service, times(9)).getMetricsContainer();
+		verify(service, times(6)).getMetricsContainer();
 
 		assertFalse(service.isWorking());
 		assertNull(registry.getRegistered(service));
@@ -366,7 +366,7 @@ public class ModuleServiceAdapterTest {
 
 
 		verify(service, times(6)).primaryKey();
-		verify(service, times(8)).getMetricsContainer();
+		verify(service, times(5)).getMetricsContainer();
 		verify(service, times(1)).healthGoUp();
 		verify(actionStorage, times(1)).createActionFor(eq(service), any(ModuleAction.class), eq(activityName));
 		verify(testFunction, times(1)).run();
