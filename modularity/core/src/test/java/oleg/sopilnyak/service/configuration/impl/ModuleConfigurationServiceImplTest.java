@@ -13,6 +13,7 @@ import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl.ACTIVITY_LABEL;
 import static oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl.CONFIGURATION_UPDATE;
@@ -49,7 +51,7 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class ModuleConfigurationServiceImplTest {
 	@Mock
-	private Module module;
+	private ServiceModule module;
 	@Spy
 	private ModuleActionAdapter mainAction;
 	@Mock
@@ -150,6 +152,7 @@ public class ModuleConfigurationServiceImplTest {
 		when(module.getConfiguration()).thenReturn(config);
 		when(configurationStorage.getUpdatedVariables(module, config)).thenReturn(config).thenReturn(Collections.emptyMap());
 
+		when(module.values()).thenReturn(Stream.of(module));
 		service.inspectModule("test", mainAction, module);
 
 		verify(timeService, times(3)).now();
@@ -160,6 +163,7 @@ public class ModuleConfigurationServiceImplTest {
 		verify(module, times(1)).configurationChanged(eq(config));
 		verify(durationMetricsContainer, times(1)).simple(eq("test"), eq(mainAction), any(Instant.class), anyString(), anyLong());
 
+		when(module.values()).thenReturn(Stream.of(module));
 		service.inspectModule("test", mainAction, module);
 		verify(durationMetricsContainer, times(2)).simple(eq("test"), eq(mainAction), any(Instant.class), anyString(), anyLong());
 		verify(timeService, times(6)).now();
@@ -195,6 +199,7 @@ public class ModuleConfigurationServiceImplTest {
 		when(configurationStorage.getUpdatedVariables(eq(module), any(Map.class))).thenReturn(config);
 		when(registry.getRegistered(testModule)).thenReturn(module);
 
+		when(module.values()).thenReturn(Stream.of(module));
 		service.notifyModuleConfigurationUpdates(testLabel, testModule);
 
 		verify(service, times(1)).inspectModule(eq(ACTIVITY_LABEL), any(ModuleAction.class), eq(module));
@@ -237,7 +242,7 @@ public class ModuleConfigurationServiceImplTest {
 		ReflectionTestUtils.setField(actionsFactory, "actionsStorage", actionStorage);
 		when(actionStorage.createActionFor(any(Module.class)))
 				.thenAnswer((Answer<ModuleAction>) invocation -> ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "main-test"));
-		when(actionStorage.createActionFor(any(Module.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
+		when(actionStorage.createActionFor(any(ServiceModule.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
 			ModuleActionAdapter result1 = ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "regular-test");
 			result1.setParent((ModuleAction) invocation.getArguments()[1]);
 			result1.setName((String) invocation.getArguments()[2]);

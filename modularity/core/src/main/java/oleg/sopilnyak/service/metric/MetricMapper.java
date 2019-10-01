@@ -3,7 +3,7 @@
  */
 package oleg.sopilnyak.service.metric;
 
-import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.metric.bean.*;
@@ -72,19 +72,18 @@ public interface MetricMapper {
 	ActionFinishMetric toActionFinish(ModuleAction action, Instant measured, Object result);
 
 	/**
-	 * Create heart-beat module-metric
+	 * Create heart-beat values-metric
 	 *
 	 * @param action  action owner of the metric
-	 * @param module module to check
+	 * @param values values to check
 	 * @param measured time when it is occurred
 	 * @return instance
 	 */
 	@Mapping(target = "action", expression = "java(action)" )
 	@Mapping(target = "measured", source = "measured")
-	@Mapping(target = "condition", source = "module.condition")
-	@Mapping(target = "active", source = "module.active")
-	@Mapping(target = "modulePK", expression = "java(module.primaryKey())")
-	HeartBeatMetric toHeartBeat(ModuleAction action, Module module, Instant measured);
+	@Mapping(target = "condition", source = "values.condition")
+	@Mapping(target = "active", source = "values.active")
+	HeartBeatMetric toHeartBeat(String modulePK, ModuleAction action, ModuleValues values, Instant measured);
 
 	/**
 	 * Create simple-duration metric for an action

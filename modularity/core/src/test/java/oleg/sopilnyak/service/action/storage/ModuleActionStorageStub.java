@@ -6,6 +6,7 @@ package oleg.sopilnyak.service.action.storage;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.factory.ModuleMainAction;
@@ -38,6 +39,17 @@ public class ModuleActionStorageStub implements ModuleActionStorage {
 			hostName = "localhost";
 		}
 	}
+
+	/**
+	 * To get access to current node host-name
+	 *
+	 * @return host-name
+	 */
+	@Override
+	public String getHostName() {
+		return hostName;
+	}
+
 	/**
 	 * To create and save main-action for module
 	 *
@@ -62,7 +74,7 @@ public class ModuleActionStorageStub implements ModuleActionStorage {
 	 * @return new instance
 	 */
 	@Override
-	public ModuleAction createActionFor(Module module, ModuleAction parent, String name) {
+	public ModuleAction createActionFor(ServiceModule module, ModuleAction parent, String name) {
 		log.info("Creating regular action for {} with name {}", module.primaryKey(), name);
 		final ModuleRegularAction action = ActionMapper.INSTANCE.toRegularAction(module, parent, name, idGenerator, hostName);
 		module.getMetricsContainer().action().changed(action);

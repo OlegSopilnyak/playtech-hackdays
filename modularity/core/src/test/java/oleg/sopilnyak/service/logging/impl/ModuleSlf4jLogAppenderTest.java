@@ -4,10 +4,10 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import oleg.sopilnyak.configuration.ModuleSystemConfiguration;
-import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorageStub;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
@@ -65,35 +65,35 @@ public class ModuleSlf4jLogAppenderTest {
 	@Test
 	public void testingModuleStart() {
 		service.moduleStop();
-		assertFalse(service.isStarted() || service.isActive());
+		assertFalse(service.isStarted() || service.isWorking());
 
 		reset(actionStorage);
 		service.moduleStart();
 
-		assertTrue(service.isStarted() && service.isActive());
-		verify(actionStorage, atLeast(2)).createActionFor(any(Module.class), any(), anyString());
+		assertTrue(service.isStarted() && service.isWorking());
+		verify(actionStorage, atLeast(2)).createActionFor(any(ServiceModule.class), any(), anyString());
 	}
 
 	@Test
 	public void testingRegisterAppender() {
 		service.moduleStop();
-		assertFalse(service.isStarted() || service.isActive());
+		assertFalse(service.isStarted() || service.isWorking());
 
 		service.registerAppender();
-		assertTrue(service.isStarted() && !service.isActive());
+		assertTrue(service.isStarted() && !service.isWorking());
 	}
 
 	@Test
 	public void testingModuleStop() {
 		service.moduleStop();
-		assertFalse(service.isStarted() || service.isActive());
+		assertFalse(service.isStarted() || service.isWorking());
 	}
 
 	@Test
 	public void testingUnRegisterAppender() {
 
 		service.unRegisterAppender();
-		assertTrue(!service.isStarted() && service.isActive());
+		assertTrue(!service.isStarted() && service.isWorking());
 	}
 
 	@Test
@@ -127,11 +127,11 @@ public class ModuleSlf4jLogAppenderTest {
 
 	@Test
 	public void testingIsActive() {
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 
 		service.moduleStop();
 
-		assertFalse(service.isActive());
+		assertFalse(service.isWorking());
 	}
 
 	@Test

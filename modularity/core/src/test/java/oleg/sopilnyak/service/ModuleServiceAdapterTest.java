@@ -2,7 +2,6 @@ package oleg.sopilnyak.service;
 
 import ch.qos.logback.classic.Level;
 import oleg.sopilnyak.configuration.ModuleSystemConfiguration;
-import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
@@ -65,7 +64,7 @@ public class ModuleServiceAdapterTest {
 	@Test
 	public void testingModuleStart() {
 		service.moduleStop();
-		assertFalse(service.isActive());
+		assertFalse(service.isWorking());
 
 		assertEquals(ModuleAction.State.INIT, service.getMainAction().getState());
 		reset(actionStorage, configurationStorage, service);
@@ -83,19 +82,19 @@ public class ModuleServiceAdapterTest {
 		verify(service, atLeast(11)).primaryKey();
 		verify(service, times(17)).getMetricsContainer();
 
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 		assertEquals(service, registry.getRegistered(service));
 		assertEquals(ModuleAction.State.PROGRESS, service.getMainAction().getState());
 		assertEquals(VERY_GOOD, service.getCondition());
 
-		verify(actionStorage, atLeast(2)).createActionFor(any(Module.class), any(), anyString());
+		verify(actionStorage, atLeast(2)).createActionFor(any(ServiceModule.class), any(), anyString());
 		verify(configurationStorage, times(1)).getUpdatedVariables(eq(service), anyMap());
 
 	}
 
 	@Test
 	public void testingModuleStop() {
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 
 		assertEquals(ModuleAction.State.PROGRESS, service.getMainAction().getState());
 		assertEquals(VERY_GOOD, service.getCondition());
@@ -111,17 +110,17 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(10)).primaryKey();
 		verify(service, times(9)).getMetricsContainer();
 
-		assertFalse(service.isActive());
+		assertFalse(service.isWorking());
 		assertNull(registry.getRegistered(service));
 		assertEquals(ModuleAction.State.INIT, service.getMainAction().getState());
 		assertEquals(VERY_GOOD, service.getCondition());
 
-		verify(actionStorage, atLeast(1)).createActionFor(any(Module.class), any(), anyString());
+		verify(actionStorage, atLeast(1)).createActionFor(any(ServiceModule.class), any(), anyString());
 	}
 
 	@Test
 	public void testingModuleRestart(){
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 		reset(actionStorage, configurationStorage, service);
 
 		service.restart();
@@ -132,7 +131,7 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).moduleStart();
 		verify(service, times(1)).initAsService();
 
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 	}
 
 	@Test
@@ -151,14 +150,14 @@ public class ModuleServiceAdapterTest {
 
 	@Test
 	public void testingIsActive() {
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 
 		service.active = false;
 
-		assertFalse(service.isActive());
+		assertFalse(service.isWorking());
 
 		service.active = true;
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 	}
 
 	@Test
@@ -196,7 +195,7 @@ public class ModuleServiceAdapterTest {
 
 	@Test
 	public void testingHealthGoLow() {
-		assertTrue(service.isActive());
+		assertTrue(service.isWorking());
 
 		Exception thrown = new Exception();
 		assertEquals(VERY_GOOD, service.getCondition());
@@ -215,7 +214,7 @@ public class ModuleServiceAdapterTest {
 
 		service.healthGoDown(thrown);
 		assertEquals(FAIL, service.getCondition());
-		assertFalse(service.isActive());
+		assertFalse(service.isWorking());
 
 		verify(service, times(1)).moduleStop();
 		verify(service, times(1)).shutdownAsService();
@@ -289,7 +288,7 @@ public class ModuleServiceAdapterTest {
 
 		VariableItem value = service.configurationVariableOf(variableName);
 
-		verify(service, times(1)).isActive();
+		verify(service, times(1)).isWorking();
 		verify(service, times(1)).getConfiguration();
 		verify(configuration, times(1)).get(eq(variableName));
 

@@ -215,10 +215,16 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	 */
 	@Override
 	public void heartBeat(ModuleAction action, Module module) {
-		log.debug("Saving heart-beat for {}", module.primaryKey());
-		// make and store metric instance to module
-		final ModuleMetric metric = MetricMapper.INSTANCE.toHeartBeat(action, module, timeService.now());
-		module.getMetricsContainer().add(metric);
+		final String modulePK = module.primaryKey();
+		log.debug("Saving heart-beat for {}", modulePK);
+		final MetricsContainer metricsContainer = module.getMetricsContainer();
+		final Instant measured = timeService.now();
+		module.values().forEach(values -> {
+			log.debug("Saving hear-beat for host: '{}'", values.getHost());
+			// make and store metric instance to module's metrics container
+			final ModuleMetric metric = MetricMapper.INSTANCE.toHeartBeat(modulePK, action, values, measured);
+			metricsContainer.add(metric);
+		});
 	}
 
 	/**

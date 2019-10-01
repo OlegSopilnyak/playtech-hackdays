@@ -24,7 +24,7 @@ public abstract class RegistryModulesIteratorAdapter extends ModuleServiceAdapte
 		final AtomicInteger counter = new AtomicInteger(0);
 
 		registry.registered().stream()
-				.filter(module -> isActive())
+				.filter(module -> isWorking())
 				.peek(module -> counter.incrementAndGet())
 				.forEach(module -> inspectModule(label, action, module));
 

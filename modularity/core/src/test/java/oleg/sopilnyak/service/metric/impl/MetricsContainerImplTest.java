@@ -5,13 +5,13 @@ package oleg.sopilnyak.service.metric.impl;
 
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
 import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
-import oleg.sopilnyak.service.metric.bean.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,31 +20,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MetricsContainerImplTest {
-	@Mock
-	private ObjectProvider<ActionChangedMetric> actionChanged;
-	@Mock
-	private ObjectProvider<ActionExceptionMetric> actionFail;
-	@Mock
-	private ObjectProvider<HeartBeatMetric> heartBeat;
-	@Mock
-	private ObjectProvider<SimpleDurationMetric> simpleDuration;
-	@Mock
-	private ObjectProvider<TotalDurationMetric> totalDuration;
-
 	@Mock
 	private Module module;
 	@Spy
@@ -56,26 +44,6 @@ public class MetricsContainerImplTest {
 	@Before
 	public void setUp() {
 		when(module.getMetricsContainer()).thenReturn(container);
-		{
-			ActionChangedMetric metric = mock(ActionChangedMetric.class);
-			when(actionChanged.getObject(any(ModuleAction.class), any(Instant.class))).thenReturn(metric);
-		}
-		{
-			ActionExceptionMetric metric = mock(ActionExceptionMetric.class);
-			when(actionFail.getObject(any(ModuleAction.class), any(Instant.class), any(Throwable.class))).thenReturn(metric);
-		}
-		{
-			HeartBeatMetric metric = mock(HeartBeatMetric.class);
-			when(heartBeat.getObject(any(ModuleAction.class), any(Module.class), any(Instant.class))).thenReturn(metric);
-		}
-		{
-			SimpleDurationMetric metric = mock(SimpleDurationMetric.class);
-			when(simpleDuration.getObject(anyString(), any(ModuleAction.class), any(Instant.class), anyString(), anyLong())).thenReturn(metric);
-		}
-		{
-			TotalDurationMetric metric = mock(TotalDurationMetric.class);
-			when(totalDuration.getObject(anyString(), any(ModuleAction.class), any(Instant.class), anyInt(), anyLong())).thenReturn(metric);
-		}
 	}
 
 	@After
@@ -214,6 +182,9 @@ public class MetricsContainerImplTest {
 	public void testHeartBeat() {
 		ModuleAction parent = mock(ModuleAction.class);
 		ModuleActionAdapter action =  ActionMapper.INSTANCE.simple(module, parent, "test");
+
+		ModuleValues values = mock(ModuleValues.class);
+		when(module.values()).thenReturn(Stream.of(values));
 
 		container.health().heartBeat(action, module);
 

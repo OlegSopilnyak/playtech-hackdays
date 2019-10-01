@@ -1,10 +1,11 @@
 /*
- * Copyright (C) Oleg Sopilnyak 2018
+ * Copyright (C) Oleg Sopilnyak 2019
  */
 package oleg.sopilnyak.service.action;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 
 import java.util.concurrent.Callable;
 
@@ -12,6 +13,13 @@ import java.util.concurrent.Callable;
  * Service: Factory to manage module's actions
  */
 public interface ModuleActionFactory {
+
+	/**
+	 * To get node's address
+	 *
+	 * @return the value
+	 */
+	String getHost();
 	/**
 	 * To create main action of module
 	 *
@@ -27,7 +35,7 @@ public interface ModuleActionFactory {
 	 * @param name the name of action
 	 * @return instance
 	 */
-	ModuleAction createModuleRegularAction(Module module, String name);
+	ModuleAction createModuleRegularAction(ServiceModule module, String name);
 
 
 	/**
@@ -39,7 +47,7 @@ public interface ModuleActionFactory {
 	 * @param rethrow    flag for rethrow exception if occurred
 	 * @return action-result of execution
 	 */
-	ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow);
+	ModuleAction executeAtomicModuleAction(ServiceModule module, String actionName, Runnable executable, boolean rethrow);
 
 	/**
 	 * To create action's context for function
@@ -60,7 +68,7 @@ public interface ModuleActionFactory {
 	 * @param rethrow    flag for rethrow exception if occurred
 	 * @return action-result of execution
 	 */
-	ModuleAction executeAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow);
+	ModuleAction executeAtomicModuleAction(ServiceModule module, String actionName, ActionContext context, boolean rethrow);
 
 	/**
 	 * To create atomic module action instance
@@ -71,7 +79,7 @@ public interface ModuleActionFactory {
 	 * @param rethrow    flag for rethrow exception if occurred
 	 * @return built instance
 	 */
-	AtomicModuleAction createAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow);
+	AtomicModuleAction createAtomicModuleAction(ServiceModule module, String actionName, ActionContext context, boolean rethrow);
 
 	/**
 	 * To get current action by Thread context
@@ -85,7 +93,7 @@ public interface ModuleActionFactory {
 	 *
 	 * @param module owner of the action
 	 */
-	void startMainAction(Module module);
+	void startMainAction(ServiceModule module);
 
 	/**
 	 * To finish main action
@@ -93,5 +101,5 @@ public interface ModuleActionFactory {
 	 * @param module owner of action
 	 * @param success flag is it done good
 	 */
-	void finishMainAction(Module module, boolean success);
+	void finishMainAction(ServiceModule module, boolean success);
 }

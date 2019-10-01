@@ -4,12 +4,12 @@
 package oleg.sopilnyak.service.logging;
 
 import ch.qos.logback.classic.Level;
-import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.service.ServiceModule;
 
 /**
  * Service: service to manage slf4j logging support
  */
-public interface ModuleLoggerService extends Module {
+public interface ModuleLoggerService extends ServiceModule {
 	// The name of properties package
 	String PACKAGE = "module.service.logger";
 	// The level of severity

@@ -11,6 +11,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.Layout;
 import lombok.extern.slf4j.Slf4j;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 /**
  * Service: appender for slf4j logging framework
@@ -67,7 +69,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	 */
 	@Override
 	public void moduleStart() {
-		if (super.isStarted()){
+		if (super.isStarted()) {
 			log.warn("Module already started.");
 			return;
 		}
@@ -122,10 +124,20 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 		log.info("Stopped module.");
 	}
 
+	/**
+	 * To get the host where module is working
+	 *
+	 * @return the value
+	 */
+	@Override
+	public String getHost() {
+		return actionFactory.getHost();
+	}
+
 
 	@Override
 	protected void append(ILoggingEvent event) {
-		if(!isActive()){
+		if (!isWorking()) {
 			log.warn("SLF4J Appender is not started.");
 			return;
 		}
@@ -152,7 +164,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	/**
 	 * To setup value of layout's pattern
 	 *
-	 * @param layoutPattern  pattern for appender layout
+	 * @param layoutPattern pattern for appender layout
 	 */
 	@Override
 	public void setLayoutPattern(String layoutPattern) {
@@ -166,9 +178,30 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	 * @return true if module is working
 	 */
 	@Override
-	public boolean isActive() {
-		return delegate.isActive();
+	public boolean isWorking() {
+		return delegate.isWorking();
 	}
+
+	/**
+	 * To check is module active (is working)
+	 *
+	 * @return true if module is working
+	 */
+	@Override
+	public boolean isActive() {
+		return delegate.isWorking();
+	}
+
+	/**
+	 * To return stream of module's values
+	 *
+	 * @return stream
+	 */
+	@Override
+	public Stream<ModuleValues> values() {
+		return Stream.of(this);
+	}
+
 
 	/**
 	 * To get the registry condition of module for the moment
@@ -267,7 +300,7 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 		}
 		// check for level
 		if (itemName.equals(levelName())) {
-			levelSeverity = itemValue.get(Integer.class).intValue();
+			levelSeverity = itemValue.get(Integer.class);
 			log.debug("Changed variable 'levelSeverity' to {}", levelSeverity);
 			configurationVariable.set(levelSeverity);
 			setSeverityLevel(Level.toLevel(levelSeverity));

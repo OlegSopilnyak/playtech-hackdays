@@ -6,6 +6,7 @@ package oleg.sopilnyak.service.action.bean;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.bean.factory.ModuleMainAction;
 import oleg.sopilnyak.service.action.bean.factory.ModuleRegularAction;
@@ -117,7 +118,7 @@ public interface ActionMapper {
 	@Mapping(target = "started", expression = "java(null)")
 	@Mapping(target = "duration", expression = "java(-1L)")
 	@Mapping(target = "description", expression = "java(name + \" action of \" + module.getDescription())")
-	ModuleRegularAction toRegularAction(Module module, ModuleAction parent, String name, UniqueIdGenerator idGenerator, String hostName);
+	ModuleRegularAction toRegularAction(ServiceModule module, ModuleAction parent, String name, UniqueIdGenerator idGenerator, String hostName);
 
 	/**
 	 * To make wrapper for ModuleAction to save

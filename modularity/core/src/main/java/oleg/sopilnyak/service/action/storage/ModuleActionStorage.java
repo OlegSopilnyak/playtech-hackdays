@@ -5,11 +5,19 @@ package oleg.sopilnyak.service.action.storage;
 
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 
 /**
  * Service: storage of module's actions
  */
 public interface ModuleActionStorage {
+
+	/**
+	 * To get access to current node host-name
+	 *
+	 * @return host-name
+	 */
+	String getHostName();
 
 	/**
 	 * To create and save main-action for module
@@ -23,11 +31,11 @@ public interface ModuleActionStorage {
 	 * To create and save regular action for the module
 	 *
 	 * @param module owner of action
-	 * @param parent  action parent of new action
-	 * @param name the name of action
+	 * @param parent action parent of new action
+	 * @param name   the name of action
 	 * @return new instance
 	 */
-	ModuleAction createActionFor(Module module, ModuleAction parent, String name);
+	ModuleAction createActionFor(ServiceModule module, ModuleAction parent, String name);
 
 	/**
 	 * To persist Module's action

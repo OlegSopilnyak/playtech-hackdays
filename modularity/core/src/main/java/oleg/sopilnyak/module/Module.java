@@ -5,16 +5,16 @@ package oleg.sopilnyak.module;
 
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.metric.ModuleMetric;
-import oleg.sopilnyak.module.model.ModuleAction;
 
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Type - service's module
  */
-public interface Module extends ModuleBasics, ModuleHealth, ModuleConfigurable {
+public interface Module extends ModuleBasics {
 	/**
 	 * To start module activity
 	 */
@@ -30,7 +30,9 @@ public interface Module extends ModuleBasics, ModuleHealth, ModuleConfigurable {
 	 *
 	 * @return true if module is working
 	 */
-	boolean isActive();
+	default boolean isWorking() {
+		return values().filter(v -> v.isActive()).map(v -> v.isActive()).findFirst().orElse(false);
+	}
 
 	/**
 	 * To check is module allows to be restarted
@@ -46,18 +48,18 @@ public interface Module extends ModuleBasics, ModuleHealth, ModuleConfigurable {
 		if (!canRestart()) {
 			return;
 		}
-		if (isActive()) {
+		if (isWorking()) {
 			moduleStop();
 		}
 		moduleStart();
 	}
 
 	/**
-	 * To get root action of module
+	 * To return stream of module's values
 	 *
-	 * @return instance
+	 * @return stream
 	 */
-	ModuleAction getMainAction();
+	Stream<ModuleValues> values();
 
 	/**
 	 * To get access to Module's metrics container

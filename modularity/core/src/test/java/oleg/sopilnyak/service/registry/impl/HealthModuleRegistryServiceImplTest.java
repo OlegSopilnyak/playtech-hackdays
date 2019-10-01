@@ -12,6 +12,7 @@ import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.ActionMapper;
@@ -76,7 +77,7 @@ public class HealthModuleRegistryServiceImplTest {
 	private HealthModuleRegistryServiceImpl service = new HealthModuleRegistryServiceImpl();
 
 	@Before
-	public void setUp() throws Exception {
+	public void setUp() {
 		when(module.getSystemId()).thenReturn("sys-test");
 		when(module.getModuleId()).thenReturn("mod-test");
 		when(module.getVersionId()).thenReturn("ver-test");
@@ -97,7 +98,7 @@ public class HealthModuleRegistryServiceImplTest {
 	}
 
 	@After
-	public void tearDown() throws Exception {
+	public void tearDown() {
 		service.moduleStop();
 		reset(module, actionsFactory, metricsContainer, actionMetricsContainer);
 	}
@@ -278,7 +279,7 @@ public class HealthModuleRegistryServiceImplTest {
 		ReflectionTestUtils.setField(actionsFactory, "actionsStorage", actionStorage);
 		when(actionStorage.createActionFor(any(Module.class)))
 				.thenAnswer((Answer<ModuleAction>) invocation -> ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "main-test"));
-		when(actionStorage.createActionFor(any(Module.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
+		when(actionStorage.createActionFor(any(ServiceModule.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
 			ModuleActionAdapter result1 = ActionMapper.INSTANCE.simple((ModuleBasics) invocation.getArguments()[0], "regular-test");
 			result1.setParent((ModuleAction) invocation.getArguments()[1]);
 			result1.setName((String) invocation.getArguments()[2]);

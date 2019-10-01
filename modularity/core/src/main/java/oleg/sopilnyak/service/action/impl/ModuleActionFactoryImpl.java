@@ -7,7 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.metric.ActionMetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.AtomicModuleAction;
@@ -53,6 +55,16 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	}
 
 	/**
+	 * To get node's address
+	 *
+	 * @return the value
+	 */
+	@Override
+	public String getHost() {
+		return actionsStorage.getHostName();
+	}
+
+	/**
 	 * To create main action of module
 	 *
 	 * @param module owner of action
@@ -75,7 +87,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 * @return instance
 	 */
 	@Override
-	public ModuleAction createModuleRegularAction(Module module, String name) {
+	public ModuleAction createModuleRegularAction(ServiceModule module, String name) {
 		log.debug("Creating regular '{}' action for module '{}'", name, module.primaryKey());
 		final ModuleAction action = actionsStorage.createActionFor(module, current.get(), name);
 		if (action instanceof ModuleActionAdapter) {
@@ -98,7 +110,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 * @return action-result of execution
 	 */
 	@Override
-	public ModuleAction executeAtomicModuleAction(Module module, String actionName, Runnable executable, boolean rethrow) {
+	public ModuleAction executeAtomicModuleAction(ServiceModule module, String actionName, Runnable executable, boolean rethrow) {
 		final Callable<Void> actionCall = () -> {
 			executable.run();
 			return null;
@@ -129,7 +141,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 * @return action-result of execution
 	 */
 	@Override
-	public ModuleAction executeAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow) {
+	public ModuleAction executeAtomicModuleAction(ServiceModule module, String actionName, ActionContext context, boolean rethrow) {
 		log.debug("Setup action for '{}' of module '{}'", actionName, module.primaryKey());
 		final AtomicModuleAction moduleAction = createAtomicModuleAction(module, actionName, context, rethrow);
 		return moduleAction.operate();
@@ -145,7 +157,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 * @return built instance
 	 */
 	@Override
-	public AtomicModuleAction createAtomicModuleAction(Module module, String actionName, ActionContext context, boolean rethrow) {
+	public AtomicModuleAction createAtomicModuleAction(ServiceModule module, String actionName, ActionContext context, boolean rethrow) {
 		log.debug("Making module's atomic action executor for '{}' of '{}'", module.primaryKey(), actionName);
 		return new AtomicActionExecutor(context, actionName, module, rethrow);
 	}
@@ -166,7 +178,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 * @param module owner of action
 	 */
 	@Override
-	public void startMainAction(Module module) {
+	public void startMainAction(ServiceModule module) {
 		log.debug("Starting Main action for '{}'", module.primaryKey());
 		final ModuleAction mainAction = module.getMainAction();
 		if (mainAction != current.get()) {
@@ -185,7 +197,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	 * @param success flag is it done good
 	 */
 	@Override
-	public void finishMainAction(Module module, boolean success) {
+	public void finishMainAction(ServiceModule module, boolean success) {
 		current.set(null);
 		log.debug("Main action of '{}' is finished successfully - {}.", module.primaryKey(), success);
 		final ModuleAction mainAction = module.getMainAction();
@@ -203,7 +215,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 	final class AtomicActionExecutor implements AtomicModuleAction {
 		private ActionContext context;
 		private String actionName;
-		private Module module;
+		private ServiceModule module;
 		private boolean allowedExceptionRethrow;
 		private final AtomicBoolean executed = new AtomicBoolean(false);
 
@@ -235,18 +247,19 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 		// executor's private methods
 		ModuleAction executePositiveActionScenario(ModuleAction action) throws Exception {
 			log.debug("Starting  for action {} context {}", this.actionName, context);
-			module.getMetricsContainer().action().start(action, context);
+			final ActionMetricsContainer metricsContainer = module.getMetricsContainer().action();
+			metricsContainer.start(action, context);
 
 			log.debug("Executing context call for action {}", this.actionName);
 			action.setState(ModuleAction.State.PROGRESS);
-			module.getMetricsContainer().action().changed(action);
+			metricsContainer.changed(action);
 			scheduleStorage(action);
 
 			log.debug("Start executing action '{}'", this.actionName);
 			final Object output = context.getAction().call();
 			context.saveResult(output);
 
-			module.getMetricsContainer().action().finish(action, output);
+			metricsContainer.finish(action, output);
 			// health is going to be better
 			module.healthGoUp();
 
@@ -254,7 +267,7 @@ public class ModuleActionFactoryImpl implements ModuleActionFactory {
 			if (action instanceof ModuleActionAdapter) {
 				((ModuleActionAdapter) action).setDuration(timeService.duration(action.getStarted()));
 			}
-			module.getMetricsContainer().action().success(action);
+			metricsContainer.success(action);
 			scheduleStorage(action);
 
 			return ActionMapper.INSTANCE.toSuccessResult(action);

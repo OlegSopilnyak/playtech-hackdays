@@ -203,7 +203,7 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 		AtomicInteger counter = new AtomicInteger(1);
 		module.metrics().stream()
 				.peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.getName()))
-				.filter(metric -> this.isActive())
+				.filter(metric -> this.isWorking())
 				.forEach(this::storeMetric);
 
 		// save metric about module health check duration
@@ -223,7 +223,7 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 		log.debug("Scanning modules.");
 		actionsFactory.executeAtomicModuleAction(this, "metrics-check", () -> iterateRegisteredModules(ACTIVITY_LABEL), false);
 
-		if (!isActive() || Objects.isNull(runnerFuture)) {
+		if (!isWorking() || Objects.isNull(runnerFuture)) {
 			log.debug("Scanning is stopped.");
 			return;
 		}

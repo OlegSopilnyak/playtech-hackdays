@@ -5,9 +5,11 @@ package oleg.sopilnyak.service.configuration.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.RegistryModulesIteratorAdapter;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.configuration.ModuleConfigurationService;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import org.springframework.util.CollectionUtils;
@@ -53,15 +55,14 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 		log.debug("Initiating service...");
 		configurationStorage.addConfigurationListener(storageListener);
 		// prepare scan module configuration runner
-		final Module module = this;
-		final String actionName = CONFIGURATION_CHECK;
+		final ServiceModule module = this;
 		final Runnable executable = () -> iterateRegisteredModules(ACTIVITY_LABEL);
 		final Runnable scanModulesConfiguration = () -> {
 			// activate main module action
 			activateMainModuleAction();
 			// scanning all allowed modules
 			log.info("Scanning modules.");
-			actionsFactory.executeAtomicModuleAction(module, actionName, executable, false);
+			actionsFactory.executeAtomicModuleAction(module, CONFIGURATION_CHECK, executable, false);
 		};
 		runnerFuture = activityRunner.schedule(scanModulesConfiguration, 50, TimeUnit.MILLISECONDS);
 	}
@@ -87,21 +88,25 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 	 * @param label  label of module's processing
 	 * @param action action owner of inspection
 	 * @param module module to be inspected
-	 * @see RegistryModulesIteratorAdapter##iterateRegisteredModules(String)
+	 * @see RegistryModulesIteratorAdapter##iterateRegisteredModules(String label)
 	 */
 	protected void inspectModule(String label, ModuleAction action, Module module) {
 		final Instant mark = timeService.now();
 		final String modulePK = module.primaryKey();
+		final MetricsContainer metricsContainer = getMetricsContainer();
 		log.debug("Scan module {}", modulePK);
-		final Map<String, VariableItem> config = configurationStorage.getUpdatedVariables(module, module.getConfiguration());
-		if (CollectionUtils.isEmpty(config)) {
-			getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
-			log.debug("Nothing to update properties for {}", modulePK);
-			return;
-		}
-		module.configurationChanged(config);
-		getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
-		log.debug("Updated module {} by {}", modulePK, config);
+		module.values().forEach(values -> {
+			final String host = values.getHost();
+			final Map<String, VariableItem> config = configurationStorage.getUpdatedVariables(module, values.getConfiguration());
+			if (CollectionUtils.isEmpty(config)) {
+				metricsContainer.duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
+				log.debug("Nothing to update configuration for '{}' on host '{}'", modulePK, host);
+			} else {
+				values.configurationChanged(config);
+				metricsContainer.duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
+				log.debug("Updated configuration of module '{}' on host '{}' by '{}'", modulePK, host, config);
+			}
+		});
 	}
 
 	// private methods
@@ -111,7 +116,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 			log.warn("Module '{}' is not registered.", modulePK);
 			return;
 		}
-		final Module service = this;
+		final ServiceModule service = this;
 		final Runnable executable = ()-> inspectModule(ACTIVITY_LABEL, actionsFactory.currentAction(), module);
 
 		log.debug("Updating module '{}' configuration.", modulePK);
@@ -131,7 +136,7 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 			log.info("Updating modules {}", modules);
 			final String label = CONFIGURATION_UPDATE;
 			final Instant mark = timeService.now();
-			final int counter[] = new int[]{0};
+			final int[] counter = new int[]{0};
 			modules.forEach(pk -> {
 				counter[0]++;
 				notifyModuleConfigurationUpdates(label, pk);

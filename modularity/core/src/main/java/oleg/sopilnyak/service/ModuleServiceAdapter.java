@@ -4,7 +4,7 @@
 package oleg.sopilnyak.service;
 
 
-import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
@@ -24,13 +24,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Stream;
 
 import static oleg.sopilnyak.module.model.ModuleHealthCondition.*;
 
 /**
  * Adapter for periodical actions service
  */
-public abstract class ModuleServiceAdapter implements Module {
+public abstract class ModuleServiceAdapter implements ServiceModule {
 	public static final String INIT_MODULE_ACTION_NAME = "init-module";
 	public static final String SHUTDOWN_MODULE_ACTION_NAME = "shutdown-module";
 	public static final String CONFIGURE_MODULE_ACTION_NAME = "configure-module";
@@ -178,9 +179,20 @@ public abstract class ModuleServiceAdapter implements Module {
 	 * @return true if module is working
 	 */
 	@Override
+	public boolean isWorking() {
+		return active;
+	}
+
+	/**
+	 * To check is module active (is working)
+	 *
+	 * @return true if module is working
+	 */
+	@Override
 	public boolean isActive() {
 		return active;
 	}
+
 
 	/**
 	 * To get the registry condition of module for the moment
@@ -301,6 +313,26 @@ public abstract class ModuleServiceAdapter implements Module {
 	}
 
 	/**
+	 * To return stream of module's values
+	 *
+	 * @return stream
+	 */
+	@Override
+	public Stream<ModuleValues> values() {
+		return Stream.of(this);
+	}
+
+	/**
+	 * To get the host where module is working
+	 *
+	 * @return the value
+	 */
+	@Override
+	public String getHost() {
+		return actionsFactory.getHost();
+	}
+
+	/**
 	 * To get access to Module's metrics container
 	 *
 	 * @return instance
@@ -317,7 +349,7 @@ public abstract class ModuleServiceAdapter implements Module {
 	 * @return value or null if not exists or module is not active
 	 */
 	public VariableItem configurationVariableOf(String varName) {
-		if (!isActive() || StringUtils.isEmpty(varName)) {
+		if (!isWorking() || StringUtils.isEmpty(varName)) {
 			// service is not active or itemName is wrong
 			return null;
 		}

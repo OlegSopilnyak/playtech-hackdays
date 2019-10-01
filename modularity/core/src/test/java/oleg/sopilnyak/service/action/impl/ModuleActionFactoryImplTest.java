@@ -10,6 +10,7 @@ import oleg.sopilnyak.module.metric.ActionMetricsContainer;
 import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.action.ActionContext;
 import oleg.sopilnyak.service.action.AtomicModuleAction;
@@ -44,7 +45,9 @@ import static org.mockito.Mockito.*;
 public class ModuleActionFactoryImplTest {
 
 	@Mock
-	private Module module;
+	private ServiceModule module;
+	@Mock
+	private ModuleAction mainAction;
 	@Mock
 	private MetricsContainer metricsContainer;
 	@Mock
@@ -63,11 +66,15 @@ public class ModuleActionFactoryImplTest {
 	private ModuleActionFactoryImpl factory = spy(new ModuleActionFactoryImpl());
 
 	@Before
-	public void setUp() throws Exception {
+	public void setUp() {
 		when(module.getSystemId()).thenReturn("sys-test");
 		when(module.getModuleId()).thenReturn("mod-test");
 		when(module.getDescription()).thenReturn("desc-test");
 		when(module.primaryKey()).thenReturn("test-module-primary-key");
+
+		// configure module's main-action behavier
+		when(mainAction.getModule()).thenReturn(module);
+		when(module.getMainAction()).thenReturn(mainAction);
 
 		when(module.getMetricsContainer()).thenReturn(metricsContainer);
 		when(metricsContainer.action()).thenReturn(actionMetricsContainer);
@@ -80,7 +87,7 @@ public class ModuleActionFactoryImplTest {
 
 	@After
 	public void tearDown() {
-		reset(module, metricsContainer, actionMetricsContainer);
+		reset(module, mainAction, metricsContainer, actionMetricsContainer);
 		factory.current.remove();
 	}
 
@@ -253,9 +260,9 @@ public class ModuleActionFactoryImplTest {
 
 	@Test
 	public void testStartMainAction() {
-		ModuleAction action = mock(ModuleAction.class);
-		when(module.getMainAction()).thenReturn(action);
-		when(action.getModule()).thenReturn(module);
+		ModuleAction action = mainAction;
+//		when(module.getMainAction()).thenReturn(action);
+//		when(action.getModule()).thenReturn(module);
 
 		factory.startMainAction(module);
 		assertEquals(action, factory.currentAction());
@@ -296,7 +303,7 @@ public class ModuleActionFactoryImplTest {
 					result.setModule(DtoMapper.INSTANCE.toModuleDto(module));
 					return result;
 				});
-		when(actionStorage.createActionFor(any(Module.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
+		when(actionStorage.createActionFor(any(ServiceModule.class), any(ModuleAction.class), anyString())).thenAnswer((Answer<ModuleAction>) invocation -> {
 			ModuleBasics module = (ModuleBasics) invocation.getArguments()[0];
 			ModuleActionAdapter result = ActionMapper.INSTANCE.simple(module, "regular-test");
 			result.setModule(DtoMapper.INSTANCE.toModuleDto(module));
