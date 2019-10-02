@@ -9,7 +9,7 @@ import oleg.sopilnyak.commands.ModuleCommand;
 import oleg.sopilnyak.commands.impl.HelpModuleCommand;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.commands.model.result.CommandResultAdapter;
-import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.ObjectFactory;
@@ -59,7 +59,7 @@ public abstract class ModuleCommandAdapter implements ModuleCommand {
 	 * @param module to process by command and transform to info
 	 * @return module to info transformation
 	 */
-	protected abstract ModuleInfoAdapter processAndTransform(Module module);
+	protected abstract ModuleInfoAdapter processAndTransform(ServiceModule module);
 
 	/**
 	 * To get Function for main command's activity

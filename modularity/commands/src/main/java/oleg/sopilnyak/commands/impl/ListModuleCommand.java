@@ -11,8 +11,8 @@ import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.commands.model.command.ListModulesCommandAdapter;
 import oleg.sopilnyak.commands.model.result.CommandResultAdapter;
 import oleg.sopilnyak.commands.model.result.ListModulesCommandResultAdapter;
-import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
+import oleg.sopilnyak.service.ServiceModule;
 import org.slf4j.Logger;
 
 /**
@@ -67,10 +67,10 @@ public class ListModuleCommand extends ListModulesCommandAdapter {
 	 * @return module to info transformation
 	 */
 	@Override
-	protected ModuleInfoAdapter processAndTransform(Module module) {
+	protected ModuleInfoAdapter processAndTransform(ServiceModule module) {
 		return ShortModuleInfo.builder()
 				.modulePK(module.primaryKey())
-				.active(module.isActive())
+				.active(module.isWorking())
 				.condition(module.getCondition())
 				.description(module.getDescription())
 				.build();

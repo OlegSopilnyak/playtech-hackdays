@@ -10,6 +10,7 @@ import oleg.sopilnyak.commands.model.result.CommandResultAdapter;
 import oleg.sopilnyak.commands.model.result.ListModulesCommandResultAdapter;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
+import oleg.sopilnyak.service.ServiceModule;
 
 /**
  * Command: parent of any commands which try to switch modules
@@ -48,11 +49,11 @@ public abstract class SwitchModuleCommandAdapter extends ListModulesCommandAdapt
 	 * @return module to info transformation
 	 */
 	@Override
-	protected ModuleInfoAdapter processAndTransform(Module module) {
+	protected ModuleInfoAdapter processAndTransform(ServiceModule module) {
 		final String message = processModule(module);
 		return ShortModuleInfo.builder()
 				.modulePK(module.primaryKey())
-				.active(module.isActive())
+				.active(module.isWorking())
 				.condition(module.getCondition())
 				.description(message)
 				.build();

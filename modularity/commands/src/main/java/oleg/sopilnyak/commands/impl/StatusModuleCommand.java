@@ -14,10 +14,10 @@ import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.commands.model.command.ListModulesCommandAdapter;
 import oleg.sopilnyak.commands.model.result.CommandResultAdapter;
 import oleg.sopilnyak.commands.model.result.ListModulesCommandResultAdapter;
-import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.ServiceModule;
 import org.slf4j.Logger;
 
 import java.time.Instant;
@@ -77,10 +77,10 @@ public class StatusModuleCommand extends ListModulesCommandAdapter {
 	 * @return module to info transformation
 	 */
 	@Override
-	protected ModuleInfoAdapter processAndTransform(Module module) {
+	protected ModuleInfoAdapter processAndTransform(ServiceModule module) {
 		return LongModuleInfo.builder()
 				.modulePK(module.primaryKey())
-				.active(module.isActive())
+				.active(module.isWorking())
 				.condition(module.getCondition())
 				.description(module.getDescription())
 				.mainAction(toInfo(module.getMainAction()))

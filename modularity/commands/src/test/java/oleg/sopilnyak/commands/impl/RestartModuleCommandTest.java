@@ -10,6 +10,7 @@ import oleg.sopilnyak.configuration.ModuleCommandConfiguration;
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.junit.After;
 import org.junit.Before;
@@ -151,9 +152,9 @@ public class RestartModuleCommandTest {
 	}
 
 	private Module mockModule(String pk, boolean active, ModuleHealthCondition condition, String description) {
-		Module module = mock(Module.class);
+		ServiceModule module = mock(ServiceModule.class);
 		when(module.primaryKey()).thenReturn(pk);
-		when(module.isActive()).thenReturn(active);
+		when(module.isWorking()).thenReturn(active);
 		when(module.getCondition()).thenReturn(condition);
 		when(module.getDescription()).thenReturn(description);
 		return module;

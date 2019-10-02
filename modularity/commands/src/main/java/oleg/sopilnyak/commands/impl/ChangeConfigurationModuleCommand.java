@@ -15,9 +15,9 @@ import oleg.sopilnyak.commands.model.ModuleCommandType;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.commands.model.command.ModuleCommandAdapter;
 import oleg.sopilnyak.commands.model.result.CommandResultAdapter;
-import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import org.slf4j.Logger;
@@ -62,10 +62,10 @@ public class ChangeConfigurationModuleCommand extends ModuleCommandAdapter {
 	 * @return module to info transformation
 	 */
 	@Override
-	protected ModuleInfoAdapter processAndTransform(Module module) {
+	protected ModuleInfoAdapter processAndTransform(ServiceModule module) {
 		return LongModuleInfo.builder()
 				.modulePK(module.primaryKey())
-				.active(module.isActive())
+				.active(module.isWorking())
 				.condition(module.getCondition())
 				.description(module.getDescription())
 				.configuration(module.getConfiguration())
@@ -112,7 +112,7 @@ public class ChangeConfigurationModuleCommand extends ModuleCommandAdapter {
 			final String moduleItemValue = (String) parameters[2];
 			log.debug("Parameters - module:'{}' item-name:'{}' item-value: '{}'", modulePK, moduleItemName, moduleItemValue);
 
-			final Module module = registry.getRegistered(modulePK);
+			final ServiceModule module = (ServiceModule) registry.getRegistered(modulePK);
 			final Map<String, VariableItem> configuration = module.getConfiguration();
 			final VariableItem item = configuration.get(moduleItemName);
 			if (item == null) {

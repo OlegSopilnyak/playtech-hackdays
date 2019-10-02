@@ -7,6 +7,7 @@ import oleg.sopilnyak.commands.CommandResult;
 import oleg.sopilnyak.commands.model.ModuleCommandState;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.commands.model.result.CommandResultAdapter;
+import oleg.sopilnyak.service.ServiceModule;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
@@ -36,7 +37,7 @@ public abstract class ListModulesCommandAdapter extends ModuleCommandAdapter {
 			log.debug("Getting list of modules with parameters '{}'", Arrays.asList(parameters));
 			final List<ModuleInfoAdapter> modules = registry.registered().stream()
 					.filter(m -> isEnabled(m.primaryKey(), parameters))
-					.map(module -> processAndTransform(module))
+					.map(module -> processAndTransform((ServiceModule) module))
 					.collect(Collectors.toList());
 			result.setData(modules);
 			log.debug("Selected {} modules.", modules.size());

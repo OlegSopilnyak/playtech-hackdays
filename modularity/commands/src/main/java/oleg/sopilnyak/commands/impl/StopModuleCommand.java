@@ -53,7 +53,7 @@ public class StopModuleCommand extends SwitchModuleCommandAdapter {
 	 */
 	@Override
 	protected String processModule(Module module) {
-		if (module.isActive()) {
+		if (module.isWorking()) {
 			module.moduleStop();
 			return  "Stopped well";
 		} else {
