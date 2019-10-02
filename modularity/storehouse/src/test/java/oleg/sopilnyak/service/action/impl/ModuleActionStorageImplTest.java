@@ -10,6 +10,7 @@ import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
+import oleg.sopilnyak.service.ServiceModule;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import oleg.sopilnyak.service.action.ModuleActionsRepository;
 import org.junit.After;
@@ -52,7 +53,7 @@ public class ModuleActionStorageImplTest {
 	}
 
 	@After
-	public void tearDown() throws Exception {
+	public void tearDown() {
 		reset( repository, idGenerator);
 	}
 
@@ -81,7 +82,7 @@ public class ModuleActionStorageImplTest {
 
 	@Test
 	public void createActionForRegular() {
-		Module module = mock(Module.class);
+		ServiceModule module = mock(ServiceModule.class);
 		ModuleAction parent = mock(ModuleAction.class);
 		String name = "test";
 
@@ -101,7 +102,7 @@ public class ModuleActionStorageImplTest {
 
 	@Test
 	public void createActionForRegular2() {
-		Module module = mock(Module.class);
+		ServiceModule module = mock(ServiceModule.class);
 		ModuleAction parent = mock(ModuleAction.class);
 		String name = "test";
 
