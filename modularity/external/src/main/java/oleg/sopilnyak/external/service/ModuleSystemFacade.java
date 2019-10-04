@@ -70,4 +70,16 @@ public interface ModuleSystemFacade {
 	 * @return updated state of external module (include module configuration updates)
 	 */
 	GeneralModuleStateDto status(ExternalModuleStateDto externalState, String moduleHost);
+
+	/**
+	 * To make compound key for module + host
+	 *
+	 * @param modulePK   pk of module
+	 * @param moduleHost module's host
+	 * @return the value
+	 */
+	default String externalModulePK(String modulePK, String moduleHost) {
+		return "external-" + modulePK + "=>" + moduleHost;
+	}
+
 }

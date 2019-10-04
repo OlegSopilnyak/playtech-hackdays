@@ -238,6 +238,16 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 	}
 
 	/**
+	 * To merge content of container with another one
+	 *
+	 * @param container other container
+	 */
+	@Override
+	public void merge(MetricsContainer container) {
+		container.metrics().forEach(m -> metrics.add(m));
+	}
+
+	/**
 	 * To register simple-duration metric of operation for module in action
 	 *
 	 * @param label    label of activity

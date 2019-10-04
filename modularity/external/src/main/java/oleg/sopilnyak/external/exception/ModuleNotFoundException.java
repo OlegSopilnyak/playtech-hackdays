@@ -1,7 +1,6 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-
 package oleg.sopilnyak.external.exception;
 
 /**

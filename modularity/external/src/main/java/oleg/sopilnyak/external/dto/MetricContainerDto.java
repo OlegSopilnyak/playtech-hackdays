@@ -99,4 +99,14 @@ public class MetricContainerDto implements MetricsContainer {
 	public DurationMetricsContainer duration() {
 		throw new UnsupportedOperationException("Operation not allowed for transport object");
 	}
+
+	/**
+	 * To merge content of container with another one
+	 *
+	 * @param container other container
+	 */
+	@Override
+	public void merge(MetricsContainer container) {
+		container.metrics().forEach(m -> metrics.add(m));
+	}
 }

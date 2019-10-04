@@ -9,6 +9,7 @@ import oleg.sopilnyak.external.dto.ModuleStatusDto;
 import oleg.sopilnyak.external.dto.RemoteModuleDto;
 import oleg.sopilnyak.external.service.ExternalModule;
 import oleg.sopilnyak.external.service.impl.ExternalModuleImpl;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import org.mapstruct.Mapper;
@@ -53,10 +54,9 @@ public interface ModuleMapper {
 	 * Copy status of module to dto-object
 	 *
 	 * @param dto dto-object of status
-	 * @param module module-source of data
+	 * @param module module-values
 	 */
-	@Mapping(target = "modulePK", expression = "java(module.primaryKey())" )
-	void copyModuleStatus(@MappingTarget ModuleStatusDto dto, ExternalModule module);
+	void copyModuleStatus(@MappingTarget ModuleStatusDto dto, ModuleValues module);
 
 	/**
 	 * To create full information module's status DTO
@@ -65,8 +65,10 @@ public interface ModuleMapper {
 	 * @param module external module instance
 	 * @return instance of full module state DTO
 	 */
-	@Mapping(target = "mainActionId", source = "module.mainAction.id")
-	@Mapping(target = "configuration", expression = "java(module.getChanged())")
+//	@Mapping(target = "mainActionId", source = "module.mainAction.id")
+	@Mapping(target = "mainActionId", ignore = true)
+//	@Mapping(target = "configuration", expression = "java(module.getChanged())")
+	@Mapping(target = "configuration", ignore = true)
 	@Mapping(target = "description", source = "status.description")
 	@Mapping(target = "active", source = "status.active")
 	@Mapping(target = "condition", source = "status.condition")
@@ -79,9 +81,9 @@ public interface ModuleMapper {
 	 * @param sharedModulesMap distributed map of registered external modules
 	 * @return external module instance
 	 */
-	@Mapping(ignore = true, target = "mainAction")
-	@Mapping(ignore = true, target = "configuration")
-	@Mapping(ignore = true, target = "changed")
+//	@Mapping(ignore = true, target = "mainAction")
+//	@Mapping(ignore = true, target = "configuration")
+//	@Mapping(ignore = true, target = "changed")
 	ExternalModuleImpl toExternalModule(RemoteModuleDto remoteModule, Map<String, ExternalModule> sharedModulesMap);
 
 	/**
@@ -90,9 +92,8 @@ public interface ModuleMapper {
 	 * @param externalModule local external module
 	 * @param shared external module from distributed map
 	 */
-	@Mapping(ignore = true, target = "metrics")
-	@Mapping(ignore = true, target = "sharedModulesMap")
-	@Mapping(target = "configuration", expression = "java(shared.getConfiguration())")
-	@Mapping(target = "changed", expression = "java(shared.getChanged())")
+//	@Mapping(ignore = true, target = "metrics")
+//	@Mapping(target = "configuration", expression = "java(shared.getConfiguration())")
+//	@Mapping(target = "changed", expression = "java(shared.getChanged())")
 	void copyExternalModule(@MappingTarget ExternalModuleImpl externalModule, ExternalModule shared);
 }

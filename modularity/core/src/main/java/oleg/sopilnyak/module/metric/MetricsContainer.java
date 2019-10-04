@@ -64,4 +64,10 @@ public interface MetricsContainer {
 	 */
 	DurationMetricsContainer duration();
 
+	/**
+	 * To merge content of container with another one
+	 *
+	 * @param metrics other container
+	 */
+	void merge(MetricsContainer metrics);
 }

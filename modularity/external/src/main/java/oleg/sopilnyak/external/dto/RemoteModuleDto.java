@@ -6,6 +6,7 @@ package oleg.sopilnyak.external.dto;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
@@ -18,7 +19,7 @@ import java.util.Map;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class RemoteModuleDto extends ModuleDto {
+public class RemoteModuleDto extends ModuleDto implements ModuleBasics {
 	private boolean active;
 	private ModuleHealthCondition condition;
 
