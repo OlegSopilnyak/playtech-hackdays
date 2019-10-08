@@ -3,6 +3,7 @@
  */
 package oleg.sopilnyak.external.service.impl;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,9 @@ import oleg.sopilnyak.external.dto.ModuleValuesDto;
 import oleg.sopilnyak.external.service.ExternalModule;
 import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
+import org.springframework.util.CollectionUtils;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -21,18 +24,20 @@ import java.util.stream.Stream;
  */
 @Slf4j
 @Data
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = {"facadeImpl"})
 public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	// module values by hosts
 	private Map<String, ModuleValuesDto> moduleValues;
 	private long touched = -1;
-	private String registeredFor;
+	private String registeredIn;
 	//	private ModuleAction mainAction;
 	private boolean active;
 	//	private ModuleHealthCondition condition;
 //	private Map<String, VariableItem> configuration;
 //	private Map<String, VariableItemDto> changed;
 	private MetricContainerDto metricsContainer;
+	@JsonIgnore
+	private transient ModuleSystemFacadeImpl facadeImpl;
 //	private transient Map<String, ExternalModule> sharedModulesMap;
 
 	/**
@@ -80,74 +85,13 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	}
 
 	/**
-	 * After action detected fail
-	 *
-	 * @param exception cause of fail
-	 */
-//	@Override
-//	public void healthGoDown(Throwable exception) {
-//		throw new UnsupportedOperationException("Not supported for external module.");
-//	}
-
-	/**
-	 * To get instance of last thrown exception
-	 *
-	 * @return exception or null if wouldn't
-	 */
-//	@Override
-//	public Throwable lastThrown() {
-//		throw new UnsupportedOperationException("Not supported for external module.");
-//	}
-
-	/**
-	 * After action detected success
-	 */
-//	@Override
-//	public void healthGoUp() {
-//		throw new UnsupportedOperationException("Not supported for external module.");
-//	}
-
-	/**
-	 * To get access to Module's metrics container
-	 *
-	 * @return instance
-	 */
-//	@Override
-//	public MetricsContainer getMetricsContainer() {
-//		return metrics;
-//	}
-
-	/**
-	 * Notification about change configuration
-	 *
-	 * @param changed map with changes
-	 */
-//	@Override
-//	public void configurationChanged(Map<String, VariableItem> changed) {
-////		this.changed = changed;
-//	}
-
-	/**
 	 * To refresh module's state before return from registry
+	 *
+	 * @return true if registered
 	 */
 	@Override
-	public void refreshModuleState() {
-//		if (Objects.isNull(sharedModulesMap)) {
-//			log.debug("Not registered locally module.");
-//			return;
-//		}
-//		final ExternalModule shared;
-//		final String modulePK = this.primaryKey();
-//		if (Objects.nonNull(shared = sharedModulesMap.get(modulePK))) {
-//			log.debug("Copy fresh data from distributed map for '{}'", modulePK);
-//			final ExternalModuleImpl external = this;
-//			ModuleMapper.INSTANCE.copyExternalModule(external, shared);
-//			metrics.setMetrics(shared.metrics());
-//		} else {
-//			log.debug("Module '{}' is not exists in distributed map", modulePK);
-//			active = false;
-//			condition = ModuleHealthCondition.DAMAGED;
-//		}
+	public boolean isModuleRegistered() {
+		return facadeImpl.isModuleRegistered(this);
 	}
 
 	/**
@@ -157,8 +101,19 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	 * @return values or null if not registered
 	 */
 	@Override
-	public ModuleValues getValuesFor(String host) {
+	public ModuleValues valuesFor(String host) {
 		return moduleValues.get(host);
+	}
+
+	/**
+	 * To check is module didn't touched during expired duration
+	 *
+	 * @param moduleExpiredDuration expired duration
+	 * @return true if module didn't touched during expired duration
+	 */
+	@Override
+	public boolean isExpired(long moduleExpiredDuration) {
+		return touched < 0L ? true : touched + moduleExpiredDuration < System.currentTimeMillis();
 	}
 
 	/**
@@ -167,18 +122,28 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	 * @return the amount of registered module's values by hosts
 	 */
 	@Override
-	public int valuesSize() {
-		return moduleValues == null ? 0 : moduleValues.size();
+	public boolean hasValues() {
+		return !CollectionUtils.isEmpty(moduleValues);
 	}
 
 	/**
 	 * To get host for which external module was registered
 	 *
-	 * @param moduleHost module's host
+	 * @param registryHost module's host
 	 */
 	@Override
-	public void registeredFor(String moduleHost) {
-		this.registeredFor = moduleHost;
+	public void registryIn(String registryHost) {
+		this.registeredIn = registryHost;
+	}
+
+	/**
+	 * To get the host where external module is registered for synchronization
+	 *
+	 * @return registry host
+	 */
+	@Override
+	public String registryIn() {
+		return registeredIn;
 	}
 
 	/**
@@ -189,17 +154,23 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	 */
 	@Override
 	public boolean registerValues(ModuleValuesDto values) {
+		assert values != null;
+		if (moduleValues == null) {
+			moduleValues = new LinkedHashMap<>();
+		}
 		return Objects.isNull(moduleValues.putIfAbsent(values.getHost(), values));
 	}
 
-
 	/**
-	 * To merge main configuration with changed
+	 * To un-register values from the module
+	 *
+	 * @param values registered values
+	 * @return true if success
 	 */
-//	@Override
-	public void repairConfiguration() {
-//		configuration = new LinkedHashMap<>(configuration);
-//		configuration.putAll(changed);
-//		changed = Collections.EMPTY_MAP;
+	@Override
+	public boolean unRegisterValues(ModuleValues values) {
+		assert values != null;
+		return Objects.isNull(moduleValues) ? false : Objects.nonNull(moduleValues.remove(values.getHost()));
 	}
+
 }

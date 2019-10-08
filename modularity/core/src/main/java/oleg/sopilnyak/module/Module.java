@@ -84,6 +84,8 @@ public interface Module extends ModuleBasics {
 
 	/**
 	 * To refresh module's state before return from registry
+	 *
+	 * @return true if registered
 	 */
-	default void refreshModuleState(){}
+	boolean isModuleRegistered();
 }

@@ -8,10 +8,26 @@ import oleg.sopilnyak.external.dto.ModuleValuesDto;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.ModuleValues;
 
+import java.io.Serializable;
+
 /**
  * Type - external service's module
  */
-public interface ExternalModule extends Module {
+public interface ExternalModule extends Module, Serializable {
+	/**
+	 * To check is module didn't touched during expired duration
+	 *
+	 * @param moduleExpiredDuration expired duration
+	 * @return true if module didn't touched during expired duration
+	 */
+	boolean isExpired(long moduleExpiredDuration);
+
+	/**
+	 * The check is module has set of values
+	 *
+	 * @return returns true if has
+	 */
+	boolean hasValues();
 
 	/**
 	 * To get values for external host (registered previously)
@@ -19,31 +35,21 @@ public interface ExternalModule extends Module {
 	 * @param host the host where module is working
 	 * @return values or null if not registered
 	 */
-	ModuleValues getValuesFor(String host);
-	/**
-	 * To check is module detached from processing
-	 *
-	 * @return true if external module is detached
-	 */
-	default boolean isDetached() {
-		return !isWorking()
-//				&& getCondition() == ModuleHealthCondition.DAMAGED
-				;
-	}
+	ModuleValues valuesFor(String host);
 
 	/**
-	 * The size of registered values
+	 * To get host where external module is registered for synchronization
 	 *
-	 * @return the amount of registered module's values by hosts
+	 * @param registryHost registry's host
 	 */
-	int valuesSize();
+	void registryIn(String registryHost);
 
 	/**
-	 * To get host for which external module was registered
+	 * To get the host where external module is registered for synchronization
 	 *
-	 * @param moduleHost module's host
+	 * @return registry host
 	 */
-	void registeredFor(String moduleHost);
+	String registryIn();
 
 	/**
 	 * To register module's values for further processing
@@ -52,6 +58,15 @@ public interface ExternalModule extends Module {
 	 * @return true if success
 	 */
 	boolean registerValues(ModuleValuesDto values);
+
+	/**
+	 * To un-register values from the module
+	 *
+	 * @param values registered values
+	 * @return true if success
+	 */
+	boolean unRegisterValues(ModuleValues values);
+
 
 	/**
 	 * To get changed module's configuration

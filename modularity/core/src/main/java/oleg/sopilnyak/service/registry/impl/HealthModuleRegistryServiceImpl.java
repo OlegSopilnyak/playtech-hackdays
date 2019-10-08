@@ -95,8 +95,9 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 	 */
 	@Override
 	public Collection<Module> registered() {
-		return modules.values().stream()
-				.peek(m->m.refreshModuleState())
+		final Collection<Module> registeredModules = new ArrayList<>(modules.values());
+		return registeredModules.stream()
+				.filter(m -> m.isModuleRegistered())
 				.collect(Collectors.toCollection(LinkedList::new));
 	}
 

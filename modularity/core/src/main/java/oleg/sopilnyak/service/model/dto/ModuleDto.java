@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import oleg.sopilnyak.module.ModuleBasics;
 
+import java.io.Serializable;
 import java.util.StringTokenizer;
 
 /**
@@ -18,7 +19,7 @@ import java.util.StringTokenizer;
 @EqualsAndHashCode
 @NoArgsConstructor
 @ToString
-public class ModuleDto implements ModuleBasics {
+public class ModuleDto implements ModuleBasics, Serializable {
 	private String systemId;
 	private String moduleId;
 	private String versionId;
