@@ -58,6 +58,7 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	public void moduleStop() {
 		if (active) {
 			active = false;
+			registeredIn = null;
 			log.debug("Stopping module '{}'", primaryKey());
 		}
 	}
@@ -172,4 +173,11 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 		return Objects.isNull(moduleValues) ? false : Objects.nonNull(moduleValues.remove(values.getHost()));
 	}
 
+	// private methods
+	void clearValues() {
+		if (moduleValues == null) {
+			moduleValues = new LinkedHashMap<>();
+		}
+		moduleValues.clear();
+	}
 }
