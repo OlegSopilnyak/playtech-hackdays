@@ -145,6 +145,7 @@ public class HealthModuleRegistryServiceImplTest {
 	@Test
 	public void testRegistered() {
 		service.add(module);
+		when(module.isModuleRegistered()).thenReturn(true);
 
 		List<Module> modules = new ArrayList<>(service.registered());
 		assertTrue(modules.contains(module));

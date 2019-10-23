@@ -6,9 +6,7 @@ package oleg.sopilnyak.external.controller;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.external.dto.GeneralModuleStateDto;
 import oleg.sopilnyak.external.dto.ModuleStatusDto;
-import oleg.sopilnyak.external.dto.RemoteModuleDto;
 import oleg.sopilnyak.external.service.ExternalModule;
-import oleg.sopilnyak.external.service.impl.ExternalModuleImpl;
 import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
@@ -47,16 +45,20 @@ public interface ModuleMapper {
 	 * @param module module instance
 	 * @return trivial module status
 	 */
+	@Mapping(target = "active", ignore = true)
+	@Mapping(target = "condition", ignore = true)
 	@Mapping(target = "modulePK", expression = "java(module.primaryKey())" )
 	ModuleStatusDto toStatusDto(ExternalModule module);
 
 	/**
-	 * Copy status of module to dto-object
+	 * Copy status of values to dto-object
 	 *
 	 * @param dto dto-object of status
-	 * @param module module-values
+	 * @param values values-values
 	 */
-	void copyModuleStatus(@MappingTarget ModuleStatusDto dto, ModuleValues module);
+	@Mapping(target = "modulePK", ignore = true)
+	@Mapping(target = "description", ignore = true)
+	void copyModuleStatus(@MappingTarget ModuleStatusDto dto, ModuleValues values);
 
 	/**
 	 * To create full information module's status DTO
@@ -65,35 +67,12 @@ public interface ModuleMapper {
 	 * @param module external module instance
 	 * @return instance of full module state DTO
 	 */
-//	@Mapping(target = "mainActionId", source = "module.mainAction.id")
 	@Mapping(target = "mainActionId", ignore = true)
-//	@Mapping(target = "configuration", expression = "java(module.getChanged())")
 	@Mapping(target = "configuration", ignore = true)
 	@Mapping(target = "description", source = "status.description")
 	@Mapping(target = "active", source = "status.active")
 	@Mapping(target = "condition", source = "status.condition")
 	GeneralModuleStateDto toGeneralStateDto(ModuleStatusDto status, ExternalModule module);
 
-	/**
-	 * Make external module by request
-	 *
-	 * @param remoteModule request to register remote module
-	 * @param sharedModulesMap distributed map of registered external modules
-	 * @return external module instance
-	 */
-//	@Mapping(ignore = true, target = "mainAction")
-//	@Mapping(ignore = true, target = "configuration")
-//	@Mapping(ignore = true, target = "changed")
-	ExternalModuleImpl toExternalModule(RemoteModuleDto remoteModule, Map<String, ExternalModule> sharedModulesMap);
 
-	/**
-	 * To copy parameters from distributed map to local module
-	 *
-	 * @param externalModule local external module
-	 * @param shared external module from distributed map
-	 */
-//	@Mapping(ignore = true, target = "metrics")
-//	@Mapping(target = "configuration", expression = "java(shared.getConfiguration())")
-//	@Mapping(target = "changed", expression = "java(shared.getChanged())")
-	void copyExternalModule(@MappingTarget ExternalModuleImpl externalModule, ExternalModule shared);
 }

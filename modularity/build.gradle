@@ -20,10 +20,9 @@ allprojects {
         annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.+'
 
         implementation group :'org.mapstruct', name: 'mapstruct', version:'1.+'
-        compile group: 'org.mapstruct', name: 'mapstruct-jdk8', version: '1.+'
+        compileOnly group: 'org.mapstruct', name: 'mapstruct-jdk8', version: '1.+'
         compileOnly group:'org.mapstruct', name: 'mapstruct-processor', version: '1.+'
         annotationProcessor group:'org.mapstruct', name: 'mapstruct-processor', version: '1.+'
-        testAnnotationProcessor group:'org.mapstruct', name: 'mapstruct-processor', version: '1.+'
 
         compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.+'
         compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
@@ -31,6 +30,8 @@ allprojects {
 
         testCompileOnly group: 'org.projectlombok', name: 'lombok', version: '1.+'
         testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.+'
+
+        testAnnotationProcessor group:'org.mapstruct', name: 'mapstruct-processor', version: '1.+'
         
         testCompile group: 'org.springframework', name: 'spring-test', version: '5.+'
         testCompile group: 'org.mockito', name: 'mockito-all', version: '1.+'

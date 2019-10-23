@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * @see ModuleSystemFacade
  */
 @Slf4j
-public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
+public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModuleChecker {
 	@Autowired
 	ModuleCommandFactory commandFactory;
 	@Autowired
@@ -187,21 +187,24 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 
 
 	/**
-	 * To check is module registered correctly
+	 * To check is external-module registered well
 	 *
-	 * @param external module to check
-	 * @return true if registered correctly
+	 * @param module module to check
+	 * @return true if registered well
+	 * @see ExternalModuleChecker##isValidModule(ExternalModule module)
 	 */
-	boolean isModuleRegistered(final ExternalModule external) {
-		if (Objects.isNull(registry.getRegistered(external.primaryKey()))) {
+	@Override
+	public boolean isValidModule(final ExternalModule module) {
+		final String modulePK = module.primaryKey();
+		if (Objects.isNull(registry.getRegistered(modulePK))) {
+			log.debug("Module '{}' is not registered here.", modulePK);
 			return false;
-		} else if (!actionStorage.getHostName().equals(external.registryIn())) {
-			log.debug("Module '{}' registered in another host, unregister from here.");
-			registry.remove(external);
+		} else if (!actionStorage.getHostName().equals(module.registryIn())) {
+			log.debug("Module '{}' registered in another host, will unregister from here.", modulePK);
+			registry.remove(module);
 			return false;
-		} else {
-			return true;
 		}
+		return true;
 	}
 
 	// private methods
@@ -273,7 +276,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade {
 	void registerModule(ExternalModuleImpl module) {
 		log.debug("Registering external module '{}'", module.primaryKey());
 		module.registryIn(actionStorage.getHostName());
-		module.setFacadeImpl(this);
+		module.setModuleChecker(this);
 		module.moduleStart();
 		registry.add(module);
 	}

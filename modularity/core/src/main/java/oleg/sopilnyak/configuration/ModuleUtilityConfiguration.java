@@ -48,22 +48,25 @@ public class ModuleUtilityConfiguration {
 	 * @return singleton
 	 */
 	@Bean
-	public UniqueIdGenerator getUniqueIdGenerator(){
+	public UniqueIdGenerator getUniqueIdGenerator() {
 		return new UniqueIdGeneratorImpl();
 	}
 
 	/**
-	 * Service: to transform data to JSON
+	 * Service: to transform data to JSON and back
 	 *
 	 * @return singleton
 	 */
 	@Bean
-	public ObjectMapper getObjectMapper(){
+	public ObjectMapper getObjectMapper() {
+		final String propertyName = "$type";
+		final ObjectMapper.DefaultTyping applicability = ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE;
+
 		final ObjectMapper mapper = new ObjectMapper()
 				.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-				.enableDefaultTypingAsProperty(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE, "$type")
-		;
-		VisibilityChecker checker = mapper.getSerializationConfig()
+//				.activateDefaultTypingAsProperty(NoCheckSubTypeValidator.instance, applicability, propertyName)
+				.enableDefaultTypingAsProperty(applicability, propertyName);
+		final VisibilityChecker checker = mapper.getSerializationConfig()
 				.getDefaultVisibilityChecker()
 				.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
 				.withCreatorVisibility(JsonAutoDetect.Visibility.NONE)
@@ -75,26 +78,27 @@ public class ModuleUtilityConfiguration {
 
 	/**
 	 * Service: thread pool with possibility to schedule execution
-	 * @see ScheduledExecutorService
 	 *
 	 * @return singleton
+	 * @see ScheduledExecutorService
 	 */
 	@Bean
-	public ScheduledExecutorService getScheduledExecutorService(){
+	public ScheduledExecutorService getScheduledExecutorService() {
 		final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2);
 		executor.setMaximumPoolSize(MAXIMUM_POOL_SIZE);
 		return executor;
 	}
 
 	@Bean
-	@Scope( ConfigurableBeanFactory.SCOPE_PROTOTYPE )
-	public Layout<ILoggingEvent> getLayout(){
+	@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+	public Layout<ILoggingEvent> getLayout() {
 		PatternLayout layout = new PatternLayout();
 		layout.setPattern("[%thread] %-5level %logger{50} - %msg%n");
 		return layout;
 	}
+
 	// inner classes
-	private static class TimeServiceImpl implements TimeService{
+	private static class TimeServiceImpl implements TimeService {
 		/**
 		 * To get current date-time
 		 *
@@ -116,7 +120,8 @@ public class ModuleUtilityConfiguration {
 			return Objects.isNull(start) ? -1L : Duration.between(start, now()).toMillis();
 		}
 	}
-	private static class UniqueIdGeneratorImpl implements UniqueIdGenerator{
+
+	private static class UniqueIdGeneratorImpl implements UniqueIdGenerator {
 
 		/**
 		 * To generate unique id

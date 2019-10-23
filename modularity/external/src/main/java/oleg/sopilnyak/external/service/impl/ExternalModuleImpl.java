@@ -24,21 +24,20 @@ import java.util.stream.Stream;
  */
 @Slf4j
 @Data
-@EqualsAndHashCode(callSuper = true, exclude = {"facadeImpl"})
+@EqualsAndHashCode(callSuper = true, exclude = {"moduleChecker"})
 public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	// module values by hosts
 	private Map<String, ModuleValuesDto> moduleValues;
+	// last touched time
 	private long touched = -1;
+	// host where module is registered
 	private String registeredIn;
-	//	private ModuleAction mainAction;
+	// flag is module started
 	private boolean active;
-	//	private ModuleHealthCondition condition;
-//	private Map<String, VariableItem> configuration;
-//	private Map<String, VariableItemDto> changed;
+	// common module's metrics container for all hosts
 	private MetricContainerDto metricsContainer;
 	@JsonIgnore
-	private transient ModuleSystemFacadeImpl facadeImpl;
-//	private transient Map<String, ExternalModule> sharedModulesMap;
+	private transient ExternalModuleChecker moduleChecker;
 
 	/**
 	 * To start module activity
@@ -91,7 +90,7 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	 */
 	@Override
 	public boolean isModuleRegistered() {
-		return facadeImpl.isModuleRegistered(this);
+		return Objects.isNull(moduleChecker) ? false : moduleChecker.isValidModule(this);
 	}
 
 	/**
