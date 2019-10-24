@@ -11,6 +11,7 @@ import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
 import oleg.sopilnyak.external.controller.ModuleMapper;
 import oleg.sopilnyak.external.dto.*;
 import oleg.sopilnyak.external.exception.ModuleNotFoundException;
+import oleg.sopilnyak.external.service.DistributedExternalModulesFactory;
 import oleg.sopilnyak.external.service.ExternalModule;
 import oleg.sopilnyak.external.service.ModuleSystemFacade;
 import oleg.sopilnyak.module.Module;
@@ -22,11 +23,12 @@ import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.model.dto.ModuleDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -47,10 +49,8 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 	@Autowired
 	ModuleConfigurationStorage configurationStorage;
 
-	// distributed map of registered external modules
 	@Autowired
-	@Qualifier("registered-modules-map")
-	Map<String, ExternalModuleImpl> sharedRegisteredModulesMap;
+	DistributedExternalModulesFactory distributedModules;
 
 	// duration for detect detaching of external module
 	long moduleExpiredDuration = TimeUnit.MINUTES.toMillis(10);
@@ -118,21 +118,21 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		log.debug("Try to register external module '{}' for host '{}'", modulePK, moduleHost);
 
 		log.debug("GetOrCreate external module '{}' for host '{}'", modulePK, moduleHost);
-		final ExternalModuleImpl external = getOrCreateExternalModule(remoteModule);
+		final ExternalModuleImpl module = getOrCreateExternalModule(remoteModule);
 
 		log.debug("Making values of module '{}' for host '{}'", modulePK, moduleHost);
 		final ModuleValuesDto values = createModuleValues(remoteModule, moduleHost);
-		if (external.registerValues(values)) {
+		if (module.registerValues(values)) {
 			log.debug("Registering values of module '{}' for host '{}'", modulePK, moduleHost);
 
 			log.debug("Creating MainAction for module");
-			values.setMainAction(actionStorage.createActionFor(external));
+			values.setMainAction(actionStorage.createActionFor(module));
 
 			log.debug("Merging metrics...");
-			external.getMetricsContainer().merge(remoteModule.getMetrics());
+			module.getMetricsContainer().merge(remoteModule.getMetrics());
 
-			log.debug("Updating distributed external-modules map.");
-			sharedRegisteredModulesMap.put(modulePK, external);
+			log.debug("Updating distributed external-modules factory.");
+			distributedModules.updateModule(module);
 			ModuleMapper.INSTANCE.copyModuleStatus(moduleStatus, values);
 		}
 		return moduleStatus;
@@ -151,7 +151,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		final ModuleStatusDto moduleStatus = wrongModuleStatus(remoteModule);
 		log.debug("Un-Registering '{}' for host '{}'", modulePK, moduleHost);
 
-		final ExternalModuleImpl external = sharedRegisteredModulesMap.get(modulePK);
+		final ExternalModuleImpl external = distributedModules.retrieveModule(modulePK);
 		if (Objects.nonNull(external)) {
 			unRegisterExistingExternalModule(moduleHost, modulePK, moduleStatus, external);
 		} else {
@@ -170,19 +170,18 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 	@Override
 	public GeneralModuleStateDto status(ExternalModuleStateDto externalState, String moduleHost) {
 		final String modulePK = externalState.getModulePK();
-		final ExternalModuleImpl external = sharedRegisteredModulesMap.get(modulePK);
-		if (Objects.isNull(external)) {
+		final ExternalModuleImpl module = distributedModules.retrieveModule(modulePK);
+		if (Objects.isNull(module)) {
 			log.debug("External module '{}' is not found.", modulePK);
 			throw new ModuleNotFoundException(modulePK);
 		}
 		final boolean isInRegistry = Objects.nonNull(registry.getRegistered(modulePK));
-		if (!external.hasValues()) {
-			return moduleHasNoValues(modulePK, external, isInRegistry);
+		if (!module.hasValues()) {
+			return moduleHasNoValues(modulePK, module, isInRegistry);
 		} else {
-			testingModuleState(modulePK, external, isInRegistry);
+			testingModuleState(modulePK, module, isInRegistry);
 		}
-
-		return makeExternalModuleGeneralStatus(moduleHost, modulePK, external);
+		return makeExternalModuleGeneralStatus(moduleHost, modulePK, module);
 	}
 
 
@@ -213,14 +212,14 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		final ModuleValues values = external.valuesFor(moduleHost);
 		if (Objects.nonNull(values)) {
 			external.unRegisterValues(values);
-			sharedRegisteredModulesMap.put(modulePK, external);
+			distributedModules.updateModule(external);
 			ModuleMapper.INSTANCE.copyModuleStatus(moduleStatus, values);
 		} else {
 			log.warn("No registered values of module '{}' for host '{}'", modulePK, moduleHost);
 		}
 		if (!external.hasValues() && Objects.nonNull(registry.getRegistered(modulePK))) {
 			registry.remove(external);
-			sharedRegisteredModulesMap.remove(modulePK);
+			distributedModules.removeModule(external);
 			log.debug("Module '{}' un-registered for all hosts completely.", modulePK);
 		}
 	}
@@ -237,32 +236,31 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 
 		log.debug("Processing configuration for host '{}'", moduleHost);
 		values.repairConfiguration();
-		sharedRegisteredModulesMap.put(modulePK, external);
+		distributedModules.updateModule(external);
 		return generalStatus;
 	}
 
-	void testingModuleState(String modulePK, ExternalModuleImpl external, boolean isInRegistry) {
+	void testingModuleState(String modulePK, ExternalModuleImpl module, boolean isInRegistry) {
 		log.debug("Testing the state of external module '{}'", modulePK);
-		final String registeredIn = external.registryIn();
+		final String registeredIn = module.registryIn();
 		if (isInRegistry) {
 			if (!actionStorage.getHostName().equals(registeredIn)) {
 				log.debug("Module '{}' registered in another host, unregister from here.");
-				registry.remove(external);
+				registry.remove(module);
 			}
 		} else {
 			log.debug("Checking module touch timeout");
-			if (external.isExpired(moduleExpiredDuration)) {
+			if (module.isExpired(moduleExpiredDuration)) {
 				log.debug("Register module here.");
-				external.moduleStop();
-				registerModule(external);
-				sharedRegisteredModulesMap.put(modulePK, external);
+				module.moduleStop();
+				distributedModules.updateModule(registeredModule(module));
 			}
 		}
 	}
 
 	GeneralModuleStateDto moduleHasNoValues(String modulePK, ExternalModuleImpl external, boolean isInRegistry) {
 		log.debug("External module '{}' hasn't values at all", modulePK);
-		sharedRegisteredModulesMap.remove(modulePK);
+		distributedModules.removeModule(external);
 		if (isInRegistry) {
 			registry.remove(external);
 			log.debug("Module '{}' un-registered for all hosts completely.", modulePK);
@@ -273,12 +271,13 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		}
 	}
 
-	void registerModule(ExternalModuleImpl module) {
+	ExternalModuleImpl registeredModule(ExternalModuleImpl module) {
 		log.debug("Registering external module '{}'", module.primaryKey());
 		module.registryIn(actionStorage.getHostName());
 		module.setModuleChecker(this);
 		module.moduleStart();
 		registry.add(module);
+		return module;
 	}
 
 	ExternalModuleImpl getOrCreateExternalModule(final ModuleBasics remote) {
@@ -286,23 +285,8 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		if (registered instanceof ExternalModuleImpl) {
 			return (ExternalModuleImpl) registered;
 		}
-		final Function<String, ExternalModuleImpl> createModuleFunction = (pk) -> createExternalModule(remote);
-		final ExternalModuleImpl external = sharedRegisteredModulesMap.computeIfAbsent(remote.primaryKey(), createModuleFunction);
-		if (!external.hasValues()) {
-			registerModule(external);
-		}
-		return external;
-	}
-
-	ExternalModuleImpl createExternalModule(ModuleBasics m) {
-		final ExternalModuleImpl module = new ExternalModuleImpl();
-		module.setSystemId(m.getSystemId());
-		module.setModuleId(m.getModuleId());
-		module.setVersionId(m.getVersionId());
-		module.setDescription(m.getDescription());
-		module.setModuleValues(new LinkedHashMap<>());
-		module.setMetricsContainer(new MetricContainerDto());
-		return module;
+		final ExternalModuleImpl external = distributedModules.retrieveModuleBy(remote);
+		return external.hasValues() ? external : registeredModule(external);
 	}
 
 	ModuleValuesDto createModuleValues(RemoteModuleDto remoteModule, String moduleHost) {
