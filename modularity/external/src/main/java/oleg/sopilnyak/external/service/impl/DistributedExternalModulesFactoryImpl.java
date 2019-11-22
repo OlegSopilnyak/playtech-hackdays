@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Realization of distributed external modules factory
@@ -23,6 +24,16 @@ public class DistributedExternalModulesFactoryImpl implements DistributedExterna
 	@Autowired
 	@Qualifier("registered-modules-map")
 	Map<String, ExternalModuleImpl> sharedRegisteredModulesMap;
+
+	/**
+	 * To get stream of registered external modules
+	 *
+	 * @return stream of modulePKs
+	 */
+	@Override
+	public Stream<String> registeredModules() {
+		return sharedRegisteredModulesMap.keySet().stream();
+	}
 
 	/**
 	 * To update external module in factory

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Facade: working with remote (external) modules realization
@@ -65,7 +66,9 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		final CommandResult result = commandFactory.create(ModuleCommandType.LIST).execute();
 		final List<ModuleInfoAdapter> modules = (List<ModuleInfoAdapter>) result.getData();
 		log.debug("Collected {} registered modules.", modules.size());
-		return modules.stream().map(mi -> mi.getModulePK()).collect(Collectors.toList());
+		return Stream.concat(
+				modules.stream().map(mi -> mi.getModulePK()), distributedModules.registeredModules()
+		).collect(Collectors.toList());
 	}
 
 	/**
@@ -76,7 +79,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 	 */
 	@Override
 	public ModuleStatusDto moduleStatus(String modulePK) {
-		final ModuleInfoAdapter moduleInfo = executeSingModuleCommand(ModuleCommandType.STATUS, modulePK);
+		final ModuleInfoAdapter moduleInfo = executeSingleModuleCommand(ModuleCommandType.STATUS, modulePK);
 		return ModuleMapper.INSTANCE.toStatusDto(moduleInfo);
 	}
 
@@ -88,7 +91,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 	 */
 	@Override
 	public ModuleStatusDto moduleStart(String modulePK) {
-		final ModuleInfoAdapter moduleInfo = executeSingModuleCommand(ModuleCommandType.START, modulePK);
+		final ModuleInfoAdapter moduleInfo = executeSingleModuleCommand(ModuleCommandType.START, modulePK);
 		return ModuleMapper.INSTANCE.toStatusDto(moduleInfo);
 	}
 
@@ -100,7 +103,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 	 */
 	@Override
 	public ModuleStatusDto moduleStop(String modulePK) {
-		final ModuleInfoAdapter moduleInfo = executeSingModuleCommand(ModuleCommandType.STOP, modulePK);
+		final ModuleInfoAdapter moduleInfo = executeSingleModuleCommand(ModuleCommandType.STOP, modulePK);
 		return ModuleMapper.INSTANCE.toStatusDto(moduleInfo);
 	}
 
@@ -307,7 +310,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		return result;
 	}
 
-	ModuleInfoAdapter executeSingModuleCommand(ModuleCommandType command, String modulePK) {
+	ModuleInfoAdapter executeSingleModuleCommand(ModuleCommandType command, String modulePK) {
 		log.debug("Executing module-command '{}' for '{}'", command, modulePK);
 		final CommandResult result = commandFactory.create(command).execute(modulePK);
 		final List<ModuleInfoAdapter> modules = (List<ModuleInfoAdapter>) result.getData();

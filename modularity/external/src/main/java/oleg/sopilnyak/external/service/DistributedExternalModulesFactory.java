@@ -7,12 +7,21 @@ import oleg.sopilnyak.external.service.impl.ExternalModuleImpl;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.ModuleBasics;
 
+import java.util.stream.Stream;
+
 /**
  * The factory of distributed external modules
  *
  * @see ExternalModule
  */
 public interface DistributedExternalModulesFactory {
+	/**
+	 * To get stream of registered external modules
+	 *
+	 * @return stream of modulePKs
+	 */
+	Stream<String> registeredModules();
+
 	/**
 	 * To update external module in factory
 	 *
