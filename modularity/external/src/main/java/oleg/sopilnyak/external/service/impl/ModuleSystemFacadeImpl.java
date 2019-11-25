@@ -67,7 +67,8 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		final List<ModuleInfoAdapter> modules = (List<ModuleInfoAdapter>) result.getData();
 		log.debug("Collected {} registered modules.", modules.size());
 		return Stream.concat(
-				modules.stream().map(mi -> mi.getModulePK()), distributedModules.registeredModules()
+				modules.stream().map(mi -> mi.getModulePK()),
+				distributedModules.registeredModules().map(pk -> "ext::" + pk)
 		).collect(Collectors.toList());
 	}
 
