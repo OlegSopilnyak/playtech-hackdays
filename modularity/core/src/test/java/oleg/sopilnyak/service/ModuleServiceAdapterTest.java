@@ -80,7 +80,7 @@ public class ModuleServiceAdapterTest {
 		verify(service, times(1)).initAsService();
 		verify(service, times(2)).healthGoUp();
 		verify(service, atLeast(11)).primaryKey();
-		verify(service, times(11)).getMetricsContainer();
+		verify(service, atLeast(11)).getMetricsContainer();
 
 		assertTrue(service.isWorking());
 		assertEquals(service, registry.getRegistered(service));
