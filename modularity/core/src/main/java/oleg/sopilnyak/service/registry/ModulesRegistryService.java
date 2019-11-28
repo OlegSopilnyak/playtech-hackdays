@@ -12,33 +12,6 @@ import java.util.Collection;
  * Service to register-unregister modules, scan registry of module
  */
 public interface ModulesRegistryService extends Module {
-	// The name of properties package
-	String PACKAGE = "module.service.heartbeat";
-	// HeartBeat delay for Modules Registry
-	String DELAY_NAME = "delay";
-	int DELAY_DEFAULT = 2000;
-	// modules which will ignored during scan
-	String IGNORE_MODULE_NAME = "ignoreModule";
-	String IGNORE_MODULE_DEFAULT = "";
-
-	/**
-	 * Make canonical name of delay property
-	 *
-	 * @return full name
-	 */
-	default String delayName() {
-		return PACKAGE + "." + DELAY_NAME;
-	}
-
-	/**
-	 * Make canonical name of ignoreModules property
-	 *
-	 * @return full name
-	 */
-	default String ignoreModulesName() {
-		return PACKAGE + "." + IGNORE_MODULE_NAME;
-	}
-
 	/**
 	 * To get the value of module's system
 	 *
@@ -80,11 +53,11 @@ public interface ModulesRegistryService extends Module {
 	}
 
 	/**
-	 * To add module to registry
+	 * To register module into registry
 	 *
 	 * @param module to add
 	 */
-	void add(Module module);
+	void register(Module module);
 
 	/**
 	 * To remove module from registry

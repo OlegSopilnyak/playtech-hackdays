@@ -41,13 +41,12 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
-import static oleg.sopilnyak.service.registry.ModulesRegistryService.*;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HealthModuleRegistryServiceImplTest {
+public class ModuleRegistryServiceImplTest {
 
 	@Mock
 	private Module module;
@@ -74,7 +73,7 @@ public class HealthModuleRegistryServiceImplTest {
 	@Mock
 	private ModuleMetricStorage metricStorage;
 	@InjectMocks
-	private HealthModuleRegistryServiceImpl service = new HealthModuleRegistryServiceImpl();
+	private ModuleRegistryServiceImpl service = new ModuleRegistryServiceImpl();
 
 	@Before
 	public void setUp() {
@@ -105,7 +104,7 @@ public class HealthModuleRegistryServiceImplTest {
 
 	@Test
 	public void testAdd() {
-		service.add(module);
+		service.register(module);
 
 		Map<String, Module> modules = (Map<String, Module>) ReflectionTestUtils.getField(service, "modules");
 		assertEquals(module, modules.get(module.primaryKey()));
@@ -114,13 +113,13 @@ public class HealthModuleRegistryServiceImplTest {
 
 	@Test(expected = AssertionError.class)
 	public void testAddFail() {
-		service.add(null);
+		service.register(null);
 		fail("Here I'm waiting for an exception.");
 	}
 
 	@Test
 	public void testRemove() {
-		service.add(module);
+		service.register(module);
 
 		Map<String, Module> modules = (Map<String, Module>) ReflectionTestUtils.getField(service, "modules");
 		assertEquals(module, modules.get(module.primaryKey()));
@@ -133,7 +132,7 @@ public class HealthModuleRegistryServiceImplTest {
 
 	@Test(expected = AssertionError.class)
 	public void testRemoveFail() {
-		service.add(module);
+		service.register(module);
 
 		Map<String, Module> modules = (Map<String, Module>) ReflectionTestUtils.getField(service, "modules");
 		assertEquals(module, modules.get(module.primaryKey()));
@@ -144,7 +143,7 @@ public class HealthModuleRegistryServiceImplTest {
 
 	@Test
 	public void testRegistered() {
-		service.add(module);
+		service.register(module);
 		when(module.isModuleRegistered()).thenReturn(true);
 
 		List<Module> modules = new ArrayList<>(service.registered());
@@ -155,7 +154,7 @@ public class HealthModuleRegistryServiceImplTest {
 	public void testGetRegistered() {
 		assertNull(service.getRegistered(module));
 
-		service.add(module);
+		service.register(module);
 		assertEquals(module, service.getRegistered(module));
 	}
 
@@ -168,7 +167,7 @@ public class HealthModuleRegistryServiceImplTest {
 	@Test
 	public void testGetRegisteredPK() {
 		assertNull(service.getRegistered(module.primaryKey()));
-		service.add(module);
+		service.register(module);
 
 		assertEquals(module, service.getRegistered(module.primaryKey()));
 		assertNull(service.getRegistered((String) null));

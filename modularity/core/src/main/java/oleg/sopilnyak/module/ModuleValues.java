@@ -6,24 +6,13 @@ package oleg.sopilnyak.module;
 import oleg.sopilnyak.module.model.ModuleAction;
 
 /**
- * Type with values of the module
+ * Type - the values of the module (health & configuration) many to one relation to module
+ *
+ * @see oleg.sopilnyak.module.ModuleConfigurable
+ * @see oleg.sopilnyak.module.ModuleHealth.Control
+ * @see oleg.sopilnyak.module.ModuleHealth.State
  */
-public interface ModuleValues extends ModuleHealth, ModuleConfigurable {
-
-	/**
-	 * To check is module active (is working)
-	 *
-	 * @return true if module is working
-	 */
-	boolean isActive();
-
-	/**
-	 * To get the host where module is working
-	 *
-	 * @return the value
-	 */
-	String getHost();
-
+public interface ModuleValues extends ModuleHealth.Control, ModuleHealth.State, ModuleConfigurable {
 	/**
 	 * To get reference to main action of module
 	 *

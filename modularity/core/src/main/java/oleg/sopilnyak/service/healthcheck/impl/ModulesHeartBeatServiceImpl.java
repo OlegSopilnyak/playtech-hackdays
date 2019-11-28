@@ -1,52 +1,47 @@
 /*
- * Copyright (C) Oleg Sopilnyak 2018
+ * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.registry.impl;
+package oleg.sopilnyak.service.healthcheck.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
-import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
 import oleg.sopilnyak.service.RegistryModulesIteratorAdapter;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
+import oleg.sopilnyak.service.healthcheck.ModulesHeartBeatService;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
-import oleg.sopilnyak.service.registry.ModulesRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Service for register modules and check their registry condition
+ * Service - realization of module's health check
  */
 @Slf4j
-public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdapter implements ModulesRegistryService {
+public class ModulesHeartBeatServiceImpl extends RegistryModulesIteratorAdapter implements ModulesHeartBeatService {
 	private static final String ACTIVITY_LABEL = "HealthCheck";
 	// future of scheduled activities
 	private volatile ScheduledFuture runnerFuture;
 	private volatile long delay = DELAY_DEFAULT;
 	private volatile String[] ignoredModules = IGNORE_MODULE_DEFAULT.split(",");
-	// the map of registered modules
-	private final Map<String, Module> modules = new ConcurrentHashMap<>();
 
 	@Autowired
 	private ModuleMetricStorage metricStorage;
 	@Autowired
 	private ModuleActionStorage actionStorage;
 
-	public HealthModuleRegistryServiceImpl() {
-		super.registry = this;
-
+	public ModulesHeartBeatServiceImpl() {
+		log.debug("Making module's configuration.");
 		final VariableItem delayVariable = new VariableItemDto(DELAY_NAME, DELAY_DEFAULT);
 		final VariableItem ignoreModulesVariable = new VariableItemDto(IGNORE_MODULE_NAME, IGNORE_MODULE_DEFAULT);
 
@@ -55,73 +50,32 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 	}
 
 	/**
-	 * To add module to registry
+	 * To inspect one module in context of action
 	 *
-	 * @param module to add
+	 * @param label  label of module's processing
+	 * @param action action owner of inspection
+	 * @param module module to be inspected
 	 */
 	@Override
-	public void add(final Module module) {
-		assert module != null;
-		if (module != this) {
-			// activate main module action
-			activateMainModuleAction();
-
-			log.debug("Registering '{}'", module.primaryKey());
-			modules.putIfAbsent(module.primaryKey(), module);
+	protected void inspectModule(String label, ModuleAction action, Module module) {
+		final Instant mark = timeService.now();
+		final String modulePK = module.primaryKey();
+		if (Stream.of(ignoredModules).anyMatch(ignorance -> !StringUtils.isEmpty(ignorance) && modulePK.startsWith(ignorance))) {
+			log.debug("Module '{}' is ignored for inspection.", modulePK);
+			return;
 		}
-	}
+		log.info("Scan module '{}'", modulePK);
+		// get health state of module
+		module.getMetricsContainer().health().heartBeat(action, module);
+		// collect and save all metrics of module
+		AtomicInteger counter = new AtomicInteger(1);
+		module.metrics().stream()
+				.peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.getName()))
+				.filter(metric -> this.isWorking())
+				.forEach(this::storeMetric);
 
-	/**
-	 * To remove module from registry
-	 *
-	 * @param module to remove
-	 */
-	@Override
-	public void remove(final Module module) {
-		assert module != null;
-		if (module != this) {
-			// activate main module action
-			activateMainModuleAction();
-
-			log.debug("Unregistering '{}'", module.primaryKey());
-			modules.remove(module.primaryKey());
-		}
-	}
-
-	/**
-	 * To get collection of registered modules
-	 *
-	 * @return collection of registered modules
-	 */
-	@Override
-	public Collection<Module> registered() {
-		final Collection<Module> registeredModules = new ArrayList<>(modules.values());
-		return registeredModules.stream()
-				.filter(m -> m.isModuleRegistered())
-				.collect(Collectors.toCollection(LinkedList::new));
-	}
-
-	/**
-	 * To get registered module by module's primary key
-	 *
-	 * @param modulePK primary key
-	 * @return module or null if not registered
-	 */
-	@Override
-	public Module getRegistered(String modulePK) {
-		return StringUtils.isEmpty(modulePK) ? null : modules.get(modulePK);
-	}
-
-	/**
-	 * To get registered module by module instance
-	 *
-	 * @param module module instance
-	 * @return module or null if not registered
-	 */
-	@Override
-	public Module getRegistered(ModuleBasics module) {
-		assert module != null : "Module couldn't be null";
-		return getRegistered(module.primaryKey());
+		// save metric about module health check duration
+		getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
 	}
 
 	/**
@@ -131,10 +85,6 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 	protected void initAsService() {
 		if (log.isDebugEnabled()) {
 			log.debug("Initiating service...");
-		}
-		final Module previous = modules.putIfAbsent(this.primaryKey(), this);
-		if (log.isDebugEnabled()) {
-			log.debug("Registered '{}' is '{}'", this.primaryKey(), Objects.isNull(previous));
 		}
 		runnerFuture = activityRunner.schedule(this::scanModulesHealth, 500, TimeUnit.MILLISECONDS);
 	}
@@ -149,8 +99,6 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 			runnerFuture.cancel(true);
 			runnerFuture = null;
 		}
-		log.debug("Unregistering module '{}'", this.primaryKey());
-		modules.remove(this.primaryKey());
 	}
 
 	/**
@@ -182,35 +130,6 @@ public class HealthModuleRegistryServiceImpl extends RegistryModulesIteratorAdap
 		}
 		return false;
 	}
-
-	/**
-	 * To inspect one module in context of action
-	 *
-	 * @param label  label of module's processing
-	 * @param action action owner of inspection
-	 * @param module module to be inspected
-	 */
-	protected void inspectModule(String label, ModuleAction action, Module module) {
-		final Instant mark = timeService.now();
-		final String modulePK = module.primaryKey();
-		if (Stream.of(ignoredModules).anyMatch(ignorance -> !StringUtils.isEmpty(ignorance) && modulePK.startsWith(ignorance))) {
-			log.debug("Module '{}' is ignored for inspection.", modulePK);
-			return;
-		}
-		log.info("Scan module '{}'", modulePK);
-		// get health state of module
-		module.getMetricsContainer().health().heartBeat(action, module);
-		// collect and save all metrics of module
-		AtomicInteger counter = new AtomicInteger(1);
-		module.metrics().stream()
-				.peek(metric -> log.debug("{}. metric '{}' processing", counter.getAndIncrement(), metric.getName()))
-				.filter(metric -> this.isWorking())
-				.forEach(this::storeMetric);
-
-		// save metric about module health check duration
-		getMetricsContainer().duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
-	}
-
 
 	// private methods
 

@@ -280,7 +280,7 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 		module.registryIn(actionStorage.getHostName());
 		module.setModuleChecker(this);
 		module.moduleStart();
-		registry.add(module);
+		registry.register(module);
 		return module;
 	}
 

@@ -13,6 +13,7 @@ import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
@@ -69,6 +70,10 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 	// storage of all modules configurations
 	@Autowired
 	protected ModuleConfigurationStorage configurationStorage;
+	// the storage of registered module
+	@Autowired
+	private ModuleStorage moduleStorage;
+
 	// lock for access to mainAction
 	private final Lock mainActionLock = new ReentrantLock(true);
 
@@ -85,8 +90,9 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 		this.healthCondition = INIT;
 		// register module in registry
 		if (!(this instanceof ModulesRegistryService)) {
-			registry.add(this);
+			registry.register(this);
 		}
+		moduleStorage.saveHealthState(this, this);
 
 		// start main-action activity
 		final ModuleAction mainAction = getMainAction();
@@ -138,6 +144,7 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 		if (!(this instanceof ModulesRegistryService)) {
 			registry.remove(this);
 		}
+		moduleStorage.removeHealthState(this, this);
 
 		// saving last condition value to temp value & lastThrow
 		final ModuleHealthCondition lastCondition = this.healthCondition;
@@ -228,6 +235,7 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 					break;
 			}
 		} finally {
+			moduleStorage.saveHealthState(this, this);
 			healthLock.unlock();
 		}
 	}
@@ -258,6 +266,7 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 					break;
 			}
 		} finally {
+			moduleStorage.saveHealthState(this, this);
 			healthLock.unlock();
 		}
 	}
