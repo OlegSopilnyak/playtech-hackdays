@@ -11,6 +11,7 @@ import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.configuration.storage.event.ConfigurationStorageEvent;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricsRepository;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,10 @@ public class StoreHouseConfigurationTest {
 		@Bean
 		public ModuleMetricsRepository mockModuleMetricsRepository(){
 			return mock(ModuleMetricsRepository.class);
+		}
+		@Bean
+		public ModuleStorage makeModuleStorage(){
+			return mock(ModuleStorage.class);
 		}
 	}
 }

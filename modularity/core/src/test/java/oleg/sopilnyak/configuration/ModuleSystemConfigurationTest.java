@@ -16,6 +16,7 @@ import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.service.metric.storage.SelectCriteria;
 import oleg.sopilnyak.service.metric.storage.StoredMetric;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,6 +121,10 @@ public class ModuleSystemConfigurationTest {
 		@Bean
 		public ModuleConfigurationStorage makeModuleConfigurationStorage() {
 			return mock(ModuleConfigurationStorage.class);
+		}
+		@Bean
+		public ModuleStorage makeModuleStorage(){
+			return mock(ModuleStorage.class);
 		}
 	}
 

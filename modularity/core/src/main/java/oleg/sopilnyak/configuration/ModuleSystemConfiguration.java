@@ -8,6 +8,8 @@ import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl;
+import oleg.sopilnyak.service.healthcheck.ModulesHeartBeatService;
+import oleg.sopilnyak.service.healthcheck.impl.ModulesHeartBeatServiceImpl;
 import oleg.sopilnyak.service.logging.impl.ModuleSlf4jLogAppender;
 import oleg.sopilnyak.service.metric.impl.MetricsContainerImpl;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
@@ -71,9 +73,20 @@ public class ModuleSystemConfiguration {
 	 * @return singleton
 	 * @see ModulesRegistryService
 	 */
-	@Bean(name = "module.healthCheckService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
-	public ModuleRegistryServiceImpl getHealthModuleService() {
+	@Bean(name = "module.registryService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
+	public ModulesRegistryService getModuleRegistryService() {
 		return new ModuleRegistryServiceImpl();
+	}
+
+	/**
+	 * Service to check modules' health-state
+	 *
+	 * @return singleton
+	 * @see ModulesHeartBeatService
+	 */
+	@Bean(name = "module.heartBeatService", autowire = Autowire.BY_TYPE, initMethod = "moduleStart", destroyMethod = "moduleStop")
+	public ModulesHeartBeatService getModulesHeartBeatService(){
+		return new ModulesHeartBeatServiceImpl();
 	}
 
 	/**

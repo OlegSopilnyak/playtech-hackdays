@@ -14,6 +14,7 @@ import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.logging.ModuleLoggerService;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -214,6 +215,10 @@ public class ModuleSlf4jLogAppenderTest {
 	@Configuration
 	static class Config{
 
+		@Bean
+		public ModuleStorage makeModuleStorage(){
+			return mock(ModuleStorage.class);
+		}
 		@Bean
 		public ModuleActionStorage mockModuleActionStorage(){
 			return spy(new ModuleActionStorageStub());

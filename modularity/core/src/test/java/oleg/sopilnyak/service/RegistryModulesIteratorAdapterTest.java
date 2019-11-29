@@ -8,6 +8,7 @@ import oleg.sopilnyak.service.action.storage.ModuleActionStorageStub;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -110,6 +111,10 @@ public class RegistryModulesIteratorAdapterTest {
 		@Bean
 		public ModuleMetricStorage mockModuleMetricStorage(){
 			return mock(ModuleMetricStorage.class);
+		}
+		@Bean
+		public ModuleStorage makeModuleStorage(){
+			return mock(ModuleStorage.class);
 		}
 	}
 }

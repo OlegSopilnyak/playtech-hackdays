@@ -12,6 +12,7 @@ import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -436,6 +437,10 @@ public class ModuleServiceAdapterTest {
 	@Import({ModuleSystemConfiguration.class})
 	static class Config{
 
+		@Bean
+		public ModuleStorage makeModuleStorage(){
+			return mock(ModuleStorage.class);
+		}
 		@Bean
 		public TestService makeTestService(){
 			return spy(new TestService());

@@ -23,6 +23,7 @@ import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +53,8 @@ import static org.mockito.Mockito.*;
 public class ModuleConfigurationServiceImplTest {
 	@Mock
 	private ServiceModule module;
+	@Mock
+	private ModuleStorage moduleStorage;
 	@Spy
 	private ModuleActionAdapter mainAction;
 	@Mock
@@ -106,7 +109,7 @@ public class ModuleConfigurationServiceImplTest {
 	@After
 	public void tearDown() {
 		service.moduleStop();
-		reset(service, module, actionsFactory, metricsContainer, actionMetricsContainer, registry, activityRunner);
+		reset(service, module, moduleStorage, actionsFactory, metricsContainer, actionMetricsContainer, registry, activityRunner);
 	}
 
 

@@ -20,9 +20,7 @@ import oleg.sopilnyak.service.action.bean.ModuleActionAdapter;
 import oleg.sopilnyak.service.action.impl.ModuleActionFactoryImpl;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
-import oleg.sopilnyak.service.metric.ModuleMetricAdapter;
-import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
-import oleg.sopilnyak.service.model.dto.VariableItemDto;
+import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,12 +32,10 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.*;
@@ -50,8 +46,8 @@ public class ModuleRegistryServiceImplTest {
 
 	@Mock
 	private Module module;
-	@Spy
-	private ModuleActionAdapter mainAction;
+	@Mock
+	private ModuleStorage moduleStorage;
 	@Mock
 	private MetricsContainer metricsContainer;
 	@Mock
@@ -60,18 +56,16 @@ public class ModuleRegistryServiceImplTest {
 	private DurationMetricsContainer durationMetricsContainer;
 	@Mock
 	private HeartBeatMetricContainer heartBeatMetricContainer;
-	@Spy
-	protected ScheduledExecutorService activityRunner = new ModuleUtilityConfiguration().getScheduledExecutorService();
+	@Mock
+	private ModuleConfigurationStorage configurationStorage;
 	@Spy
 	private TimeService timeService = new ModuleUtilityConfiguration().getTimeService();
 	@Spy
 	private ModuleActionFactory actionsFactory = new ModuleSystemConfiguration().getModuleActionFactory();
 	@Mock
 	private ModuleActionStorage actionStorage;
-	@Mock
-	private ModuleConfigurationStorage configurationStorage;
-	@Mock
-	private ModuleMetricStorage metricStorage;
+	@Spy
+	protected ScheduledExecutorService activityRunner = new ModuleUtilityConfiguration().getScheduledExecutorService();
 	@InjectMocks
 	private ModuleRegistryServiceImpl service = new ModuleRegistryServiceImpl();
 
@@ -82,7 +76,6 @@ public class ModuleRegistryServiceImplTest {
 		when(module.getVersionId()).thenReturn("ver-test");
 		when(module.getDescription()).thenReturn("desc-test");
 		when(module.primaryKey()).thenReturn("test-pk");
-		mainAction = ActionMapper.INSTANCE.simple(module, "test");
 		when(metricsContainer.action()).thenReturn(actionMetricsContainer);
 		when(metricsContainer.duration()).thenReturn(durationMetricsContainer);
 		when(metricsContainer.health()).thenReturn(heartBeatMetricContainer);
@@ -99,7 +92,7 @@ public class ModuleRegistryServiceImplTest {
 	@After
 	public void tearDown() {
 		service.moduleStop();
-		reset(module, actionsFactory, metricsContainer, actionMetricsContainer);
+		reset(module, moduleStorage, actionStorage, actionsFactory, metricsContainer, actionMetricsContainer);
 	}
 
 	@Test
@@ -108,7 +101,7 @@ public class ModuleRegistryServiceImplTest {
 
 		Map<String, Module> modules = (Map<String, Module>) ReflectionTestUtils.getField(service, "modules");
 		assertEquals(module, modules.get(module.primaryKey()));
-		verify(actionsFactory, times(2)).startMainAction(eq(service));
+		verify(actionsFactory, times(1)).startMainAction(eq(service));
 	}
 
 	@Test(expected = AssertionError.class)
@@ -127,7 +120,7 @@ public class ModuleRegistryServiceImplTest {
 		service.remove(module);
 		assertNull(modules.get(module.primaryKey()));
 
-		verify(actionsFactory, times(3)).startMainAction(eq(service));
+		verify(actionsFactory, times(1)).startMainAction(eq(service));
 	}
 
 	@Test(expected = AssertionError.class)
@@ -181,9 +174,6 @@ public class ModuleRegistryServiceImplTest {
 		service.initAsService();
 
 		assertEquals(service, service.getRegistered(service));
-		ScheduledFuture runnerFuture = (ScheduledFuture) ReflectionTestUtils.getField(service, "runnerFuture");
-		assertNotNull(runnerFuture);
-		assertFalse(runnerFuture.isDone());
 	}
 
 	@Test
@@ -191,88 +181,9 @@ public class ModuleRegistryServiceImplTest {
 		service.shutdownAsService();
 
 		assertNull(service.getRegistered(service));
-		assertNull(ReflectionTestUtils.getField(service, "runnerFuture"));
 	}
-
-	@Test
-	public void testConfigurationItemChanged() {
-		Long delay = (Long) ReflectionTestUtils.getField(service, "delay");
-		assertEquals(DELAY_DEFAULT, delay.longValue());
-
-		service.configurationItemChanged(service.delayName(), new VariableItemDto(DELAY_NAME, 5000));
-		delay = (Long) ReflectionTestUtils.getField(service, "delay");
-		assertEquals(5000L, delay.longValue());
-
-		String[] ignoredModules = (String[]) ReflectionTestUtils.getField(service, "ignoredModules");
-		assertEquals(1, ignoredModules.length);
-		assertEquals("", ignoredModules[0]);
-
-		service.configurationItemChanged(service.ignoreModulesName(), new VariableItemDto(IGNORE_MODULE_NAME, "1,2,3"));
-		ignoredModules = (String[]) ReflectionTestUtils.getField(service, "ignoredModules");
-		assertEquals(3, ignoredModules.length);
-		assertEquals("1", ignoredModules[0]);
-		assertEquals("2", ignoredModules[1]);
-		assertEquals("3", ignoredModules[2]);
-	}
-
-	@Test
-	public void testInspectModule() {
-		when(module.getMetricsContainer()).thenReturn(metricsContainer);
-
-		service.inspectModule("test", mainAction, module);
-
-		verify(module, times(1)).primaryKey();
-		verify(module, times(1)).getMetricsContainer();
-		verify(heartBeatMetricContainer, times(1)).heartBeat(eq(mainAction), eq(module));
-		verify(module, times(1)).metrics();
-		verify(durationMetricsContainer, times(1)).simple(eq("test"), eq(mainAction), any(Instant.class), eq("test-pk"), anyLong());
-	}
-
-	@Test
-	public void testScanModulesHealth() {
-		ModuleAction serviceAction = service.getMainAction();
-
-		service.scanModulesHealth();
-
-		verify(actionsFactory, times(2)).startMainAction(eq(service));
-		assertEquals(service, service.getRegistered(service));
-		ScheduledFuture runnerFuture = (ScheduledFuture) ReflectionTestUtils.getField(service, "runnerFuture");
-		assertNotNull(runnerFuture);
-		assertFalse(runnerFuture.isDone());
-	}
-
-	@Test
-	public void testStore() {
-		final Instant mark = timeService.now();
-		ModuleMetricAdapter metric = new ModuleMetricAdapter() {
-			@Override
-			public String getName() {
-				return "test-metric";
-			}
-
-			@Override
-			public ModuleAction getAction() {
-				return mainAction;
-			}
-
-			@Override
-			public Instant getMeasured() {
-				return mark;
-			}
-		};
-		service.storeMetric(metric);
-		String modulePK = mainAction.getModule().primaryKey();
-		String host = mainAction.getHostName();
-		Instant measured = metric.getMeasured();
-		String data = metric.valuesAsString();
-
-		verify(metricStorage, times(1))
-				.storeMetric(eq("test-metric"), eq(modulePK),  eq(measured), eq(host), eq(mainAction.getId()), eq(data));
-	}
-
 	// private methods
 	private void prepareActionsFactory() {
-		ModuleActionStorage actionStorage = mock(ModuleActionStorage.class);
 		ReflectionTestUtils.setField(actionsFactory, "timeService", timeService);
 		ReflectionTestUtils.setField(actionsFactory, "scanRunner", activityRunner);
 		ReflectionTestUtils.setField(actionsFactory, "delay", 200L);
