@@ -8,6 +8,7 @@ import oleg.sopilnyak.commands.ModuleCommand;
 import oleg.sopilnyak.commands.ModuleCommandFactory;
 import oleg.sopilnyak.commands.model.ModuleCommandType;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
+import oleg.sopilnyak.external.dto.ModuleStatusDto;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
@@ -100,7 +101,29 @@ public class ModuleSystemFacadeImplTest {
 	}
 
 	@Test
-	public void moduleStatus() {
+	public void testModuleStatus() {
+		List<ModuleInfoAdapter> registeredModules = new ArrayList<>();
+		ModuleInfoAdapter module1 = mock(ModuleInfoAdapter.class);
+		ModuleInfoAdapter module2 = mock(ModuleInfoAdapter.class);
+		String module1PK = "test::test1::test";
+		String module2PK = "test::test2::test";
+		when(module1.getModulePK()).thenReturn(module1PK);
+		when(module2.getModulePK()).thenReturn(module2PK);
+		registeredModules.add(module1);
+		registeredModules.add(module2);
+		CommandResult result = mock(CommandResult.class);
+		when(result.getData()).thenReturn(registeredModules);
+		ModuleCommand statusCommand = mock(ModuleCommand.class);
+		when(statusCommand.execute(module1PK)).thenReturn(result);
+		// adjusting commands factory
+		when(commandFactory.create(ModuleCommandType.STATUS)).thenReturn(statusCommand);
+
+		ModuleStatusDto status = facade.moduleStatus(module1PK);
+		assertNotNull(status);
+		assertEquals(module1PK, status.getModulePK());
+
+		verify(facade, times(1)).moduleStatus(eq(module1PK));
+		verify(facade, times(1)).executeSingleModuleCommand(eq(ModuleCommandType.STATUS), eq(module1PK));
 	}
 
 	@Test
