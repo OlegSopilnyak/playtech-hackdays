@@ -22,11 +22,9 @@ import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import static oleg.sopilnyak.module.model.ModuleHealthCondition.GOOD;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -102,28 +100,36 @@ public class ModuleSystemFacadeImplTest {
 
 	@Test
 	public void testModuleStatus() {
-		List<ModuleInfoAdapter> registeredModules = new ArrayList<>();
 		ModuleInfoAdapter module1 = mock(ModuleInfoAdapter.class);
-		ModuleInfoAdapter module2 = mock(ModuleInfoAdapter.class);
+		when(module1.isActive()).thenReturn(true);
+		when(module1.getDescription()).thenReturn("test-description");
+		when(module1.getCondition()).thenReturn(GOOD);
 		String module1PK = "test::test1::test";
-		String module2PK = "test::test2::test";
 		when(module1.getModulePK()).thenReturn(module1PK);
-		when(module2.getModulePK()).thenReturn(module2PK);
-		registeredModules.add(module1);
-		registeredModules.add(module2);
 		CommandResult result = mock(CommandResult.class);
-		when(result.getData()).thenReturn(registeredModules);
+		when(result.getData()).thenReturn(Collections.singletonList(module1));
 		ModuleCommand statusCommand = mock(ModuleCommand.class);
 		when(statusCommand.execute(module1PK)).thenReturn(result);
 		// adjusting commands factory
 		when(commandFactory.create(ModuleCommandType.STATUS)).thenReturn(statusCommand);
 
 		ModuleStatusDto status = facade.moduleStatus(module1PK);
+
 		assertNotNull(status);
-		assertEquals(module1PK, status.getModulePK());
+		assertEquals("test::test1::test", status.getModulePK());
+		assertEquals(true, status.isActive());
+		assertEquals(GOOD, status.getCondition());
+		assertEquals("test-description", status.getDescription());
 
 		verify(facade, times(1)).moduleStatus(eq(module1PK));
 		verify(facade, times(1)).executeSingleModuleCommand(eq(ModuleCommandType.STATUS), eq(module1PK));
+		verify(commandFactory, times(1)).create(eq(ModuleCommandType.STATUS));
+		verify(statusCommand, times(1)).execute(eq(module1PK));
+		verify(result, times(1)).getData();
+		verify(module1, times(1)).getModulePK();
+		verify(module1, times(1)).isActive();
+		verify(module1, times(1)).getCondition();
+		verify(module1, times(1)).getDescription();
 	}
 
 	@Test

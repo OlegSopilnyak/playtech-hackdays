@@ -15,6 +15,8 @@ import org.springframework.context.annotation.Scope;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static oleg.sopilnyak.commands.model.ModuleCommandType.*;
 
@@ -151,16 +153,21 @@ public class ModuleCommandConfiguration {
 	 *
 	 * @return singleton
 	 */
-	@Bean(autowire = Autowire.BY_TYPE)
+	@Bean(autowire = Autowire.BY_TYPE, name = "makeModuleCommandFactory")
 	public ModuleCommandFactoryImpl makeModuleCommandFactory() {
-		final Map<ModuleCommandType, Class<? extends ModuleCommand>> commandsStore = new LinkedHashMap<>();
-		commandsStore.put(LIST, ListModuleCommand.class);
-		commandsStore.put(STATUS, StatusModuleCommand.class);
-		commandsStore.put(CHANGE, ChangeConfigurationModuleCommand.class);
-		commandsStore.put(START, StartModuleCommand.class);
-		commandsStore.put(STOP, StopModuleCommand.class);
-		commandsStore.put(RESTART, RestartModuleCommand.class);
-		commandsStore.put(HELP, HelpModuleCommand.class);
-		return new ModuleCommandFactoryImpl(commandsStore);
+		return new ModuleCommandFactoryImpl(
+				Stream.of(new Object[][]{
+						{LIST, ListModuleCommand.class}
+						, {STATUS, StatusModuleCommand.class}
+						, {CHANGE, ChangeConfigurationModuleCommand.class}
+						, {START, StartModuleCommand.class}
+						, {STOP, StopModuleCommand.class}
+						, {RESTART, RestartModuleCommand.class}
+						, {HELP, HelpModuleCommand.class}
+				})
+						.collect(Collectors.toMap(
+								cmd -> (ModuleCommandType) cmd[0],
+								cmd -> (Class<? extends ModuleCommand>) cmd[1]))
+		);
 	}
 }

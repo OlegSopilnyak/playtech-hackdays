@@ -5,6 +5,7 @@ package oleg.sopilnyak.external.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.commands.CommandResult;
+import oleg.sopilnyak.commands.ModuleCommand;
 import oleg.sopilnyak.commands.ModuleCommandFactory;
 import oleg.sopilnyak.commands.model.ModuleCommandType;
 import oleg.sopilnyak.commands.model.ModuleInfoAdapter;
@@ -63,7 +64,9 @@ public class ModuleSystemFacadeImpl implements ModuleSystemFacade, ExternalModul
 	 */
 	@Override
 	public List<String> registeredModules() {
-		final CommandResult result = commandFactory.create(ModuleCommandType.LIST).execute();
+		log.debug("Creating and executing list modules command.");
+		final ModuleCommand list = commandFactory.create(ModuleCommandType.LIST);
+		final CommandResult result = list.execute();
 		final List<ModuleInfoAdapter> modules = (List<ModuleInfoAdapter>) result.getData();
 		log.debug("Collected {} registered modules.", modules.size());
 		return Stream.concat(
