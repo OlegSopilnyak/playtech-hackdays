@@ -8,8 +8,8 @@ import oleg.sopilnyak.module.metric.ModuleMetric;
 
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Type - service's module
@@ -31,7 +31,16 @@ public interface Module extends ModuleBasics {
 	 * @return true if module is working
 	 */
 	default boolean isWorking() {
-		return values().filter(v -> v.isActive()).map(v -> v.isActive()).findFirst().orElse(false);
+		final AtomicBoolean isActive = new AtomicBoolean(false);
+		final ModuleValues.Visitor valuesVisitor = new ModuleValues.Visitor() {
+			public void visit(final ModuleValues values) {
+				if (!isActive.get()){
+					isActive.getAndSet(values.isActive());
+				}
+			}
+		};
+		accept(valuesVisitor);
+		return isActive.get();
 	}
 
 	/**
@@ -55,11 +64,11 @@ public interface Module extends ModuleBasics {
 	}
 
 	/**
-	 * To return stream of module's values
+	 * To walk through values of the module
 	 *
-	 * @return stream
+	 * @param visitor instance to visit each module's values
 	 */
-	Stream<ModuleValues> values();
+	void accept(ModuleValues.Visitor visitor);
 
 	/**
 	 * To get access to Module's metrics container

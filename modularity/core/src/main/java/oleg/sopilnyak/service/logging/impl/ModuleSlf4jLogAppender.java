@@ -11,7 +11,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.Layout;
 import lombok.extern.slf4j.Slf4j;
-import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.metric.ModuleMetric;
 import oleg.sopilnyak.module.model.ModuleAction;
@@ -31,7 +30,6 @@ import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 /**
  * Service: appender for slf4j logging framework
@@ -191,17 +189,6 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 	public boolean isActive() {
 		return delegate.isWorking();
 	}
-
-	/**
-	 * To return stream of module's values
-	 *
-	 * @return stream
-	 */
-	@Override
-	public Stream<ModuleValues> values() {
-		return Stream.of(this);
-	}
-
 
 	/**
 	 * To get the registry condition of module for the moment

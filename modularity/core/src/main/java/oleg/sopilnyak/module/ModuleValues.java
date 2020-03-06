@@ -20,4 +20,10 @@ public interface ModuleValues extends ModuleHealth.Control, ModuleHealth.State, 
 	 */
 	ModuleAction getMainAction();
 
+	/**
+	 * The visitor to walk though module's values
+	 */
+	interface Visitor {
+		void visit(ModuleValues values);
+	}
 }

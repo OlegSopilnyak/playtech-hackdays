@@ -4,10 +4,14 @@
 package oleg.sopilnyak.external.service.impl;
 
 import oleg.sopilnyak.external.dto.ModuleValuesDto;
+import oleg.sopilnyak.module.ModuleValues;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -45,13 +49,27 @@ public class ExternalModuleImplTest {
 
 	@Test
 	public void testValues() {
+		final AtomicInteger valuesCounter = new AtomicInteger(0);
+		final AtomicReference<ModuleValues> valuesRef = new AtomicReference<>(null);
+		final ModuleValues.Visitor valuesVisitor = new ModuleValues.Visitor() {
+			public void visit(final ModuleValues values) {
+				valuesCounter.incrementAndGet();
+				if (Objects.isNull(valuesRef.get())){
+					valuesRef.getAndSet(values);
+				}
+			}
+		};
+
 		assertFalse(module.hasValues());
 		ModuleValuesDto valuesDto = new ModuleValuesDto();
 		valuesDto.setHost("host");
 		module.registerValues(valuesDto);
+
 		assertTrue(module.hasValues());
-		assertEquals(valuesDto, module.values().findFirst().get());
-		assertEquals(1L, module.values().count());
+		// check the module values state
+		module.accept(valuesVisitor);
+		assertEquals(valuesDto, valuesRef.get());
+		assertEquals(1, valuesCounter.get());
 	}
 
 	@Test

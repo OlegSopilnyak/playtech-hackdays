@@ -4,7 +4,6 @@
 package oleg.sopilnyak.service;
 
 
-import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
@@ -25,7 +24,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Stream;
 
 import static oleg.sopilnyak.module.model.ModuleHealthCondition.*;
 
@@ -319,16 +317,6 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 		if (changedModule.get()) {
 			restart();
 		}
-	}
-
-	/**
-	 * To return stream of module's values
-	 *
-	 * @return stream
-	 */
-	@Override
-	public Stream<ModuleValues> values() {
-		return Stream.of(this);
 	}
 
 	/**

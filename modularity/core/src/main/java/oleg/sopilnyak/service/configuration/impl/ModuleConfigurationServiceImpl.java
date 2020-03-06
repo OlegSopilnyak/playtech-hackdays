@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.configuration.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
@@ -95,18 +96,21 @@ public class ModuleConfigurationServiceImpl extends RegistryModulesIteratorAdapt
 		final String modulePK = module.primaryKey();
 		final MetricsContainer metricsContainer = getMetricsContainer();
 		log.debug("Scan module {}", modulePK);
-		module.values().forEach(values -> {
-			final String host = values.getHost();
-			final Map<String, VariableItem> config = configurationStorage.getUpdatedVariables(module, values.getConfiguration());
-			if (CollectionUtils.isEmpty(config)) {
-				metricsContainer.duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
-				log.debug("Nothing to update configuration for '{}' on host '{}'", modulePK, host);
-			} else {
-				values.configurationChanged(config);
-				metricsContainer.duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
-				log.debug("Updated configuration of module '{}' on host '{}' by '{}'", modulePK, host, config);
+		final ModuleValues.Visitor valuesVisitor = new ModuleValues.Visitor() {
+			public void visit(final ModuleValues values) {
+				final String host = values.getHost();
+				final Map<String, VariableItem> updatedConfiguration = configurationStorage.getUpdatedVariables(module, values.getConfiguration());
+				if (CollectionUtils.isEmpty(updatedConfiguration)) {
+					metricsContainer.duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
+					log.debug("Nothing to update configuration for '{}' on host '{}'", modulePK, host);
+				} else {
+					values.configurationChanged(updatedConfiguration);
+					metricsContainer.duration().simple(label, action, timeService.now(), modulePK, timeService.duration(mark));
+					log.debug("Updated configuration of module '{}' on host '{}' by '{}'", modulePK, host, updatedConfiguration);
+				}
 			}
-		});
+		};
+		module.accept(valuesVisitor);
 	}
 
 	// private methods

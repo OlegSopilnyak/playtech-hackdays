@@ -7,6 +7,7 @@ import oleg.sopilnyak.configuration.ModuleSystemConfiguration;
 import oleg.sopilnyak.configuration.ModuleUtilityConfiguration;
 import oleg.sopilnyak.module.Module;
 import oleg.sopilnyak.module.ModuleBasics;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.ActionMetricsContainer;
 import oleg.sopilnyak.module.metric.DurationMetricsContainer;
 import oleg.sopilnyak.module.metric.HeartBeatMetricContainer;
@@ -42,7 +43,6 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl.ACTIVITY_LABEL;
 import static oleg.sopilnyak.service.configuration.impl.ModuleConfigurationServiceImpl.CONFIGURATION_UPDATE;
@@ -88,6 +88,10 @@ public class ModuleConfigurationServiceImplTest {
 		when(module.getVersionId()).thenReturn("ver-test");
 		when(module.getDescription()).thenReturn("desc-test");
 		when(module.primaryKey()).thenReturn("test-pk");
+		doAnswer(invocation -> {
+			invocation.getArgumentAt(0, ModuleValues.Visitor.class).visit(module);
+			return null;
+		}).when(module).accept(any(ModuleValues.Visitor.class));
 
 		mainAction = ActionMapper.INSTANCE.simple(module, "test");
 		when(module.getMainAction()).thenReturn(mainAction);
@@ -155,7 +159,6 @@ public class ModuleConfigurationServiceImplTest {
 		when(module.getConfiguration()).thenReturn(config);
 		when(configurationStorage.getUpdatedVariables(module, config)).thenReturn(config).thenReturn(Collections.emptyMap());
 
-		when(module.values()).thenReturn(Stream.of(module));
 		service.inspectModule("test", mainAction, module);
 
 		verify(timeService, times(3)).now();
@@ -166,7 +169,6 @@ public class ModuleConfigurationServiceImplTest {
 		verify(module, times(1)).configurationChanged(eq(config));
 		verify(durationMetricsContainer, times(1)).simple(eq("test"), eq(mainAction), any(Instant.class), anyString(), anyLong());
 
-		when(module.values()).thenReturn(Stream.of(module));
 		service.inspectModule("test", mainAction, module);
 		verify(durationMetricsContainer, times(2)).simple(eq("test"), eq(mainAction), any(Instant.class), anyString(), anyLong());
 		verify(timeService, times(6)).now();
@@ -202,7 +204,6 @@ public class ModuleConfigurationServiceImplTest {
 		when(configurationStorage.getUpdatedVariables(eq(module), any(Map.class))).thenReturn(config);
 		when(registry.getRegistered(testModule)).thenReturn(module);
 
-		when(module.values()).thenReturn(Stream.of(module));
 		service.notifyModuleConfigurationUpdates(testLabel, testModule);
 
 		verify(service, times(1)).inspectModule(eq(ACTIVITY_LABEL), any(ModuleAction.class), eq(module));

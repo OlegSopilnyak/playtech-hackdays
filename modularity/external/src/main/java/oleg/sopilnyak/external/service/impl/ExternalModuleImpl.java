@@ -17,7 +17,6 @@ import org.springframework.util.CollectionUtils;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 /**
  * Type - external service's module realization
@@ -74,14 +73,14 @@ public class ExternalModuleImpl extends ModuleDto implements ExternalModule {
 	}
 
 	/**
-	 * To return stream of module's values
+	 * To walk through values of the module
 	 *
-	 * @return stream
+	 * @param visitor instance to visit each module's values
 	 */
 	@Override
-	public Stream<ModuleValues> values() {
+	public void accept(ModuleValues.Visitor visitor) {
 		this.touched = System.currentTimeMillis();
-		return moduleValues.values().stream().map(v -> (ModuleValues) v);
+		moduleValues.values().forEach(values -> visitor.visit(values));
 	}
 
 	/**

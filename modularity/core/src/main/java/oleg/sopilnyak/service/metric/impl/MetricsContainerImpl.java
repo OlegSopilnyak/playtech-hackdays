@@ -5,6 +5,7 @@ package oleg.sopilnyak.service.metric.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import oleg.sopilnyak.module.Module;
+import oleg.sopilnyak.module.ModuleValues;
 import oleg.sopilnyak.module.metric.*;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.service.TimeService;
@@ -219,12 +220,15 @@ public class MetricsContainerImpl implements MetricsContainer, ActionMetricsCont
 		log.debug("Saving heart-beat for {}", modulePK);
 		final MetricsContainer metricsContainer = module.getMetricsContainer();
 		final Instant measured = timeService.now();
-		module.values().forEach(values -> {
-			log.debug("Saving hear-beat for host: '{}'", values.getHost());
-			// make and store metric instance to module's metrics container
-			final ModuleMetric metric = MetricMapper.INSTANCE.toHeartBeat(modulePK, action, values, measured);
-			metricsContainer.add(metric);
-		});
+		final ModuleValues.Visitor valuesVisitor = new ModuleValues.Visitor() {
+			public void visit(ModuleValues values) {
+				log.debug("Saving hear-beat for host: '{}'", values.getHost());
+				// make and store metric instance to module's metrics container
+				final ModuleMetric metric = MetricMapper.INSTANCE.toHeartBeat(modulePK, action, values, measured);
+				metricsContainer.add(metric);
+			}
+		};
+		module.accept(valuesVisitor);
 	}
 
 	/**

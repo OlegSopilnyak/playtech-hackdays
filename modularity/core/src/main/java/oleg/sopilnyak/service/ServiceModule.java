@@ -19,4 +19,15 @@ public interface ServiceModule extends Module, ModuleValues {
 	default boolean isModuleRegistered() {
 		return true;
 	}
+
+	/**
+	 * To walk through values of the module
+	 *
+	 * @param visitor instance to visit each module's values
+	 */
+	@Override
+	default void accept(Visitor visitor) {
+		visitor.visit(this);
+	}
+
 }
