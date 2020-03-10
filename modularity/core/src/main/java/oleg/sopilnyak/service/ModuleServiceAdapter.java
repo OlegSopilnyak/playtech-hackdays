@@ -8,11 +8,11 @@ import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.ModuleHealthCondition;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.module.storage.ModuleStorage;
 import oleg.sopilnyak.service.action.ModuleActionFactory;
 import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
 import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
-import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
@@ -90,39 +90,18 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 		if (!(this instanceof ModulesRegistryService)) {
 			registry.register(this);
 		}
+		// save new state of module to the storage
 		moduleStorage.saveHealthState(this, this);
 
 		// start main-action activity
-		final ModuleAction mainAction = getMainAction();
+		final ModuleAction mainAction;
+		startingModuleService(mainAction = getMainAction());
 
-		// prepare main-action for the work
-		activateMainModuleAction();
-		// module is active
-		active = true;
-
-		ResultModuleAction result;
-		// setup module's configuration
-		result = executeAtomicAction(CONFIGURE_MODULE_ACTION_NAME, this::setupModuleConfiguration);
-		if (result.getState() == ModuleAction.State.FAIL) {
-			metricsContainer.action().fail(mainAction, result.getCause());
-			// module couldn't configured properly
-			active = false;
-			return;
+		if (active) {
+			// running main action
+			mainAction.setState(ModuleAction.State.PROGRESS);
+			metricsContainer.action().changed(mainAction);
 		}
-
-		// concrete-module-related init
-		result = executeAtomicAction(INIT_MODULE_ACTION_NAME, this::initAsService);
-
-		if (result.getState() == ModuleAction.State.FAIL) {
-			metricsContainer.action().fail(mainAction, result.getCause());
-			// module couldn't start properly
-			active = false;
-			return;
-		}
-
-		// running main action
-		mainAction.setState(ModuleAction.State.PROGRESS);
-		metricsContainer.action().changed(mainAction);
 
 	}
 
@@ -311,12 +290,10 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 		}
 		activateMainModuleAction();
 
-		final AtomicBoolean changedModule = new AtomicBoolean(false);
-		changed.forEach((k, v) -> changedModule.getAndSet(changedModule.get() || configurationItemChanged(k, v)));
+		final AtomicBoolean needModuleRestart = new AtomicBoolean(false);
+		changed.forEach((k, v) -> needModuleRestart.getAndSet(needModuleRestart.get() || configurationItemChanged(k, v)));
 
-		if (changedModule.get()) {
-			restart();
-		}
+		restart(needModuleRestart.get());
 	}
 
 	/**
@@ -346,11 +323,7 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 	 * @return value or null if not exists or module is not active
 	 */
 	public VariableItem configurationVariableOf(String varName) {
-		if (!isWorking() || StringUtils.isEmpty(varName)) {
-			// service is not active or itemName is wrong
-			return null;
-		}
-		return getConfiguration().get(varName);
+		return !isWorking() || StringUtils.isEmpty(varName) ? null : getConfiguration().get(varName);
 	}
 
 	// protected methods - should be redefined in children
@@ -407,5 +380,35 @@ public abstract class ModuleServiceAdapter implements ServiceModule {
 		final ModuleAction action = actionsFactory.currentAction();
 		final long operationDuration = timeService.duration(mark);
 		getMetricsContainer().duration().simple("Init Configuration", action, timeService.now(), this.primaryKey(), operationDuration);
+	}
+
+	void startingModuleService(ModuleAction mainAction) {
+		// prepare main-action for the work
+		activateMainModuleAction();
+		// pretend the module is active
+		active = true;
+
+		// setup module's configuration
+		{
+			final ResultModuleAction result = executeAtomicAction(CONFIGURE_MODULE_ACTION_NAME, this::setupModuleConfiguration);
+			if (result.getState() == ModuleAction.State.FAIL) {
+				metricsContainer.action().fail(mainAction, result.getCause());
+				// module couldn't configured properly
+				active = false;
+				return;
+			}
+		}
+
+		// concrete-module-related init as service
+		{
+			final ResultModuleAction result = executeAtomicAction(INIT_MODULE_ACTION_NAME, this::initAsService);
+
+			if (result.getState() == ModuleAction.State.FAIL) {
+				metricsContainer.action().fail(mainAction, result.getCause());
+				// module couldn't initialize as service properly
+				active = false;
+				return;
+			}
+		}
 	}
 }

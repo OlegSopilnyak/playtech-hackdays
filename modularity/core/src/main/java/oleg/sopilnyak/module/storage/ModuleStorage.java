@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Oleg Sopilnyak 2019
  */
-package oleg.sopilnyak.service.registry.storage;
+package oleg.sopilnyak.module.storage;
 
 import oleg.sopilnyak.module.ModuleBasics;
 import oleg.sopilnyak.module.ModuleHealth;

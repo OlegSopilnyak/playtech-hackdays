@@ -5,6 +5,7 @@ import oleg.sopilnyak.configuration.ModuleSystemConfiguration;
 import oleg.sopilnyak.module.metric.MetricsContainer;
 import oleg.sopilnyak.module.model.ModuleAction;
 import oleg.sopilnyak.module.model.VariableItem;
+import oleg.sopilnyak.module.storage.ModuleStorage;
 import oleg.sopilnyak.service.action.bean.result.ResultModuleAction;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorage;
 import oleg.sopilnyak.service.action.storage.ModuleActionStorageStub;
@@ -12,7 +13,6 @@ import oleg.sopilnyak.service.configuration.storage.ModuleConfigurationStorage;
 import oleg.sopilnyak.service.metric.storage.ModuleMetricStorage;
 import oleg.sopilnyak.service.model.dto.VariableItemDto;
 import oleg.sopilnyak.service.registry.ModulesRegistryService;
-import oleg.sopilnyak.service.registry.storage.ModuleStorage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +46,8 @@ public class ModuleServiceAdapterTest {
 	private ModuleConfigurationStorage configurationStorage;
 	@Autowired
 	private ModulesRegistryService registry;
+	@Autowired
+	private ModuleStorage moduleStorage;
 
 	@Autowired
 	private TestService service;
@@ -59,7 +61,7 @@ public class ModuleServiceAdapterTest {
 	public void tearDown() {
 		service.healthCondition = VERY_GOOD;
 		service.moduleStop();
-		reset(actionStorage, configurationStorage, service);
+		reset(actionStorage, configurationStorage, service, moduleStorage);
 	}
 
 	@Test
@@ -90,6 +92,7 @@ public class ModuleServiceAdapterTest {
 
 		verify(actionStorage, atLeast(2)).createActionFor(any(ServiceModule.class), any(), anyString());
 		verify(configurationStorage, times(1)).getUpdatedVariables(eq(service), anyMap());
+		verify(moduleStorage, times(7)).saveHealthState(eq(service), eq(service));
 
 	}
 
@@ -117,6 +120,8 @@ public class ModuleServiceAdapterTest {
 		assertEquals(VERY_GOOD, service.getCondition());
 
 		verify(actionStorage, atLeast(1)).createActionFor(any(ServiceModule.class), any(), anyString());
+		verify(moduleStorage, times(4)).saveHealthState(eq(service), eq(service));
+		verify(moduleStorage, times(1)).removeHealthState(eq(service), eq(service));
 	}
 
 	@Test
@@ -124,7 +129,7 @@ public class ModuleServiceAdapterTest {
 		assertTrue(service.isWorking());
 		reset(actionStorage, configurationStorage, service);
 
-		service.restart();
+		service.restart(true);
 
 		verify(service, times(1)).canRestart();
 		verify(service, times(1)).moduleStop();
@@ -257,7 +262,7 @@ public class ModuleServiceAdapterTest {
 
 		verify(service, times(3)).activateMainModuleAction();
 		verify(service, times(1)).configurationItemChanged(eq(variableName), eq(variableValue));
-		verify(service, times(1)).restart();
+		verify(service, times(1)).restart(eq(true));
 		verify(service, times(1)).canRestart();
 		verify(service, times(1)).moduleStop();
 		verify(service, times(1)).shutdownAsService();

@@ -53,7 +53,7 @@ public class RestartModuleCommand extends SwitchModuleCommandAdapter {
 	 */
 	@Override
 	protected String processModule(Module module) {
-		module.restart();
+		module.restart(true);
 		return  "Restarted well";
 	}
 }

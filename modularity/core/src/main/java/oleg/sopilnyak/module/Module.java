@@ -52,9 +52,11 @@ public interface Module extends ModuleBasics {
 
 	/**
 	 * To restart module
+	 *
+	 * @param allowedRestart flag is restart allowed
 	 */
-	default void restart() {
-		if (!canRestart()) {
+	default void restart(boolean allowedRestart) {
+		if (!allowedRestart || !canRestart()) {
 			return;
 		}
 		if (isWorking()) {

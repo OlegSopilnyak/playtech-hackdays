@@ -330,10 +330,12 @@ public class ModuleSlf4jLogAppender extends AppenderBase<ILoggingEvent> implemen
 
 		/**
 		 * To restart module
+		 *
+		 * @param isAllowedRestart flag is restart allowed
 		 */
 		@Override
-		public void restart() {
-			ModuleSlf4jLogAppender.this.restart();
+		public void restart(boolean isAllowedRestart) {
+			ModuleSlf4jLogAppender.this.restart(isAllowedRestart);
 		}
 
 		/**
