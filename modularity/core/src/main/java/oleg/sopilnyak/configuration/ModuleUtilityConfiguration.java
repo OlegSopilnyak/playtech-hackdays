@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -143,7 +144,17 @@ public class ModuleUtilityConfiguration {
 		 */
 		@Override
 		public String generate() {
-			return generator.generate().toString();
+			return generateId().toString();
+		}
+
+		/**
+		 * To generated UUID
+		 *
+		 * @return the instance
+		 */
+		@Override
+		public UUID generateId() {
+			return generator.generate();
 		}
 	}
 }

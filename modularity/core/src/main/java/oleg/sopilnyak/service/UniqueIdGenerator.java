@@ -1,5 +1,7 @@
 package oleg.sopilnyak.service;
 
+import java.util.UUID;
+
 /**
  * Service to generate unique Ids
  */
@@ -10,4 +12,11 @@ public interface UniqueIdGenerator {
      * @return unique id
      */
     String generate();
+
+    /**
+     * To generated UUID
+     *
+     * @return the instance
+     */
+    UUID generateId();
 }
