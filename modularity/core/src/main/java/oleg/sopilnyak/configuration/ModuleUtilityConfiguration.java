@@ -10,6 +10,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.VisibilityChecker;
+import com.fasterxml.uuid.EthernetAddress;
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.NoArgGenerator;
+import com.fasterxml.uuid.UUIDTimer;
 import oleg.sopilnyak.service.TimeService;
 import oleg.sopilnyak.service.UniqueIdGenerator;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -17,10 +21,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
+import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -123,6 +129,13 @@ public class ModuleUtilityConfiguration {
 
 	private static class UniqueIdGeneratorImpl implements UniqueIdGenerator {
 
+		private NoArgGenerator generator;
+		@PostConstruct
+		public void init() throws IOException {
+			// version 1 UUID generator
+			final UUIDTimer timer = new UUIDTimer(new Random(System.nanoTime()), null);
+			generator = Generators.timeBasedGenerator(EthernetAddress.fromInterface(), timer);
+		}
 		/**
 		 * To generate unique id
 		 *
@@ -130,7 +143,7 @@ public class ModuleUtilityConfiguration {
 		 */
 		@Override
 		public String generate() {
-			return UUID.randomUUID().toString();
+			return generator.generate().toString();
 		}
 	}
 }

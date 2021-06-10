@@ -9,7 +9,6 @@ import oleg.sopilnyak.module.metric.ModuleMetric;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 /**
  * Type - service's module
@@ -32,11 +31,9 @@ public interface Module extends ModuleBasics {
 	 */
 	default boolean isWorking() {
 		final AtomicBoolean isActive = new AtomicBoolean(false);
-		final ModuleValues.Visitor valuesVisitor = new ModuleValues.Visitor() {
-			public void visit(final ModuleValues values) {
-				if (!isActive.get()){
-					isActive.getAndSet(values.isActive());
-				}
+		final ModuleValues.Visitor valuesVisitor = values -> {
+			if (!isActive.get()){
+				isActive.getAndSet(values.isActive());
 			}
 		};
 		accept(valuesVisitor);
@@ -66,7 +63,7 @@ public interface Module extends ModuleBasics {
 	}
 
 	/**
-	 * To walk through values of the module
+	 * To walk through module-values of the module
 	 *
 	 * @param visitor instance to visit each module's values
 	 */
@@ -87,7 +84,7 @@ public interface Module extends ModuleBasics {
 	default Collection<ModuleMetric> metrics() {
 		final MetricsContainer container = getMetricsContainer();
 		try {
-			return container.metrics().stream().collect(Collectors.toCollection(LinkedList::new));
+			return new LinkedList<>(container.metrics());
 		}finally {
 			container.clear();
 		}

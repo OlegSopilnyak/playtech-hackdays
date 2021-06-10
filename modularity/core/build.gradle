@@ -3,6 +3,7 @@ version = '0.6-SNAPSHOT'
 description = 'Core classes and Services of Modules System'
 
 dependencies {
+        compile group: 'com.fasterxml.uuid', name: 'java-uuid-generator', version: '4.0'
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.+'
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.+'
         compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.+'

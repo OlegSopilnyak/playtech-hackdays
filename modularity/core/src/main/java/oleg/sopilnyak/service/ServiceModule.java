@@ -13,7 +13,7 @@ public interface ServiceModule extends Module, ModuleValues {
 	/**
 	 * To refresh module's state before return from registry
 	 *
-	 * @return true if registered
+	 * @return true (registered by any chance)
 	 */
 	@Override
 	default boolean isModuleRegistered() {
