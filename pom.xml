@@ -181,7 +181,7 @@
         <cucumber.version>1.1.1</cucumber.version>
         <!--<spring.version>3.2.10.RELEASE</spring.version>-->
         <jackson.version>2.7.3</jackson.version>
-        <spring.version>4.2.6.RELEASE</spring.version>
+        <spring.version>5.3.18</spring.version>
         <handlebars.version>2.0.0</handlebars.version>
         <jaxws.version>2.3</jaxws.version>
         <compress>false</compress>
